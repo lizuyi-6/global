@@ -41,11 +41,14 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     // UI 元素
     private statusPanel!: Phaser.GameObjects.Container;
     private commandPanel!: Phaser.GameObjects.Container;
-    private player!: Phaser.GameObjects.Text;
+    private playerSprite!: Phaser.GameObjects.Container;
+    private playerBody!: Phaser.GameObjects.Graphics;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private worldContainer!: Phaser.GameObjects.Container;
     private worldX = 0;
     private worldY = 0;
+    private isMoving = false;
+    private moveTime = 0;
 
     constructor() {
         super({ key: 'ImprovedOfficeScene' });
@@ -53,43 +56,16 @@ export class ImprovedOfficeScene extends Phaser.Scene {
 
     create(): void {
         // 背景
-        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
-
-        // 背景装饰
-        const deco = this.add.graphics();
-        deco.lineStyle(2, COLORS.primary, 0.1);
-        for (let i = 0; i < 1280; i += 40) {
-            deco.moveTo(i, 0);
-            deco.lineTo(i, 720);
-        }
-        for (let i = 0; i < 720; i += 40) {
-            deco.moveTo(0, i);
-            deco.lineTo(1280, i);
-        }
-        deco.strokePath();
-
-        // 标题容器
-        const header = this.add.container(640, 60);
-        const titleText = this.add.text(0, -15, '🏢 职场生活 (2.5D)', {
-            fontSize: '36px',
-            fontFamily: FONTS.main,
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        const subTitleText = this.add.text(0, 25, 'ISOMETRIC OFFICE SIMULATION / WASD TO MOVE', {
-            fontSize: '12px',
-            fontFamily: FONTS.mono,
-            color: '#4a90d9',
-            letterSpacing: 2
-        }).setOrigin(0.5);
-        header.add([titleText, subTitleText]);
-        header.setDepth(5000);
+        this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e); // 深色背景
 
         // 创建世界容器
-        this.worldContainer = this.add.container(640, 250);
+        this.worldContainer = this.add.container(640, 300);
 
-        // 绘制地面
+        // 绘制地面（地毯质感）
         this.createIsometricFloor();
+
+        // 绘制墙体
+        this.createOfficeWalls();
 
         // 创建办公室环境
         this.createOfficeEnvironment();
@@ -97,8 +73,25 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         // 创建同事
         this.createColleagues();
 
-        // 创建玩家
+        // 创建玩家 (像素小人)
         this.createPlayer();
+
+        // 标题容器
+        const header = this.add.container(640, 60);
+        const titleText = this.add.text(0, -15, '🏢 赛博办公室 (2.5D RPG)', {
+            fontSize: '36px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        const subTitleText = this.add.text(0, 25, 'ISOMETRIC RPG MODE / WASD TO MOVE / SPACE TO INTERACT', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9',
+            letterSpacing: 2
+        }).setOrigin(0.5);
+        header.add([titleText, subTitleText]);
+        header.setDepth(5000);
 
         // 输入控制
         this.cursors = this.input.keyboard!.createCursorKeys();
@@ -133,59 +126,156 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     }
 
     /**
-     * 创建等距地面
+     * 创建等距地面 (地毯质感)
      */
     private createIsometricFloor(): void {
         const floorGraphics = this.add.graphics();
-        floorGraphics.lineStyle(1, 0x4a90d9, 0.2);
-        
-        const gridSize = 15;
-        const tileSize = 40;
 
-        for (let x = -gridSize; x <= gridSize; x++) {
-            for (let y = -gridSize; y <= gridSize; y++) {
+        const gridSize = 10; // 缩小网格数量，使空间更紧凑
+        const tileSize = 80; // 增大单个瓷砖大小，配合紧凑布局
+
+        for (let x = -gridSize; x < gridSize; x++) {
+            for (let y = -gridSize; y < gridSize; y++) {
                 const iso = this.cartToIso(x * tileSize, y * tileSize);
                 const p1 = this.cartToIso((x + 1) * tileSize, y * tileSize);
                 const p2 = this.cartToIso((x + 1) * tileSize, (y + 1) * tileSize);
                 const p3 = this.cartToIso(x * tileSize, (y + 1) * tileSize);
 
+                // 交替颜色营造地毯纹理
+                const color = ((x + y) % 2 === 0) ? 0x2c3e50 : 0x34495e;
+                floorGraphics.fillStyle(color, 1);
                 floorGraphics.beginPath();
                 floorGraphics.moveTo(iso.x, iso.y);
                 floorGraphics.lineTo(p1.x, p1.y);
                 floorGraphics.lineTo(p2.x, p2.y);
                 floorGraphics.lineTo(p3.x, p3.y);
                 floorGraphics.closePath();
+                floorGraphics.fillPath();
+
+                // 网格线
+                floorGraphics.lineStyle(1, 0x4a90d9, 0.1);
                 floorGraphics.strokePath();
-                
-                // 填充一点颜色
-                if ((x + y) % 2 === 0) {
-                    floorGraphics.fillStyle(0x4a90d9, 0.05);
-                    floorGraphics.fillPath();
-                }
             }
         }
         this.worldContainer.add(floorGraphics);
+        floorGraphics.setDepth(-10000);
+    }
+
+    /**
+     * 创建办公室墙体
+     */
+    private createOfficeWalls(): void {
+        const wallGraphics = this.add.graphics();
+        const gridSize = 12;
+        const tileSize = 60;
+        const wallHeight = 100;
+
+        // 后方左墙
+        for (let x = -gridSize; x < gridSize; x++) {
+            const p1 = this.cartToIso(x * tileSize, -gridSize * tileSize);
+            const p2 = this.cartToIso((x + 1) * tileSize, -gridSize * tileSize);
+
+            wallGraphics.fillStyle(0x1a2533, 1);
+            wallGraphics.beginPath();
+            wallGraphics.moveTo(p1.x, p1.y);
+            wallGraphics.lineTo(p2.x, p2.y);
+            wallGraphics.lineTo(p2.x, p2.y - wallHeight);
+            wallGraphics.lineTo(p1.x, p1.y - wallHeight);
+            wallGraphics.closePath();
+            wallGraphics.fillPath();
+
+            wallGraphics.lineStyle(1, 0x4a90d9, 0.2);
+            wallGraphics.strokePath();
+        }
+
+        // 后方右墙
+        for (let y = -gridSize; y < gridSize; y++) {
+            const p1 = this.cartToIso(gridSize * tileSize, y * tileSize);
+            const p2 = this.cartToIso(gridSize * tileSize, (y + 1) * tileSize);
+
+            wallGraphics.fillStyle(0x243345, 1);
+            wallGraphics.beginPath();
+            wallGraphics.moveTo(p1.x, p1.y);
+            wallGraphics.lineTo(p2.x, p2.y);
+            wallGraphics.lineTo(p2.x, p2.y - wallHeight);
+            wallGraphics.lineTo(p1.x, p1.y - wallHeight);
+            wallGraphics.closePath();
+            wallGraphics.fillPath();
+
+            wallGraphics.lineStyle(1, 0x4a90d9, 0.2);
+            wallGraphics.strokePath();
+        }
+
+        this.worldContainer.add(wallGraphics);
+        wallGraphics.setDepth(-5000);
     }
 
     private createPlayer(): void {
-        this.player = this.add.text(0, 0, '👨‍💼', { fontSize: '48px' }).setOrigin(0.5, 0.8);
-        this.worldContainer.add(this.player);
-        this.player.setDepth(0);
-        
+        this.playerSprite = this.add.container(0, 0);
+        this.worldContainer.add(this.playerSprite);
+
+        // 创建像素风格小人 (Soul Knight 风格)
+        this.playerBody = this.add.graphics();
+        this.drawPixelMan(this.playerBody, 0x00ff88);
+        this.playerSprite.add(this.playerBody);
+
         // 名字标签
-        const nameLabel = this.add.text(0, -50, 'YOU', {
+        const nameLabel = this.add.text(0, -60, 'YOU', {
             fontSize: '12px',
             fontFamily: FONTS.mono,
             color: '#00ff88',
             backgroundColor: '#00000088',
             padding: { x: 4, y: 2 }
         }).setOrigin(0.5);
-        this.player.setData('label', nameLabel);
-        this.worldContainer.add(nameLabel);
+        this.playerSprite.add(nameLabel);
     }
 
-    update(): void {
-        if (!this.player) return;
+    /**
+     * 绘制更像人的像素角色 (带细节)
+     */
+    private drawPixelMan(g: Phaser.GameObjects.Graphics, color: number): void {
+        g.clear();
+
+        // 影子
+        g.fillStyle(0x000000, 0.2);
+        g.fillEllipse(0, 0, 30, 12);
+
+        // 腿部
+        g.fillStyle(0x333333, 1);
+        g.fillRect(-8, -10, 6, 10);
+        g.fillRect(2, -10, 6, 10);
+
+        // 身体 (西装)
+        g.fillStyle(color, 1);
+        g.fillRect(-12, -35, 24, 25);
+        
+        // 衬衫领带
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(-3, -35, 6, 12);
+        g.fillStyle(0xff4444, 1);
+        g.fillRect(-1, -30, 2, 8);
+
+        // 头部
+        g.fillStyle(0xffdbac, 1);
+        g.fillRect(-12, -55, 24, 20); 
+
+        // 眼睛
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(-7, -48, 5, 5);
+        g.fillRect(3, -48, 5, 5);
+        g.fillStyle(0x000000, 1);
+        g.fillRect(-5, -46, 3, 3);
+        g.fillRect(5, -46, 3, 3);
+
+        // 头发
+        g.fillStyle(0x222222, 1);
+        g.fillRect(-14, -58, 28, 8);
+        g.fillRect(-14, -50, 4, 12);
+        g.fillRect(10, -50, 4, 12);
+    }
+
+    update(time: number): void {
+        if (!this.playerSprite) return;
 
         const speed = 4;
         let dx = 0;
@@ -198,37 +288,61 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         if (this.cursors.up.isDown || keys.W.isDown) dy -= speed;
         if (this.cursors.down.isDown || keys.S.isDown) dy += speed;
 
-        // 斜向移动速度标准化
-        if (dx !== 0 && dy !== 0) {
-            dx *= 0.707;
-            dy *= 0.707;
+        this.isMoving = (dx !== 0 || dy !== 0);
+
+        if (this.isMoving) {
+            this.moveTime += 0.15;
+            // 走路动画：轻微左右晃动和上下起伏
+            this.playerBody.y = Math.sin(this.moveTime * 10) * 1;
+            this.playerBody.angle = Math.sin(this.moveTime * 10) * 3;
+
+            if (dx !== 0 && dy !== 0) {
+                dx *= 0.707;
+                dy *= 0.707;
+            }
+
+            this.worldX += dx;
+            this.worldY += dy;
+
+            // 朝向
+            if (dx < 0) this.playerBody.scaleX = -1;
+            else if (dx > 0) this.playerBody.scaleX = 1;
+        } else {
+            this.moveTime += 0.05;
+            this.playerBody.y = Math.sin(this.moveTime * 2) * 1;
+            this.playerBody.scaleY = 1 + Math.sin(this.moveTime * 2) * 0.01;
+            this.playerBody.angle = 0;
         }
 
-        this.worldX += dx;
-        this.worldY += dy;
-
-        // 限制在办公室内
-        this.worldX = Phaser.Math.Clamp(this.worldX, -500, 500);
-        this.worldY = Phaser.Math.Clamp(this.worldY, -500, 500);
+        // 限制在办公室内 (更紧凑的边界)
+        const limitX = 400;
+        const limitY = 400;
+        this.worldX = Phaser.Math.Clamp(this.worldX, -limitX, limitX);
+        this.worldY = Phaser.Math.Clamp(this.worldY, -limitY, limitY);
 
         const iso = this.cartToIso(this.worldX, this.worldY);
-        this.player.setPosition(iso.x, iso.y);
-        this.player.setDepth(iso.y + 1000); // 深度排序
+        this.playerSprite.setPosition(iso.x, iso.y);
+        this.playerSprite.setDepth(iso.y + 2000); // 深度排序基础
 
-        const label = this.player.getData('label') as Phaser.GameObjects.Text;
-        if (label) {
-            label.setPosition(iso.x, iso.y - 60);
-            label.setDepth(this.player.depth + 1);
-        }
+        // 镜头跟随平滑化
+        const targetCamX = 640 - iso.x;
+        const targetCamY = 300 - iso.y;
+        this.worldContainer.x += (targetCamX - this.worldContainer.x) * 0.1;
+        this.worldContainer.y += (targetCamY - this.worldContainer.y) * 0.1;
 
-        // 碰撞/交互检测 (简单距离判断)
+        // 碰撞/交互检测
         this.sceneObjects.forEach((obj, id) => {
-            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, obj.sprite.x, obj.sprite.y);
-            if (dist < 40) {
-                obj.sprite.setTint(0x00ff88);
+            const dist = Phaser.Math.Distance.Between(this.playerSprite.x, this.playerSprite.y, obj.sprite.x, obj.sprite.y);
+            if (dist < 60) {
+                obj.sprite.setAlpha(1);
             } else {
-                obj.sprite.clearTint();
+                obj.sprite.setAlpha(0.8);
             }
+        });
+
+        // 同事动画
+        this.colleagues.forEach(col => {
+            col.sprite.scaleY = 1 + Math.sin(time / 1000 + col.sprite.x) * 0.02;
         });
     }
 
@@ -236,57 +350,117 @@ export class ImprovedOfficeScene extends Phaser.Scene {
      * 创建办公室环境（丰富的场景物品）
      */
     private createOfficeEnvironment(): void {
-        // 布局物品到等距坐标
-        // 办公桌 1
-        this.createIsoObject(-200, -200, '💻', 'computer', '电脑', '你的工作电脑，上面开着VS Code和Chrome');
-        this.createIsoObject(-150, -200, '☕', 'coffee', '咖啡杯', '一杯冒着热气的咖啡');
-        this.createIsoObject(-200, -150, '⌨️', 'keyboard', '键盘', '机械键盘');
-        
-        // 公共区
-        this.createIsoObject(0, 0, '🌿', 'plant', '绿植', '一盆发财树');
-        this.createIsoObject(50, 50, '🗑️', 'trashbin', '垃圾桶', '垃圾桶');
-        this.createIsoObject(-50, 50, '🪑', 'chair', '椅子', '人体工学椅');
+        // 创建更紧凑的工位布局
+        const spacingX = 180;
+        const spacingY = 150;
 
-        // 同事桌
-        this.createIsoObject(200, 200, '🖥️', 'colleague_computer', '同事电脑', '隔壁同事的电脑');
+        // 第一排工位
+        this.createWorkStation(-spacingX, -spacingY, 'YOUR DESK');
+        this.createWorkStation(0, -spacingY, 'TEAM A-1');
+        this.createWorkStation(spacingX, -spacingY, 'TEAM A-2');
+
+        // 第二排工位 (距离更近)
+        this.createWorkStation(-spacingX, 0, 'TEAM B-1');
+        this.createWorkStation(0, 0, 'TEAM B-2');
+        this.createWorkStation(spacingX, 0, 'TEAM B-3');
+
+        // 第三排工位
+        this.createWorkStation(-spacingX, spacingY, 'TEAM C-1');
+        this.createWorkStation(0, spacingY, 'TEAM C-2');
+        this.createWorkStation(spacingX, spacingY, 'TEAM C-3');
+
+        // 老板办公室/高级工位 (位于前方中心)
+        this.createWorkStation(0, -350, 'BOSS OFFICE');
+        this.createIsoObject(0, -420, '🚩', 'boss_flag', '公司旗帜', '代表公司的荣誉');
+
+        // 公共设施 (移到更靠近中心的位置)
+        this.createIsoObject(-350, -350, '🥤', 'water', '饮水机', '办公室的八卦中心');
+        this.createIsoObject(350, -350, '🪴', 'plant1', '大绿植', '净化空气的龟背竹');
+        this.createIsoObject(350, 350, '🖨️', 'printer', '打印机', '经常卡纸的老古董');
+        this.createIsoObject(-350, 350, '🛋️', 'sofa', '休息区', '短暂逃离工作的避风港');
+    }
+
+    /**
+     * 创建一个工位组合
+     */
+    private createWorkStation(x: number, y: number, label: string): void {
+        // 绘制工位隔断
+        const deskGraphics = this.add.graphics();
+        const iso = this.cartToIso(x, y);
+
+        // 桌面
+        const p1 = this.cartToIso(x - 60, y - 40);
+        const p2 = this.cartToIso(x + 60, y - 40);
+        const p3 = this.cartToIso(x + 60, y + 40);
+        const p4 = this.cartToIso(x - 60, y + 40);
+
+        deskGraphics.fillStyle(0x444444, 1);
+        deskGraphics.beginPath();
+        deskGraphics.moveTo(p1.x, p1.y);
+        deskGraphics.lineTo(p2.x, p2.y);
+        deskGraphics.lineTo(p3.x, p3.y);
+        deskGraphics.lineTo(p4.x, p4.y);
+        deskGraphics.closePath();
+        deskGraphics.fillPath();
+        deskGraphics.lineStyle(2, 0x666666);
+        deskGraphics.strokePath();
+
+        this.worldContainer.add(deskGraphics);
+        deskGraphics.setDepth(iso.y + 900);
+
+        // 放置物品
+        this.createIsoObject(x - 20, y - 10, '💻', `comp_${x}_${y}`, `${label} 电脑`, '正在运行代码...');
+        this.createIsoObject(x + 20, y + 10, '☕', `cup_${x}_${y}`, '咖啡杯', '熬夜必备');
     }
 
     private createIsoObject(worldX: number, worldY: number, icon: string, id: string, name: string, description: string): void {
         const iso = this.cartToIso(worldX, worldY);
-        const text = this.add.text(iso.x, iso.y, icon, {
-            fontSize: '32px'
-        }).setOrigin(0.5, 0.8);
-        text.setDepth(iso.y + 1000);
 
-        text.setInteractive({ useHandCursor: true });
-        this.worldContainer.add(text);
+        const container = this.add.container(iso.x, iso.y);
+
+        // 影子
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.2);
+        shadow.fillEllipse(0, 0, 20, 10);
+        container.add(shadow);
+
+        const text = this.add.text(0, 0, icon, {
+            fontSize: '32px'
+        }).setOrigin(0.5, 0.9);
+        container.add(text);
+
+        container.setDepth(iso.y + 1000);
+        container.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 40), Phaser.Geom.Rectangle.Contains);
+        container.input!.cursor = 'pointer';
+
+        this.worldContainer.add(container);
 
         // 悬停显示名称
-        text.on('pointerover', () => {
+        container.on('pointerover', () => {
             text.setScale(1.2);
-            const tooltip = this.add.text(iso.x, iso.y - 60, name, {
+            const tooltip = this.add.text(0, -60, name, {
                 fontSize: '12px',
                 color: '#ffffff',
                 backgroundColor: '#000000aa',
                 padding: { x: 8, y: 4 }
             }).setOrigin(0.5);
             tooltip.setDepth(20000);
-            text.setData('tooltip', tooltip);
-            this.worldContainer.add(tooltip);
+            container.setData('tooltip', tooltip);
+            container.add(tooltip);
         });
 
-        text.on('pointerout', () => {
+        container.on('pointerout', () => {
             text.setScale(1);
-            const tooltip = text.getData('tooltip');
+            const tooltip = container.getData('tooltip');
             if (tooltip) tooltip.destroy();
         });
 
-        text.on('pointerdown', () => {
+        container.on('pointerdown', () => {
             this.showObjectDetail(name, description);
         });
 
         this.sceneObjects.set(id, {
-            sprite: text,
+            sprite: container as any,
             name,
             description,
             canInteract: true
@@ -298,27 +472,33 @@ export class ImprovedOfficeScene extends Phaser.Scene {
      */
     private createColleagues(): void {
         const colleagues = [
-            { name: '张经理', emoji: '👔', wx: 300, wy: -300, position: '项目经理', relationship: 20 },
-            { name: '李同事', emoji: '👨‍💻', wx: 400, wy: 300, position: '前端开发', relationship: 50 },
-            { name: '王测试', emoji: '👩‍💻', wx: -300, wy: 400, position: '测试工程师', relationship: 40 }
+            { name: '王老板', color: 0x000000, wx: 60, wy: -350, position: '公司创始人', relationship: 10 },
+            { name: '张经理', color: 0xff4444, wx: 60, wy: -150, position: '项目经理', relationship: 20 },
+            { name: '李同事', color: 0x4488ff, wx: 60, wy: 0, position: '前端开发', relationship: 50 },
+            { name: '王测试', color: 0xffaa00, wx: 60, wy: 150, position: '测试工程师', relationship: 40 },
+            { name: '赵行政', color: 0xff66cc, wx: -300, wy: 350, position: '行政主管', relationship: 60 }
         ];
 
         colleagues.forEach(col => {
             const iso = this.cartToIso(col.wx, col.wy);
-            const sprite = this.add.text(iso.x, iso.y, col.emoji, {
-                fontSize: '40px'
-            }).setOrigin(0.5, 0.8);
-            sprite.setDepth(iso.y + 1000);
+            const container = this.add.container(iso.x, iso.y);
 
-            sprite.setInteractive({ useHandCursor: true });
-            this.worldContainer.add(sprite);
+            const body = this.add.graphics();
+            this.drawPixelMan(body, col.color);
+            container.add(body);
+
+            container.setDepth(iso.y + 1000);
+            container.setInteractive(new Phaser.Geom.Rectangle(-20, -40, 40, 50), Phaser.Geom.Rectangle.Contains);
+            container.input!.cursor = 'pointer';
+
+            this.worldContainer.add(container);
 
             // 悬停显示关系
-            sprite.on('pointerover', () => {
-                sprite.setScale(1.2);
+            container.on('pointerover', () => {
+                container.setScale(1.2);
                 const relationText = col.relationship >= 60 ? '😊关系好' :
                     col.relationship >= 30 ? '😐一般' : '😒关系差';
-                const tooltip = this.add.text(iso.x, iso.y - 70, `${col.name} (${col.position})\n${relationText}`, {
+                const tooltip = this.add.text(0, -70, `${col.name} (${col.position})\n${relationText}`, {
                     fontSize: '12px',
                     color: '#ffffff',
                     backgroundColor: '#000000aa',
@@ -326,24 +506,24 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                     align: 'center'
                 }).setOrigin(0.5);
                 tooltip.setDepth(20000);
-                sprite.setData('tooltip', tooltip);
-                this.worldContainer.add(tooltip);
+                container.setData('tooltip', tooltip);
+                container.add(tooltip);
             });
 
-            sprite.on('pointerout', () => {
-                sprite.setScale(1);
-                const tooltip = sprite.getData('tooltip');
+            container.on('pointerout', () => {
+                container.setScale(1);
+                const tooltip = container.getData('tooltip');
                 if (tooltip) tooltip.destroy();
             });
 
             // 点击对话
-            sprite.on('pointerdown', () => {
+            container.on('pointerdown', () => {
                 this.showChatDialog(col.name);
             });
 
             this.colleagues.set(col.name, {
                 name: col.name,
-                sprite: sprite,
+                sprite: container as any, // 保持类型兼容
                 relationship: col.relationship,
                 position: col.position
             });
@@ -818,25 +998,25 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             const input = document.getElementById('chatInput') as HTMLTextAreaElement;
             const submitBtn = document.getElementById('chatSubmit') as HTMLButtonElement;
             const closeBtn = document.getElementById('chatClose') as HTMLButtonElement;
-        
+
             input?.focus();
-        
+
             input?.addEventListener('focus', () => {
                 this.input.keyboard!.enabled = false;
             });
             input?.addEventListener('blur', () => {
                 this.input.keyboard!.enabled = true;
             });
-        
+
             const handleSend = () => {
                 const message = input.value.trim();
                 if (!message) return;
-        
+
                 responseText.setText('正在思考...');
                 input.value = '';
                 input.disabled = true;
                 submitBtn.disabled = true;
-        
+
                 apiService.chatWithNPC(
                     npcName,
                     message,
@@ -849,12 +1029,12 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                     }
                 ).then(result => {
                     responseText.setText(`${npcName}: "${result.npc_response}"`);
-                            
+
                     if (result.relationship_change !== 0) {
                         gameState.updateRelationship(npcName, result.relationship_change);
                         notificationManager.info('关系变化', `${npcName} 对你的好感 ${result.relationship_change > 0 ? '+' : ''}${result.relationship_change}`, 4000);
                     }
-        
+
                     input.disabled = false;
                     submitBtn.disabled = false;
                     input.focus();
@@ -864,7 +1044,7 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                     submitBtn.disabled = false;
                 });
             };
-        
+
             submitBtn?.addEventListener('click', handleSend);
             closeBtn?.addEventListener('click', () => {
                 chatContainer.destroy();

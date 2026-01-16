@@ -229,7 +229,7 @@ export class JobHuntScene extends Phaser.Scene {
             backgroundColor: '#330000',
             padding: { x: 5, y: 3 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        
+
         debugBtn.on('pointerdown', () => {
             if (confirm('跳过入职过程，直接进入职场生活？')) {
                 this.scene.start('ImprovedOfficeScene');
