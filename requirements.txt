@@ -1,1 +1,18 @@
+# Gradio - Web 界面框架
 gradio>=4.0.0
+
+# FastAPI - 后端 API 框架
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# 数据验证
+pydantic>=2.0.0
+
+# HTTP 客户端
+httpx>=0.25.0
+
+# OpenAI 兼容 API（用于调用 ModelScope Qwen3）
+openai>=1.0.0
+
+# 环境变量管理
+python-dotenv>=1.0.0
