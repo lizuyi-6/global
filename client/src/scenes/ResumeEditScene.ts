@@ -201,26 +201,30 @@ export class ResumeEditScene extends Phaser.Scene {
         bg.on('pointerout', () => bg.setStrokeStyle(1, 0x4a4a5a));
 
         bg.on('pointerdown', () => {
+            // 禁用点击防止重复弹窗
+            bg.disableInteractive();
+                    
             // 创建内嵌输入框
             const inputContainer = this.add.container(640, 360);
             inputContainer.setDepth(10000);
-
+                    
             const overlay = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.7);
             overlay.setOrigin(0.5);
+            overlay.setInteractive();  // 阻止点击穿透
             inputContainer.add(overlay);
-
+                    
             const inputBg = this.add.rectangle(0, 0, 500, 180, 0x1a1a2e);
             inputBg.setStrokeStyle(2, 0x4a90d9);
             inputBg.setOrigin(0.5);
             inputContainer.add(inputBg);
-
+                    
             const title = this.add.text(0, -50, '请输入:', {
                 fontSize: '16px',
                 color: '#ffffff',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
             inputContainer.add(title);
-
+                    
             const inputHTML = `
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     <input type="text" id="textInput" value="${text.text}"
@@ -231,7 +235,8 @@ export class ResumeEditScene extends Phaser.Scene {
                                   color: #ffffff;
                                   border: 2px solid #4a90d9;
                                   border-radius: 4px;
-                                  outline: none;" />
+                                  outline: none;
+                                  box-sizing: border-box;" />
                     <div style="display: flex; gap: 10px; justify-content: center;">
                         <button id="textSubmit"
                                 style="padding: 8px 30px;
@@ -257,20 +262,20 @@ export class ResumeEditScene extends Phaser.Scene {
                     </div>
                 </div>
             `;
-
+                    
             const domElement = this.add.dom(0, 10, 'div').createFromHTML(inputHTML);
             inputContainer.add(domElement);
-
+                    
             this.time.delayedCall(100, () => {
                 const input = document.getElementById('textInput') as HTMLInputElement;
                 const submitBtn = document.getElementById('textSubmit') as HTMLButtonElement;
                 const cancelBtn = document.getElementById('textCancel') as HTMLButtonElement;
-
+                        
                 if (input) {
                     input.focus();
                     input.select();
                 }
-
+                        
                 const handleSubmit = () => {
                     if (input) {
                         const newValue = input.value.trim();
@@ -280,20 +285,22 @@ export class ResumeEditScene extends Phaser.Scene {
                         }
                     }
                     inputContainer.destroy();
+                    bg.setInteractive({ useHandCursor: true });  // 恢复交互
                 };
-
+                        
                 const handleCancel = () => {
                     inputContainer.destroy();
+                    bg.setInteractive({ useHandCursor: true });  // 恢复交互
                 };
-
+                        
                 if (submitBtn) {
                     submitBtn.addEventListener('click', handleSubmit);
                 }
-
+                        
                 if (cancelBtn) {
                     cancelBtn.addEventListener('click', handleCancel);
                 }
-
+                        
                 if (input) {
                     input.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter') {
