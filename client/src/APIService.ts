@@ -3,7 +3,10 @@
  * 与后端通信，获取 AI 对话响应
  */
 
-const API_BASE_URL = 'http://localhost:8001';
+// 使用相对路径，在本地开发时代理到后端，部署时使用同一域名
+const API_BASE_URL = import.meta.env.MODE === 'development'
+    ? 'http://localhost:8000'
+    : '';  // 生产环境使用相对路径
 
 export interface ChatRequest {
     npc_name: string;
