@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Application, InterviewRound } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
+import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
 
 /**
  * 面试场景 - 自由回答版
@@ -48,59 +49,73 @@ export class InterviewScene extends Phaser.Scene {
     }
 
     create(): void {
-        this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e);
+        // 背景
+        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+
+        // 背景装饰
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
 
         const job = jobHuntSystem.getJobPosition(this.application.jobId);
         const company = jobHuntSystem.getCompany(this.application.companyId);
 
-        // 顶部
-        this.add.rectangle(640, 50, 1280, 100, 0x2a2a3a);
-        this.add.text(50, 30, `${company?.name} - ${job?.title}`, {
-            fontSize: '20px',
-            color: '#4a90d9',
+        // 标题容器
+        const headerContainer = this.add.container(640, 60);
+        const titleText = this.add.text(0, -15, '🎤 面试环节', {
+            fontSize: '36px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
             fontStyle: 'bold'
-        });
-
-        const typeLabel = this.isPressureInterview ? '【压力面试】' : '';
-        this.add.text(50, 60,
-            `第${this.currentRound.round}轮 ${typeLabel} | 面试官: ${this.currentRound.interviewerName} (${this.currentRound.interviewerRole})`, {
-            fontSize: '14px',
-            color: this.isPressureInterview ? '#ff6644' : '#888888'
-        });
-
-        // 进度
-        this.add.text(1100, 45, `问题 1/${this.totalQuestions}`, {
-            fontSize: '14px',
-            color: '#888888'
-        });
+        }).setOrigin(0.5);
+        const subTitleText = this.add.text(0, 25, `${company?.name} / ${job?.title} - ROUND ${this.currentRound.round}`, {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9',
+            letterSpacing: 2
+        }).setOrigin(0.5);
+        headerContainer.add([titleText, subTitleText]);
 
         // 面试官区域
         this.createInterviewerArea();
 
         // 对话区域
-        this.add.rectangle(700, 280, 700, 240, 0x2a2a3a).setStrokeStyle(1, 0x444444);
+        const dialogBg = this.add.rectangle(730, 300, 800, 280, COLORS.panel, 0.6);
+        applyGlassEffect(dialogBg);
 
-        this.responseText = this.add.text(700, 280, '', {
-            fontSize: '16px',
+        this.responseText = this.add.text(730, 300, '', {
+            fontSize: '18px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
-            wordWrap: { width: 650 },
+            wordWrap: { width: 740 },
             align: 'left',
-            lineSpacing: 8
+            lineSpacing: 10
         }).setOrigin(0.5);
 
         // 参考提示区域
-        this.add.rectangle(700, 460, 700, 100, 0x252535).setStrokeStyle(1, 0x3a3a4a);
-        this.add.text(360, 420, '💡 回答参考方向:', {
-            fontSize: '12px',
-            color: '#666666'
+        const hintBg = this.add.rectangle(730, 480, 800, 60, 0xffffff, 0.05);
+        hintBg.setStrokeStyle(1, 0xffffff, 0.1);
+
+        this.add.text(350, 455, '💡 HINTS:', {
+            fontSize: '11px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9'
         });
 
-        this.hintText = this.add.text(700, 470, '', {
-            fontSize: '13px',
+        this.hintText = this.add.text(730, 485, '', {
+            fontSize: '14px',
+            fontFamily: FONTS.main,
             color: '#888888',
-            wordWrap: { width: 680 },
-            align: 'center',
-            lineSpacing: 6
+            wordWrap: { width: 760 },
+            align: 'center'
         }).setOrigin(0.5);
 
         // 回答按钮
@@ -114,30 +129,48 @@ export class InterviewScene extends Phaser.Scene {
     }
 
     private createInterviewerArea(): void {
-        this.add.rectangle(180, 300, 220, 320, 0x2a2a3a).setStrokeStyle(1, 0x444444);
+        const interviewerBg = this.add.rectangle(200, 380, 280, 440, COLORS.panel, 0.5);
+        applyGlassEffect(interviewerBg);
+
+        // 装饰边框
+        const border = this.add.graphics();
+        border.lineStyle(2, this.isPressureInterview ? 0xff4444 : 0x4a90d9, 0.3);
+        border.strokeRect(80, 180, 240, 400);
 
         // 表情
-        this.moodEmoji = this.add.text(180, 240, this.getMoodEmoji(), {
-            fontSize: '90px'
+        this.moodEmoji = this.add.text(200, 320, this.getMoodEmoji(), {
+            fontSize: '120px'
         }).setOrigin(0.5);
 
-        // 名字
-        this.add.text(180, 340, this.currentRound.interviewerName, {
-            fontSize: '16px',
+        // 名字标签
+        const nameBg = this.add.rectangle(200, 480, 220, 40, 0x000000, 0.5);
+        this.add.text(200, 480, this.currentRound.interviewerName, {
+            fontSize: '20px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(180, 365, this.currentRound.interviewerRole, {
-            fontSize: '12px',
-            color: '#888888'
+        this.add.text(200, 515, this.currentRound.interviewerRole, {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9'
         }).setOrigin(0.5);
 
         if (this.isPressureInterview) {
-            this.add.text(180, 400, '面试官看起来很严肃...', {
-                fontSize: '11px',
-                color: '#ff6644'
+            const warningText = this.add.text(200, 560, 'PRESSURE MONITOR: HIGH', {
+                fontSize: '10px',
+                fontFamily: FONTS.mono,
+                color: '#ff4444'
             }).setOrigin(0.5);
+
+            this.tweens.add({
+                targets: warningText,
+                alpha: 0.3,
+                duration: 500,
+                yoyo: true,
+                loop: -1
+            });
         }
     }
 
@@ -170,24 +203,9 @@ export class InterviewScene extends Phaser.Scene {
     }
 
     private createAnswerButton(): void {
-        this.answerBtn = this.add.text(700, 560, '✍️ 输入你的回答', {
-            fontSize: '18px',
-            color: '#ffffff',
-            backgroundColor: '#4a90d9',
-            padding: { x: 40, y: 15 }
-        }).setOrigin(0.5);
-
-        this.answerBtn.setInteractive({ useHandCursor: true });
-
-        this.answerBtn.on('pointerover', () => {
-            this.answerBtn.setStyle({ backgroundColor: '#5aa0e9' });
-        });
-        this.answerBtn.on('pointerout', () => {
-            this.answerBtn.setStyle({ backgroundColor: '#4a90d9' });
-        });
-        this.answerBtn.on('pointerdown', () => {
+        this.answerBtn = createStyledButton(this, 730, 600, 300, 55, '✍️ 输入你的回答', () => {
             this.submitAnswer();
-        });
+        }) as any; // Cast because createStyledButton returns Container but we need to reference it
     }
 
     private startInterview(): void {
@@ -299,8 +317,10 @@ export class InterviewScene extends Phaser.Scene {
             </div>
         `;
 
-        const domElement = this.add.dom(0, 20, 'div').createFromHTML(inputHTML);
-        inputContainer.add(domElement);
+        const domElement = this.add.dom(640, 360 + 20, 'div').createFromHTML(inputHTML);
+        // 不放入 container
+        // inputContainer.add(domElement);
+        domElement.setDepth(10001);
 
         // 延迟绑定事件
         this.time.delayedCall(100, () => {
@@ -310,6 +330,12 @@ export class InterviewScene extends Phaser.Scene {
 
             if (textarea) {
                 textarea.focus();
+                textarea.addEventListener('focus', () => {
+                    this.input.keyboard!.enabled = false;
+                });
+                textarea.addEventListener('blur', () => {
+                    this.input.keyboard!.enabled = true;
+                });
             }
 
             const handleSubmit = () => {
@@ -320,8 +346,9 @@ export class InterviewScene extends Phaser.Scene {
                     return;
                 }
 
-                // 销毁输入框
+                // 销毁输入框和 DOM 元素
                 inputContainer.destroy();
+                domElement.destroy();
 
                 // 禁用按钮
                 this.answerBtn.setStyle({ backgroundColor: '#3a3a4a', color: '#888888' });
@@ -344,6 +371,7 @@ export class InterviewScene extends Phaser.Scene {
 
             const handleCancel = () => {
                 inputContainer.destroy();
+                domElement.destroy();
                 // 恢复按钮
                 this.answerBtn.setInteractive({ useHandCursor: true });
             };
@@ -459,10 +487,9 @@ export class InterviewScene extends Phaser.Scene {
 ${nextQ.question}"`);
         this.updateHint(nextQ.type);
 
-        // 恢复按钮
-        this.answerBtn.setInteractive({ useHandCursor: true });
-        this.answerBtn.setStyle({ backgroundColor: '#4a90d9', color: '#ffffff' });
-        this.answerBtn.setText('✍️ 输入你的回答');
+        this.answerBtn = createStyledButton(this, 730, 600, 300, 55, '✍️ 输入你的回答', () => {
+            this.submitAnswer();
+        }) as any;
     }
 
     private getResponses(quality: string): string[] {

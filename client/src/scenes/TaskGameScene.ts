@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Task } from '../GameState';
 import { gameState } from '../GameState';
+import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
 
 /**
  * 任务小游戏场景
@@ -29,13 +30,51 @@ export class TaskGameScene extends Phaser.Scene {
 
     create(): void {
         // 背景
-        this.add.rectangle(640, 360, 1280, 720, 0x1a1a2a);
+        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+
+        // 背景装饰
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
+
+        // 标题容器
+        const headerContainer = this.add.container(640, 60);
+        const titleText = this.add.text(0, -15, '⌨️ 任务挑战', {
+            fontSize: '36px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        const subTitleText = this.add.text(0, 25, 'TASK EXECUTION / MAXIMIZE EFFICIENCY', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9',
+            letterSpacing: 2
+        }).setOrigin(0.5);
+        headerContainer.add([titleText, subTitleText]);
 
         // 游戏容器
-        this.gameContainer = this.add.container(0, 0);
+        this.gameContainer = this.add.container(0, 50); // 往下移动
 
         // 绘制顶部信息
         this.drawHeader();
+
+        // 提示信息
+        const promptText = this.add.text(640, 130, this.getInstruction(), {
+            fontSize: '18px',
+            fontFamily: FONTS.main,
+            color: '#4a90d9',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.gameContainer.add(promptText);
 
         // 根据游戏类型启动不同的小游戏
         switch (this.gameType) {
@@ -54,34 +93,47 @@ export class TaskGameScene extends Phaser.Scene {
         }
     }
 
+    private getInstruction(): string {
+        switch (this.gameType) {
+            case 'typing': return '⌨️ 快速输入屏幕上显示的文字！';
+            case 'sorting': return '🔢 按从小到大的顺序点击数字！';
+            case 'memory': return '🧠 翻开卡片，找到相同的数字配对！';
+            case 'clicking': return '🎯 快速点击随机出现的目标！';
+            default: return '';
+        }
+    }
+
     /** 绘制顶部信息 */
     private drawHeader(): void {
         // 背景
-        const headerBg = this.add.rectangle(640, 50, 1280, 100, 0x2a2a3a);
+        const headerBg = this.add.rectangle(640, 50, 1280, 100, COLORS.panel, 0.8);
+        applyGlassEffect(headerBg);
 
         // 任务名称
-        const taskTitle = this.add.text(100, 30, this.currentTask?.title || '工作任务', {
+        const taskTitle = this.add.text(120, 30, this.currentTask?.title || '工作任务', {
             fontSize: '24px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         });
 
         // 返回按钮
-        const backBtn = this.add.text(50, 50, '← 放弃', {
-            fontSize: '16px',
-            color: '#ff6666'
-        });
-        backBtn.setInteractive({ useHandCursor: true });
+        const backBtn = this.add.text(50, 30, '←', {
+            fontSize: '28px',
+            color: '#ff4444'
+        }).setInteractive({ useHandCursor: true });
         backBtn.on('pointerdown', () => this.exitGame(false));
 
         // 分数显示
-        this.add.text(640, 30, '分数', {
-            fontSize: '14px',
+        this.add.text(640, 25, 'SCORE / 分数', {
+            fontSize: '11px',
+            fontFamily: FONTS.mono,
             color: '#888888'
         }).setOrigin(0.5, 0);
 
-        const scoreText = this.add.text(640, 55, '0', {
-            fontSize: '28px',
+        const scoreText = this.add.text(640, 45, '0', {
+            fontSize: '32px',
+            fontFamily: FONTS.mono,
             color: '#00ff88',
             fontStyle: 'bold'
         });
@@ -89,13 +141,15 @@ export class TaskGameScene extends Phaser.Scene {
         scoreText.setData('type', 'score');
 
         // 时间显示
-        this.add.text(900, 30, '剩余时间', {
-            fontSize: '14px',
+        this.add.text(900, 25, 'TIME / 剩余时间', {
+            fontSize: '11px',
+            fontFamily: FONTS.mono,
             color: '#888888'
         }).setOrigin(0.5, 0);
 
-        const timeText = this.add.text(900, 55, '30', {
-            fontSize: '28px',
+        const timeText = this.add.text(900, 45, '30.0', {
+            fontSize: '32px',
+            fontFamily: FONTS.mono,
             color: '#ffcc00',
             fontStyle: 'bold'
         });
@@ -103,13 +157,15 @@ export class TaskGameScene extends Phaser.Scene {
         timeText.setData('type', 'time');
 
         // 目标分数
-        this.add.text(1100, 30, '目标', {
-            fontSize: '14px',
+        this.add.text(1100, 25, 'TARGET / 目标', {
+            fontSize: '11px',
+            fontFamily: FONTS.mono,
             color: '#888888'
         }).setOrigin(0.5, 0);
 
-        this.add.text(1100, 55, '100', {
-            fontSize: '28px',
+        this.add.text(1100, 45, '100', {
+            fontSize: '32px',
+            fontFamily: FONTS.mono,
             color: '#4a90d9',
             fontStyle: 'bold'
         }).setOrigin(0.5, 0);
@@ -522,41 +578,52 @@ export class TaskGameScene extends Phaser.Scene {
         const passed = this.score >= 100;
 
         // 显示结果
-        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7);
+        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.85);
+        overlay.setDepth(1000);
 
-        const resultBg = this.add.rectangle(640, 360, 400, 300, 0x2a2a3a);
-        resultBg.setStrokeStyle(2, passed ? 0x00ff88 : 0xff4444);
+        const resultContainer = this.add.container(640, 360).setDepth(1001);
 
-        const resultTitle = this.add.text(640, 260, passed ? '任务完成！' : '任务失败', {
+        const resultBg = this.add.rectangle(0, 0, 450, 350, COLORS.panel, 0.9);
+        applyGlassEffect(resultBg);
+        resultContainer.add(resultBg);
+
+        const resultTitle = this.add.text(0, -100, passed ? 'TASK COMPLETED' : 'TASK FAILED', {
             fontSize: '32px',
+            fontFamily: FONTS.main,
             color: passed ? '#00ff88' : '#ff4444',
             fontStyle: 'bold'
-        });
-        resultTitle.setOrigin(0.5, 0.5);
+        }).setOrigin(0.5);
+        resultContainer.add(resultTitle);
 
-        const scoreResult = this.add.text(640, 330, `得分: ${this.score}`, {
-            fontSize: '24px',
+        const scoreResult = this.add.text(0, -20, `FINAL SCORE: ${this.score}`, {
+            fontSize: '20px',
+            fontFamily: FONTS.mono,
             color: '#ffffff'
-        });
-        scoreResult.setOrigin(0.5, 0.5);
+        }).setOrigin(0.5);
+        resultContainer.add(scoreResult);
 
         if (passed && this.currentTask) {
-            const rewardText = this.add.text(640, 380, `奖励: ¥${this.currentTask.reward}`, {
-                fontSize: '20px',
+            const rewardText = this.add.text(0, 30, `REWARD: ¥${this.currentTask.reward}`, {
+                fontSize: '18px',
+                fontFamily: FONTS.mono,
                 color: '#ffcc00'
-            });
-            rewardText.setOrigin(0.5, 0.5);
+            }).setOrigin(0.5);
+            resultContainer.add(rewardText);
         }
 
-        const exitBtn = this.add.text(640, 450, '返回办公室', {
-            fontSize: '18px',
-            color: '#ffffff',
-            backgroundColor: '#4a90d9',
-            padding: { x: 30, y: 10 }
+        const exitBtn = createStyledButton(this, 0, 110, 240, 50, '返回办公室', () => this.exitGame(passed));
+        resultContainer.add(exitBtn);
+
+        // 动画
+        resultContainer.setScale(0.8);
+        resultContainer.setAlpha(0);
+        this.tweens.add({
+            targets: resultContainer,
+            scale: 1,
+            alpha: 1,
+            duration: 300,
+            ease: 'Back.easeOut'
         });
-        exitBtn.setOrigin(0.5, 0.5);
-        exitBtn.setInteractive({ useHandCursor: true });
-        exitBtn.on('pointerdown', () => this.exitGame(passed));
     }
 
     private exitGame(completed: boolean): void {
@@ -570,6 +637,6 @@ export class TaskGameScene extends Phaser.Scene {
         }
 
         this.scene.stop();
-        this.scene.resume('OfficeScene');
+        this.scene.resume('ImprovedOfficeScene');
     }
 }

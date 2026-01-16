@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { gameState } from '../GameState';
+import { COLORS, FONTS, applyGlassEffect } from '../UIConfig';
 
 /**
  * 手机界面场景
@@ -18,6 +19,19 @@ export class PhoneScene extends Phaser.Scene {
         // 半透明遮罩
         this.overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.6);
         this.overlay.setInteractive();
+
+        // 装饰性网格 (在遮罩层之上，但在手机之下)
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
 
         // 手机容器
         this.phoneContainer = this.add.container(640, 360);
@@ -41,32 +55,33 @@ export class PhoneScene extends Phaser.Scene {
     private drawPhone(): void {
         // 手机外框
         const phoneBody = this.add.graphics();
-        phoneBody.fillStyle(0x1a1a1a, 1);
-        phoneBody.fillRoundedRect(-200, -260, 400, 520, 20);
-        phoneBody.lineStyle(2, 0x333333, 1);
-        phoneBody.strokeRoundedRect(-200, -260, 400, 520, 20);
+        phoneBody.fillStyle(0x0a0a0f, 1);
+        phoneBody.fillRoundedRect(-200, -260, 400, 520, 24);
+        phoneBody.lineStyle(2, COLORS.primary, 0.3);
+        phoneBody.strokeRoundedRect(-200, -260, 400, 520, 24);
         this.phoneContainer.add(phoneBody);
 
-        // 屏幕区域
-        const screen = this.add.graphics();
-        screen.fillStyle(0x2a2a3a, 1);
-        screen.fillRoundedRect(-190, -240, 380, 480, 10);
-        this.phoneContainer.add(screen);
+        // 屏幕区域 (磨砂玻璃)
+        const screenRect = this.add.rectangle(0, 0, 380, 480, COLORS.panel, 0.8);
+        applyGlassEffect(screenRect, 0.8);
+        this.phoneContainer.add(screenRect);
 
         // 顶部状态栏
-        const statusBar = this.add.rectangle(0, -230, 370, 30, 0x1a1a2a);
+        const statusBar = this.add.rectangle(0, -225, 360, 20, 0x000000, 0.3);
         this.phoneContainer.add(statusBar);
 
         // 时间显示
-        const timeText = this.add.text(0, -230, gameState.getFormattedTime(), {
-            fontSize: '14px',
-            color: '#ffffff'
+        const timeText = this.add.text(0, -225, gameState.getFormattedTime(), {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#888888'
         });
         timeText.setOrigin(0.5, 0.5);
         this.phoneContainer.add(timeText);
 
-        // Home 键
-        const homeButton = this.add.circle(0, 240, 20, 0x333333);
+        // Home 键 (电容式风格)
+        const homeButton = this.add.circle(0, 240, 15, 0x333333, 0.5);
+        homeButton.setStrokeStyle(1, 0xffffff, 0.2);
         homeButton.setInteractive({ useHandCursor: true });
         homeButton.on('pointerdown', () => this.showHomeScreen());
         this.phoneContainer.add(homeButton);
@@ -78,57 +93,55 @@ export class PhoneScene extends Phaser.Scene {
         this.currentApp = 'home';
 
         const apps = [
-            { icon: '📱', name: '联系人', action: () => this.showContacts() },
-            { icon: '📈', name: '股票', action: () => this.openStockApp() },
-            { icon: '📋', name: '任务', action: () => this.showTasks() },
-            { icon: '💰', name: '账户', action: () => this.showAccount() },
-            { icon: '⚙️', name: '设置', action: () => this.showSettings() },
-            { icon: '💾', name: '存档', action: () => this.saveGame() },
+            { icon: '👥', name: 'CONTACTS', action: () => this.showContacts() },
+            { icon: '📈', name: 'EXCHANGE', action: () => this.openStockApp() },
+            { icon: '📋', name: 'TASKS', action: () => this.showTasks() },
+            { icon: '💎', name: 'WALLET', action: () => this.showAccount() },
+            { icon: '⚙️', name: 'SYSTEM', action: () => this.showSettings() },
+            { icon: '💾', name: 'BACKUP', action: () => this.saveGame() },
         ];
 
         // 绘制应用图标
         apps.forEach((app, index) => {
             const col = index % 3;
             const row = Math.floor(index / 3);
-            const x = -120 + col * 120;
-            const y = -150 + row * 120;
+            const x = -110 + col * 110;
+            const y = -120 + row * 110;
+
+            const iconContainer = this.add.container(x, y);
+            iconContainer.setData('appIcon', true);
+            this.phoneContainer.add(iconContainer);
 
             // 图标背景
-            const iconBg = this.add.rectangle(x, y, 70, 70, 0x3a3a4a, 1);
+            const iconBg = this.add.rectangle(0, 0, 70, 70, 0xffffff, 0.05);
+            iconBg.setStrokeStyle(1, 0xffffff, 0.1);
             iconBg.setInteractive({ useHandCursor: true });
-            iconBg.on('pointerover', () => iconBg.setFillStyle(0x4a4a5a));
-            iconBg.on('pointerout', () => iconBg.setFillStyle(0x3a3a4a));
+
+            iconBg.on('pointerover', () => {
+                iconBg.setFillStyle(0xffffff, 0.1);
+                this.tweens.add({ targets: iconContainer, scale: 1.1, duration: 100 });
+            });
+            iconBg.on('pointerout', () => {
+                iconBg.setFillStyle(0xffffff, 0.05);
+                this.tweens.add({ targets: iconContainer, scale: 1, duration: 100 });
+            });
             iconBg.on('pointerdown', app.action);
-            iconBg.setData('appIcon', true);
-            this.phoneContainer.add(iconBg);
+            iconContainer.add(iconBg);
 
-            // 图标
-            const iconText = this.add.text(x, y - 10, app.icon, {
-                fontSize: '28px'
-            });
-            iconText.setOrigin(0.5, 0.5);
-            iconText.setData('appIcon', true);
-            this.phoneContainer.add(iconText);
-
-            // 名称
-            const nameText = this.add.text(x, y + 25, app.name, {
-                fontSize: '12px',
-                color: '#ffffff'
-            });
-            nameText.setOrigin(0.5, 0.5);
-            nameText.setData('appIcon', true);
-            this.phoneContainer.add(nameText);
+            const iconText = this.add.text(0, -5, app.icon, { fontSize: '28px' }).setOrigin(0.5);
+            const nameText = this.add.text(0, 30, app.name, { fontSize: '10px', fontFamily: FONTS.mono, color: '#888888' }).setOrigin(0.5);
+            iconContainer.add([iconText, nameText]);
         });
 
         // 底部资金显示
         const account = gameState.getAccount();
-        const moneyText = this.add.text(0, 180, `可用资金: ¥${account.cash.toFixed(2)}`, {
-            fontSize: '14px',
-            color: '#00ff88'
-        });
-        moneyText.setOrigin(0.5, 0.5);
-        moneyText.setData('appIcon', true);
-        this.phoneContainer.add(moneyText);
+        const moneyBox = this.add.container(0, 180);
+        moneyBox.setData('appIcon', true);
+        this.phoneContainer.add(moneyBox);
+
+        const moneyLabel = this.add.text(0, -15, 'AVAILABLE BALANCE', { fontSize: '9px', fontFamily: FONTS.mono, color: '#666666' }).setOrigin(0.5);
+        const moneyValue = this.add.text(0, 5, `¥${account.cash.toLocaleString()}`, { fontSize: '18px', fontFamily: FONTS.mono, color: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5);
+        moneyBox.add([moneyLabel, moneyValue]);
     }
 
     /** 清除应用内容 */
@@ -214,7 +227,7 @@ export class PhoneScene extends Phaser.Scene {
     /** 打电话给联系人 */
     private callContact(name: string): void {
         // 关闭手机，回到办公室场景并触发对话
-        this.scene.get('OfficeScene').events.emit('startChat', name);
+        this.scene.get('ImprovedOfficeScene').events.emit('startChat', name);
         this.closePhone();
     }
 
@@ -398,7 +411,7 @@ export class PhoneScene extends Phaser.Scene {
             if (confirm('确定要重置游戏吗？所有进度将丢失！')) {
                 gameState.resetGame();
                 this.closePhone();
-                this.scene.get('OfficeScene').scene.restart();
+                this.scene.get('ImprovedOfficeScene').scene.restart();
             }
         });
         resetBtn.setData('appContent', true);
@@ -459,6 +472,6 @@ export class PhoneScene extends Phaser.Scene {
     /** 关闭手机 */
     closePhone(): void {
         this.scene.stop();
-        this.scene.resume('OfficeScene');
+        this.scene.resume('ImprovedOfficeScene');
     }
 }

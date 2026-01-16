@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { gameState } from '../GameState';
+import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
 import type { EventChoice, WorkplaceEvent } from '../WorkplaceSystem';
 import { POSITIONS, workplaceSystem } from '../WorkplaceSystem';
 
@@ -25,25 +26,48 @@ export class WorkplaceEventScene extends Phaser.Scene {
         }
 
         // 半透明背景
-        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7);
-        overlay.setInteractive();
+        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+
+        // 背景装饰
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
+
+        // 标题容器
+        const header = this.add.container(640, 60);
+        const titleText = this.add.text(0, -15, '🎭 职场突发', {
+            fontSize: '36px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        const subTitleText = this.add.text(0, 25, 'UNEXPECTED SITUATION / RESPONSE REQUIRED', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9',
+            letterSpacing: 2
+        }).setOrigin(0.5);
+        header.add([titleText, subTitleText]);
 
         // 主容器
-        this.container = this.add.container(640, 360);
-
-        // 根据事件类型选择颜色
-        const typeColors: { [key: string]: number } = {
-            positive: 0x2a6a2a,
-            negative: 0x6a2a2a,
-            neutral: 0x2a2a6a,
-            critical: 0x6a2a6a
-        };
-        const borderColor = typeColors[this.event.type] || 0x4a4a4a;
+        this.container = this.add.container(640, 380);
 
         // 事件卡片背景
-        const cardBg = this.add.rectangle(0, 0, 700, 500, 0x1a1a2a);
-        cardBg.setStrokeStyle(3, borderColor);
+        const cardBg = this.add.rectangle(0, 0, 700, 520, COLORS.panel, 0.9);
+        applyGlassEffect(cardBg);
         this.container.add(cardBg);
+
+        // 顶部发光条
+        const glowBar = this.add.rectangle(0, -260, 700, 4, this.getHexColor(this.event.type));
+        this.container.add(glowBar);
 
         // 事件类型标签
         const categoryLabels: { [key: string]: string } = {
@@ -54,18 +78,20 @@ export class WorkplaceEventScene extends Phaser.Scene {
             crisis: '🚨 危机',
             social: '👥 社交'
         };
-        const categoryLabel = this.add.text(0, -220, categoryLabels[this.event.category] || '📋 事件', {
+        const categoryLabel = this.add.text(0, -230, categoryLabels[this.event.category] || '📋 事件', {
             fontSize: '14px',
+            fontFamily: FONTS.main,
             color: this.getTypeColor(this.event.type),
-            backgroundColor: '#00000066',
-            padding: { x: 10, y: 5 }
+            backgroundColor: '#ffffff11',
+            padding: { x: 12, y: 6 }
         });
         categoryLabel.setOrigin(0.5, 0.5);
         this.container.add(categoryLabel);
 
         // 事件标题
-        const title = this.add.text(0, -170, this.event.title, {
-            fontSize: '28px',
+        const title = this.add.text(0, -180, this.event.title, {
+            fontSize: '32px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -73,33 +99,36 @@ export class WorkplaceEventScene extends Phaser.Scene {
         this.container.add(title);
 
         // 分隔线
-        const divider = this.add.rectangle(0, -130, 600, 2, 0x444444);
+        const divider = this.add.rectangle(0, -135, 600, 1, 0x4a90d9, 0.3);
         this.container.add(divider);
 
         // 事件描述
-        const description = this.add.text(0, -50, this.event.description, {
-            fontSize: '16px',
-            color: '#cccccc',
+        const description = this.add.text(0, -40, this.event.description, {
+            fontSize: '18px',
+            fontFamily: FONTS.main,
+            color: '#e0e0e0',
             wordWrap: { width: 600 },
             align: 'center',
-            lineSpacing: 8
+            lineSpacing: 10
         });
         description.setOrigin(0.5, 0.5);
         this.container.add(description);
 
         // 当前状态显示
         const status = workplaceSystem.getStatus();
-        const statusText = this.add.text(0, 40,
-            `当前状态 | KPI: ${status.performance.kpiScore} | 压力: ${status.stress} | 名声: ${status.reputation}`, {
-            fontSize: '12px',
-            color: '#888888'
+        const statusText = this.add.text(0, 50,
+            `📊 KPI: ${status.performance.kpiScore}  |  😰 压力: ${status.stress}  |  ⭐ 名声: ${status.reputation}`, {
+            fontSize: '13px',
+            fontFamily: FONTS.mono,
+            color: COLORS.primary.toString(16).padStart(6, '0') === '4a90d9' ? '#4a90d9' : '#888888' // Handle string vs number
         });
+        statusText.setColor('#4a90d9');
         statusText.setOrigin(0.5, 0.5);
         this.container.add(statusText);
 
         // 选项
         this.event.choices.forEach((choice, index) => {
-            this.createChoiceButton(choice, index, 100 + index * 70);
+            this.createChoiceButton(choice, index, 120 + index * 75);
         });
 
         // 入场动画
@@ -112,6 +141,16 @@ export class WorkplaceEventScene extends Phaser.Scene {
             duration: 300,
             ease: 'Back.easeOut'
         });
+    }
+
+    private getHexColor(type: string): number {
+        const colors: { [key: string]: number } = {
+            positive: COLORS.success,
+            negative: COLORS.danger,
+            neutral: COLORS.primary,
+            critical: 0xff00ff
+        };
+        return colors[type] || COLORS.primary;
     }
 
     private getTypeColor(type: string): string {
@@ -129,15 +168,21 @@ export class WorkplaceEventScene extends Phaser.Scene {
         const canChoose = this.checkRequirements(choice.requirements);
 
         // 按钮背景
-        const btnWidth = 600;
-        const btnHeight = 50;
-        const btn = this.add.rectangle(0, y, btnWidth, btnHeight, canChoose ? 0x3a3a4a : 0x2a2a2a);
-        btn.setStrokeStyle(1, canChoose ? 0x555555 : 0x333333);
+        const btnWidth = 620;
+        const btnHeight = 60;
+        const btn = this.add.rectangle(0, y, btnWidth, btnHeight, canChoose ? 0xffffff : 0x000000, 0.05);
+        btn.setStrokeStyle(1, canChoose ? 0x4a90d9 : 0x333333, 0.5);
         this.container.add(btn);
 
+        // 悬停发光
+        const hoverGlow = this.add.rectangle(0, y, btnWidth, btnHeight, 0x4a90d9, 0.1);
+        hoverGlow.setVisible(false);
+        this.container.add(hoverGlow);
+
         // 选项文字
-        const choiceText = this.add.text(-280, y, choice.text, {
+        const choiceText = this.add.text(-290, y, choice.text, {
             fontSize: '16px',
+            fontFamily: FONTS.main,
             color: canChoose ? '#ffffff' : '#666666'
         });
         choiceText.setOrigin(0, 0.5);
@@ -145,18 +190,20 @@ export class WorkplaceEventScene extends Phaser.Scene {
 
         // 显示效果预览
         const effectsPreview = this.getEffectsPreview(choice.effects);
-        const effectsText = this.add.text(280, y, effectsPreview, {
-            fontSize: '12px',
-            color: '#888888'
+        const effectsText = this.add.text(290, y, effectsPreview, {
+            fontSize: '13px',
+            fontFamily: FONTS.mono,
+            color: canChoose ? '#00ff88' : '#444444'
         });
         effectsText.setOrigin(1, 0.5);
         this.container.add(effectsText);
 
         // 如果有要求，显示要求
         if (choice.requirements && !canChoose) {
-            const reqText = this.add.text(0, y + 18, this.getRequirementsText(choice.requirements), {
+            const reqText = this.add.text(0, y + 20, this.getRequirementsText(choice.requirements), {
                 fontSize: '11px',
-                color: '#ff6666'
+                fontFamily: FONTS.main,
+                color: '#ff4444'
             });
             reqText.setOrigin(0.5, 0.5);
             this.container.add(reqText);
@@ -166,10 +213,26 @@ export class WorkplaceEventScene extends Phaser.Scene {
         if (canChoose) {
             btn.setInteractive({ useHandCursor: true });
             btn.on('pointerover', () => {
-                btn.setFillStyle(0x4a4a5a);
+                hoverGlow.setVisible(true);
+                btn.setStrokeStyle(1, 0x4a90d9, 1);
+                this.tweens.add({
+                    targets: [btn, choiceText, effectsText, hoverGlow],
+                    x: '+=5',
+                    duration: 100
+                });
             });
             btn.on('pointerout', () => {
-                btn.setFillStyle(0x3a3a4a);
+                hoverGlow.setVisible(false);
+                btn.setStrokeStyle(1, 0x4a90d9, 0.5);
+                this.tweens.add({
+                    targets: [btn, choiceText, effectsText, hoverGlow],
+                    x: (target: any) => {
+                        if (target === choiceText) return -290;
+                        if (target === effectsText) return 290;
+                        return 0;
+                    },
+                    duration: 100
+                });
             });
             btn.on('pointerdown', () => {
                 this.selectChoice(index);
@@ -268,18 +331,27 @@ export class WorkplaceEventScene extends Phaser.Scene {
         // 清除选项
         this.container.removeAll(true);
 
+        // 再次添加背景
+        const cardBg = this.add.rectangle(0, 0, 700, 520, COLORS.panel, 0.9);
+        applyGlassEffect(cardBg);
+        this.container.add(cardBg);
+
         // 结果标题
-        const title = this.add.text(0, -150, '事件结果', {
-            fontSize: '24px',
+        const title = this.add.text(0, -180, '事件结果', {
+            fontSize: '32px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         });
         title.setOrigin(0.5, 0.5);
         this.container.add(title);
 
+        const divider = this.add.rectangle(0, -135, 600, 1, 0x4a90d9, 0.3);
+        this.container.add(divider);
+
         // 显示每个效果
         effects.forEach((effect, index) => {
-            const y = -80 + index * 40;
+            const y = -60 + index * 50;
             let text = '';
             let color = '#ffffff';
 
@@ -310,12 +382,13 @@ export class WorkplaceEventScene extends Phaser.Scene {
                     break;
             }
 
-            if (effect.description) {
+            if (effect.description && effect.type !== 'faction') {
                 text += ` (${effect.description})`;
             }
 
             const effectText = this.add.text(0, y, text, {
-                fontSize: '16px',
+                fontSize: '20px',
+                fontFamily: FONTS.main,
                 color: color
             });
             effectText.setOrigin(0.5, 0.5);
@@ -323,15 +396,7 @@ export class WorkplaceEventScene extends Phaser.Scene {
         });
 
         // 继续按钮
-        const continueBtn = this.add.text(0, 150, '[ 继续 ]', {
-            fontSize: '18px',
-            color: '#ffffff',
-            backgroundColor: '#4a90d9',
-            padding: { x: 40, y: 12 }
-        });
-        continueBtn.setOrigin(0.5, 0.5);
-        continueBtn.setInteractive({ useHandCursor: true });
-        continueBtn.on('pointerdown', () => {
+        const continueBtn = createStyledButton(this, 0, 180, 200, 50, '继续', () => {
             this.closeEvent();
         });
         this.container.add(continueBtn);
@@ -345,7 +410,7 @@ export class WorkplaceEventScene extends Phaser.Scene {
             duration: 200,
             onComplete: () => {
                 this.scene.stop();
-                this.scene.resume('OfficeScene');
+                this.scene.resume('ImprovedOfficeScene');
             }
         });
     }

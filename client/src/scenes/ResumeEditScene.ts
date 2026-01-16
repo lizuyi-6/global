@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { jobHuntSystem, type PlayerResume } from '../JobHuntSystem';
+import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
 
 /**
  * 简历编辑场景
@@ -20,157 +21,171 @@ export class ResumeEditScene extends Phaser.Scene {
 
     create(): void {
         // 背景
-        this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e);
+        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
 
-        // 标题
-        this.add.text(640, 40, '📝 创建你的简历', {
-            fontSize: '32px',
+        // 背景装饰
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
+
+        // 标题容器
+        const header = this.add.container(640, 60);
+        const title = this.add.text(0, -15, '📝 个人简历配置', {
+            fontSize: '36px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-
-        this.add.text(640, 75, '自定义你的求职信息，这将影响面试成功率', {
-            fontSize: '14px',
-            color: '#888888'
+        const subTitle = this.add.text(0, 25, 'CUSTOMIZE YOUR PROFESSIONAL PROFILE', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9',
+            letterSpacing: 2
         }).setOrigin(0.5);
+        header.add([title, subTitle]);
+
+        // 主面板
+        const mainPanel = this.add.rectangle(640, 380, 1100, 540, COLORS.panel, 0.7);
+        applyGlassEffect(mainPanel);
 
         // 左列起始位置
-        const leftX = 100;
-        const rightX = 680;
-        let leftY = 120;
-        let rightY = 120;
+        const leftX = 140;
+        const rightX = 700;
+        let leftY = 140;
+        let rightY = 140;
 
         // ========== 左列 ==========
-
         // 姓名
-        this.createLabel(leftX, leftY, '姓名');
-        this.createTextInput(leftX + 80, leftY, 180, '求职者', (text) => {
+        this.createLabel(leftX, leftY, '姓名 / NAME');
+        this.createTextInput(leftX, leftY + 25, 240, '求职者', (text) => {
             this.formData.name = text;
         });
         this.formData.name = '求职者';
-        leftY += 50;
 
         // 年龄
-        this.createLabel(leftX, leftY, '年龄');
-        this.createTextInput(leftX + 80, leftY, 80, '25', (text) => {
+        this.createLabel(leftX + 280, leftY, '年龄 / AGE');
+        this.createTextInput(leftX + 280, leftY + 25, 100, '25', (text) => {
             this.formData.age = parseInt(text) || 25;
         });
         this.formData.age = 25;
 
         // 工作年限
-        this.createLabel(leftX + 200, leftY, '工作年限');
-        this.createTextInput(leftX + 300, leftY, 80, '2', (text) => {
+        this.createLabel(leftX + 410, leftY, '经验 / EXP');
+        this.createTextInput(leftX + 410, leftY + 25, 100, '2', (text) => {
             this.formData.experience = parseInt(text) || 0;
         });
         this.formData.experience = 2;
-        leftY += 60;
+        leftY += 90;
 
         // 学历选择
-        this.createLabel(leftX, leftY, '学历');
-        this.createEducationButtons(leftX + 80, leftY);
+        this.createLabel(leftX, leftY, '最高学历 / EDUCATION');
+        this.createEducationButtons(leftX, leftY + 25);
         this.formData.education = 'bachelor';
-        leftY += 50;
+        leftY += 90;
 
         // 学校
-        this.createLabel(leftX, leftY, '学校');
-        this.createTextInput(leftX + 80, leftY, 200, '某某大学', (text) => {
+        this.createLabel(leftX, leftY, '毕业院校 / SCHOOL');
+        this.createTextInput(leftX, leftY + 25, 240, '某某大学', (text) => {
             this.formData.school = text;
         });
         this.formData.school = '某某大学';
-        leftY += 50;
 
         // 专业
-        this.createLabel(leftX, leftY, '专业');
-        this.createTextInput(leftX + 80, leftY, 200, '计算机科学', (text) => {
+        this.createLabel(leftX + 280, leftY, '所学专业 / MAJOR');
+        this.createTextInput(leftX + 280, leftY + 25, 230, '计算机科学', (text) => {
             this.formData.major = text;
         });
         this.formData.major = '计算机科学';
-        leftY += 70;
+        leftY += 90;
 
         // 技能
-        this.createLabel(leftX, leftY, '技能');
-        this.add.text(leftX + 80, leftY, '(逗号分隔)', {
-            fontSize: '12px',
-            color: '#666666'
-        });
-        leftY += 25;
-        this.createTextInput(leftX, leftY, 480, 'JavaScript, React, TypeScript, Node.js', (text) => {
+        this.createLabel(leftX, leftY, '核心技能 / SKILLS (COMMA SEPARATED)');
+        this.createTextInput(leftX, leftY + 25, 510, 'JavaScript, React, TypeScript, Node.js', (text) => {
             this.formData.skills = text.split(',').map(s => s.trim()).filter(s => s);
         });
         this.formData.skills = ['JavaScript', 'React', 'TypeScript', 'Node.js'];
-        leftY += 60;
+        leftY += 90;
 
         // 项目经验
-        this.createLabel(leftX, leftY, '项目经验');
-        this.add.text(leftX + 100, leftY, '(逗号分隔)', {
-            fontSize: '12px',
-            color: '#666666'
-        });
-        leftY += 25;
-        this.createTextInput(leftX, leftY, 480, '电商平台, 后台管理系统, 小程序', (text) => {
+        this.createLabel(leftX, leftY, '项目经验 / PROJECTS');
+        this.createTextInput(leftX, leftY + 25, 510, '电商平台, 后台管理系统, 小程序', (text) => {
             this.formData.projects = text.split(',').map(s => s.trim()).filter(s => s);
         });
         this.formData.projects = ['电商平台', '后台管理系统', '小程序'];
 
         // ========== 右列 ==========
-
         // 期望薪资
-        this.createLabel(rightX, rightY, '期望月薪');
+        this.createLabel(rightX, rightY, '期望月薪 / EXPECTED SALARY');
         rightY += 35;
 
         // 最低薪资
-        this.createLabel(rightX, rightY, '最低');
-        this.createNumberButtons(rightX + 60, rightY, () => this.currentSalaryMin, (v) => {
+        this.createLabel(rightX, rightY, '最低 / MIN');
+        this.createNumberButtons(rightX + 80, rightY - 15, () => this.currentSalaryMin, (v) => {
             this.currentSalaryMin = v;
             if (this.currentSalaryMin > this.currentSalaryMax) {
                 this.currentSalaryMax = this.currentSalaryMin;
             }
             this.updateSalaryDisplay();
         });
-        rightY += 50;
+        rightY += 60;
 
         // 最高薪资
-        this.createLabel(rightX, rightY, '最高');
-        this.createNumberButtons(rightX + 60, rightY, () => this.currentSalaryMax, (v) => {
+        this.createLabel(rightX, rightY, '最高 / MAX');
+        this.createNumberButtons(rightX + 80, rightY - 15, () => this.currentSalaryMax, (v) => {
             this.currentSalaryMax = v;
             if (this.currentSalaryMax < this.currentSalaryMin) {
                 this.currentSalaryMin = this.currentSalaryMax;
             }
             this.updateSalaryDisplay();
         });
-        rightY += 50;
+        rightY += 60;
 
         // 薪资显示
-        this.salaryDisplay = this.add.text(rightX, rightY, '', {
-            fontSize: '20px',
+        const salaryBg = this.add.rectangle(rightX + 250, 200, 400, 80, 0x00ff88, 0.05);
+        salaryBg.setStrokeStyle(1, 0x00ff88, 0.3);
+
+        this.salaryDisplay = this.add.text(rightX + 250, 200, '', {
+            fontSize: '28px',
+            fontFamily: FONTS.mono,
             color: '#00ff88',
             fontStyle: 'bold'
-        });
+        }).setOrigin(0.5);
         this.updateSalaryDisplay();
         this.formData.expectedSalary = [this.currentSalaryMin, this.currentSalaryMax];
 
         rightY += 80;
 
-        // 提示信息
-        this.add.text(rightX, rightY, '💡 提示:', {
+        // 提示面板
+        const tipPanel = this.add.rectangle(rightX + 250, 420, 450, 180, 0xffffff, 0.03);
+        tipPanel.setStrokeStyle(1, 0xffffff, 0.1);
+
+        this.add.text(rightX + 50, 350, '💡 简历提示 / CAREER TIPS', {
             fontSize: '14px',
+            fontFamily: FONTS.main,
             color: '#4a90d9',
             fontStyle: 'bold'
         });
-        rightY += 25;
 
         const tips = [
-            '• 学历越高，大厂面试通过率越高',
-            '• 技能匹配职位要求可提高成功率',
-            '• 期望薪资过高可能导致被拒',
-            '• 项目经验丰富有助于谈判加薪'
+            '• 学历越高，大型企业的面试机会越多',
+            '• 技能点与职位要求的匹配度是筛选的关键',
+            '• 期望薪资应参考行业平均水平，过高会降低入面率',
+            '• 丰富的项目经验在谈薪环节更具竞争力'
         ];
-        tips.forEach(tip => {
-            this.add.text(rightX, rightY, tip, {
-                fontSize: '12px',
+        tips.forEach((tip, i) => {
+            this.add.text(rightX + 50, 385 + i * 30, tip, {
+                fontSize: '13px',
+                fontFamily: FONTS.main,
                 color: '#888888'
             });
-            rightY += 22;
         });
 
         // 保存按钮
@@ -178,27 +193,35 @@ export class ResumeEditScene extends Phaser.Scene {
     }
 
     private createLabel(x: number, y: number, text: string): void {
-        this.add.text(x, y, text + ':', {
-            fontSize: '16px',
-            color: '#ffffff'
+        this.add.text(x, y, text, {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9'
         });
     }
 
     private createTextInput(x: number, y: number, width: number, defaultValue: string, onChange: (text: string) => void): void {
-        const height = 32;
+        const height = 40;
 
-        const bg = this.add.rectangle(x + width / 2, y + height / 2, width, height, 0x2a2a3a);
-        bg.setStrokeStyle(1, 0x4a4a5a);
+        const bg = this.add.rectangle(x + width / 2, y + height / 2, width, height, 0xffffff, 0.05);
+        bg.setStrokeStyle(1, 0xffffff, 0.2);
 
-        const text = this.add.text(x + 10, y + height / 2, defaultValue, {
-            fontSize: '14px',
+        const text = this.add.text(x + 15, y + height / 2, defaultValue, {
+            fontSize: '15px',
+            fontFamily: FONTS.main,
             color: '#ffffff'
         }).setOrigin(0, 0.5);
 
         bg.setInteractive({ useHandCursor: true });
 
-        bg.on('pointerover', () => bg.setStrokeStyle(2, 0x4a90d9));
-        bg.on('pointerout', () => bg.setStrokeStyle(1, 0x4a4a5a));
+        bg.on('pointerover', () => {
+            bg.setStrokeStyle(1, COLORS.primary, 0.8);
+            bg.setFillStyle(0xffffff, 0.1);
+        });
+        bg.on('pointerout', () => {
+            bg.setStrokeStyle(1, 0xffffff, 0.2);
+            bg.setFillStyle(0xffffff, 0.05);
+        });
 
         bg.on('pointerdown', () => {
             // 禁用点击防止重复弹窗
@@ -263,8 +286,10 @@ export class ResumeEditScene extends Phaser.Scene {
                 </div>
             `;
 
-            const domElement = this.add.dom(0, 10, 'div').createFromHTML(inputHTML);
-            inputContainer.add(domElement);
+            const domElement = this.add.dom(640, 360 + 10, 'div').createFromHTML(inputHTML);
+            // 不放入 container
+            // inputContainer.add(domElement);
+            domElement.setDepth(10001);
 
             this.time.delayedCall(100, () => {
                 const input = document.getElementById('textInput') as HTMLInputElement;
@@ -274,6 +299,12 @@ export class ResumeEditScene extends Phaser.Scene {
                 if (input) {
                     input.focus();
                     input.select();
+                    input.addEventListener('focus', () => {
+                        this.input.keyboard!.enabled = false;
+                    });
+                    input.addEventListener('blur', () => {
+                        this.input.keyboard!.enabled = true;
+                    });
                 }
 
                 const handleSubmit = () => {
@@ -285,11 +316,13 @@ export class ResumeEditScene extends Phaser.Scene {
                         }
                     }
                     inputContainer.destroy();
+                    domElement.destroy(); // 销毁 DOM
                     bg.setInteractive({ useHandCursor: true });  // 恢复交互
                 };
 
                 const handleCancel = () => {
                     inputContainer.destroy();
+                    domElement.destroy(); // 销毁 DOM
                     bg.setInteractive({ useHandCursor: true });  // 恢复交互
                 };
 
@@ -332,12 +365,13 @@ export class ResumeEditScene extends Phaser.Scene {
             const isActive = this.currentEducation === edu.value;
             const container = this.add.container(btnX, y);
 
-            const bg = this.add.rectangle(40, 16, 75, 32, isActive ? 0x4a90d9 : 0x3a3a4a);
-            bg.setStrokeStyle(1, isActive ? 0x6ab0f9 : 0x4a4a5a);
+            const bg = this.add.rectangle(45, 20, 85, 40, isActive ? COLORS.primary : 0xffffff, isActive ? 0.3 : 0.05);
+            bg.setStrokeStyle(1, isActive ? COLORS.primary : 0xffffff, isActive ? 1 : 0.2);
 
-            const label = this.add.text(40, 16, edu.label, {
+            const label = this.add.text(45, 20, edu.label, {
                 fontSize: '14px',
-                color: isActive ? '#ffffff' : '#aaaaaa'
+                fontFamily: FONTS.main,
+                color: isActive ? '#ffffff' : '#888888'
             }).setOrigin(0.5);
 
             container.add([bg, label]);
@@ -364,18 +398,19 @@ export class ResumeEditScene extends Phaser.Scene {
             const label = container.getData('label') as Phaser.GameObjects.Text;
             const isActive = value === this.currentEducation;
 
-            bg.setFillStyle(isActive ? 0x4a90d9 : 0x3a3a4a);
-            bg.setStrokeStyle(1, isActive ? 0x6ab0f9 : 0x4a4a5a);
-            label.setColor(isActive ? '#ffffff' : '#aaaaaa');
+            bg.setFillStyle(isActive ? COLORS.primary : 0xffffff, isActive ? 0.3 : 0.05);
+            bg.setStrokeStyle(1, isActive ? COLORS.primary : 0xffffff, isActive ? 1 : 0.2);
+            label.setColor(isActive ? '#ffffff' : '#888888');
         });
     }
 
     private createNumberButtons(x: number, y: number, getValue: () => number, setValue: (v: number) => void): void {
-        const minusBtn = this.add.text(x, y + 16, '−', {
+        const minusBtn = this.add.text(x, y + 20, '−', {
             fontSize: '24px',
+            fontFamily: FONTS.mono,
             color: '#ffffff',
-            backgroundColor: '#3a3a4a',
-            padding: { x: 10, y: 2 }
+            backgroundColor: '#ffffff11',
+            padding: { x: 12, y: 4 }
         }).setOrigin(0.5);
         minusBtn.setInteractive({ useHandCursor: true });
         minusBtn.on('pointerdown', () => {
@@ -383,16 +418,18 @@ export class ResumeEditScene extends Phaser.Scene {
             setValue(newVal);
         });
 
-        const valueText = this.add.text(x + 90, y + 16, '', {
-            fontSize: '16px',
+        const valueText = this.add.text(x + 100, y + 20, '', {
+            fontSize: '18px',
+            fontFamily: FONTS.mono,
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        const plusBtn = this.add.text(x + 180, y + 16, '+', {
+        const plusBtn = this.add.text(x + 200, y + 20, '+', {
             fontSize: '24px',
+            fontFamily: FONTS.mono,
             color: '#ffffff',
-            backgroundColor: '#3a3a4a',
-            padding: { x: 10, y: 2 }
+            backgroundColor: '#ffffff11',
+            padding: { x: 12, y: 4 }
         }).setOrigin(0.5);
         plusBtn.setInteractive({ useHandCursor: true });
         plusBtn.on('pointerdown', () => {
@@ -421,38 +458,8 @@ export class ResumeEditScene extends Phaser.Scene {
     }
 
     private createSaveButton(): void {
-        const btn = this.add.container(640, 660);
-
-        const bg = this.add.rectangle(0, 0, 220, 50, 0x4a90d9);
-        bg.setStrokeStyle(2, 0x6ab0f9);
-
-        const text = this.add.text(0, 0, '✅ 保存并开始求职', {
-            fontSize: '18px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        btn.add([bg, text]);
-
-        bg.setInteractive({ useHandCursor: true });
-
-        bg.on('pointerover', () => {
-            bg.setFillStyle(0x5aa0e9);
-            this.tweens.add({ targets: btn, scaleX: 1.05, scaleY: 1.05, duration: 100 });
-        });
-
-        bg.on('pointerout', () => {
-            bg.setFillStyle(0x4a90d9);
-            this.tweens.add({ targets: btn, scaleX: 1, scaleY: 1, duration: 100 });
-        });
-
-        bg.on('pointerdown', () => {
-            text.setText('保存中...');
-            bg.setFillStyle(0x3a80c9);
-
-            this.time.delayedCall(500, () => {
-                this.saveResume();
-            });
+        const btn = createStyledButton(this, 640, 680, 280, 50, '保存并开始求职', () => {
+            this.saveResume();
         });
     }
 

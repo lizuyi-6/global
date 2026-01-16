@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
+import { apiService } from '../APIService';
+import { gameState } from '../GameState';
 import { notificationManager } from '../NotificationManager';
+import { COLORS, FONTS, applyGlassEffect } from '../UIConfig';
+import { workplaceSystem } from '../WorkplaceSystem';
 
 /**
  * 增强版办公室场景
@@ -37,6 +41,11 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     // UI 元素
     private statusPanel!: Phaser.GameObjects.Container;
     private commandPanel!: Phaser.GameObjects.Container;
+    private player!: Phaser.GameObjects.Text;
+    private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+    private worldContainer!: Phaser.GameObjects.Container;
+    private worldX = 0;
+    private worldY = 0;
 
     constructor() {
         super({ key: 'ImprovedOfficeScene' });
@@ -44,13 +53,56 @@ export class ImprovedOfficeScene extends Phaser.Scene {
 
     create(): void {
         // 背景
-        this.add.rectangle(640, 360, 1280, 720, 0x2a2a3a);
+        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
 
-        // 创建办公室场景
+        // 背景装饰
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
+
+        // 标题容器
+        const header = this.add.container(640, 60);
+        const titleText = this.add.text(0, -15, '🏢 职场生活 (2.5D)', {
+            fontSize: '36px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        const subTitleText = this.add.text(0, 25, 'ISOMETRIC OFFICE SIMULATION / WASD TO MOVE', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9',
+            letterSpacing: 2
+        }).setOrigin(0.5);
+        header.add([titleText, subTitleText]);
+        header.setDepth(5000);
+
+        // 创建世界容器
+        this.worldContainer = this.add.container(640, 250);
+
+        // 绘制地面
+        this.createIsometricFloor();
+
+        // 创建办公室环境
         this.createOfficeEnvironment();
 
         // 创建同事
         this.createColleagues();
+
+        // 创建玩家
+        this.createPlayer();
+
+        // 输入控制
+        this.cursors = this.input.keyboard!.createCursorKeys();
+        this.input.keyboard!.addKeys('W,A,S,D');
 
         // 创建状态栏
         this.createStatusPanel();
@@ -63,86 +115,164 @@ export class ImprovedOfficeScene extends Phaser.Scene {
 
         // 提示
         this.showWelcomeMessage();
+
+        // 监听事件
+        this.events.on('startChat', (npcName: string) => {
+            this.showChatDialog(npcName);
+        });
+    }
+
+    /**
+     * 笛卡尔坐标转等距坐标 (Isometric)
+     */
+    private cartToIso(x: number, y: number): { x: number, y: number } {
+        return {
+            x: (x - y),
+            y: (x + y) / 2
+        };
+    }
+
+    /**
+     * 创建等距地面
+     */
+    private createIsometricFloor(): void {
+        const floorGraphics = this.add.graphics();
+        floorGraphics.lineStyle(1, 0x4a90d9, 0.2);
+        
+        const gridSize = 15;
+        const tileSize = 40;
+
+        for (let x = -gridSize; x <= gridSize; x++) {
+            for (let y = -gridSize; y <= gridSize; y++) {
+                const iso = this.cartToIso(x * tileSize, y * tileSize);
+                const p1 = this.cartToIso((x + 1) * tileSize, y * tileSize);
+                const p2 = this.cartToIso((x + 1) * tileSize, (y + 1) * tileSize);
+                const p3 = this.cartToIso(x * tileSize, (y + 1) * tileSize);
+
+                floorGraphics.beginPath();
+                floorGraphics.moveTo(iso.x, iso.y);
+                floorGraphics.lineTo(p1.x, p1.y);
+                floorGraphics.lineTo(p2.x, p2.y);
+                floorGraphics.lineTo(p3.x, p3.y);
+                floorGraphics.closePath();
+                floorGraphics.strokePath();
+                
+                // 填充一点颜色
+                if ((x + y) % 2 === 0) {
+                    floorGraphics.fillStyle(0x4a90d9, 0.05);
+                    floorGraphics.fillPath();
+                }
+            }
+        }
+        this.worldContainer.add(floorGraphics);
+    }
+
+    private createPlayer(): void {
+        this.player = this.add.text(0, 0, '👨‍💼', { fontSize: '48px' }).setOrigin(0.5, 0.8);
+        this.worldContainer.add(this.player);
+        this.player.setDepth(0);
+        
+        // 名字标签
+        const nameLabel = this.add.text(0, -50, 'YOU', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#00ff88',
+            backgroundColor: '#00000088',
+            padding: { x: 4, y: 2 }
+        }).setOrigin(0.5);
+        this.player.setData('label', nameLabel);
+        this.worldContainer.add(nameLabel);
+    }
+
+    update(): void {
+        if (!this.player) return;
+
+        const speed = 4;
+        let dx = 0;
+        let dy = 0;
+
+        const keys = this.input.keyboard!.addKeys('W,A,S,D') as any;
+
+        if (this.cursors.left.isDown || keys.A.isDown) dx -= speed;
+        if (this.cursors.right.isDown || keys.D.isDown) dx += speed;
+        if (this.cursors.up.isDown || keys.W.isDown) dy -= speed;
+        if (this.cursors.down.isDown || keys.S.isDown) dy += speed;
+
+        // 斜向移动速度标准化
+        if (dx !== 0 && dy !== 0) {
+            dx *= 0.707;
+            dy *= 0.707;
+        }
+
+        this.worldX += dx;
+        this.worldY += dy;
+
+        // 限制在办公室内
+        this.worldX = Phaser.Math.Clamp(this.worldX, -500, 500);
+        this.worldY = Phaser.Math.Clamp(this.worldY, -500, 500);
+
+        const iso = this.cartToIso(this.worldX, this.worldY);
+        this.player.setPosition(iso.x, iso.y);
+        this.player.setDepth(iso.y + 1000); // 深度排序
+
+        const label = this.player.getData('label') as Phaser.GameObjects.Text;
+        if (label) {
+            label.setPosition(iso.x, iso.y - 60);
+            label.setDepth(this.player.depth + 1);
+        }
+
+        // 碰撞/交互检测 (简单距离判断)
+        this.sceneObjects.forEach((obj, id) => {
+            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, obj.sprite.x, obj.sprite.y);
+            if (dist < 40) {
+                obj.sprite.setTint(0x00ff88);
+            } else {
+                obj.sprite.clearTint();
+            }
+        });
     }
 
     /**
      * 创建办公室环境（丰富的场景物品）
      */
     private createOfficeEnvironment(): void {
-        const sceneY = 300;
+        // 布局物品到等距坐标
+        // 办公桌 1
+        this.createIsoObject(-200, -200, '💻', 'computer', '电脑', '你的工作电脑，上面开着VS Code和Chrome');
+        this.createIsoObject(-150, -200, '☕', 'coffee', '咖啡杯', '一杯冒着热气的咖啡');
+        this.createIsoObject(-200, -150, '⌨️', 'keyboard', '键盘', '机械键盘');
+        
+        // 公共区
+        this.createIsoObject(0, 0, '🌿', 'plant', '绿植', '一盆发财树');
+        this.createIsoObject(50, 50, '🗑️', 'trashbin', '垃圾桶', '垃圾桶');
+        this.createIsoObject(-50, 50, '🪑', 'chair', '椅子', '人体工学椅');
 
-        // 你的工位
-        this.add.text(640, 100, '🏢 你的工位', {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        // 左侧：办公桌
-        const deskBg = this.add.rectangle(200, sceneY, 300, 200, 0x3a3a4a);
-        deskBg.setStrokeStyle(2, 0x4a4a5a);
-
-        // 桌上物品
-        this.createSceneObject(150, sceneY - 50, '💻', 'computer', '电脑', '你的工作电脑，上面开着VS Code和Chrome');
-        this.createSceneObject(250, sceneY - 50, '☕', 'coffee', '咖啡杯', '一杯冒着热气的咖啡，已经凉了');
-        this.createSceneObject(150, sceneY + 20, '⌨️', 'keyboard', '键盘', '机械键盘，Cherry轴');
-        this.createSceneObject(250, sceneY + 20, '🖱️', 'mouse', '鼠标', '罗技无线鼠标');
-        this.createSceneObject(200, sceneY + 60, '📄', 'documents', '文件', '一堆需求文档和Bug报告');
-
-        this.add.text(200, sceneY + 120, '你的办公桌', {
-            fontSize: '14px',
-            color: '#888888'
-        }).setOrigin(0.5);
-
-        // 中间：公共区域
-        const publicBg = this.add.rectangle(640, sceneY, 400, 200, 0x2a2a3a);
-        publicBg.setStrokeStyle(2, 0x3a3a4a);
-
-        this.createSceneObject(540, sceneY - 40, '🗑️', 'trashbin', '垃圾桶', '垃圾桶，里面有废纸和零食袋');
-        this.createSceneObject(640, sceneY - 40, '🌿', 'plant', '绿植', '一盆发财树，好久没浇水了');
-        this.createSceneObject(740, sceneY - 40, '📋', 'whiteboard', '白板', '白板上写着本周任务和Deadline');
-        this.createSceneObject(640, sceneY + 40, '🪑', 'chair', '椅子', '人体工学椅，但坐久了还是腰疼');
-
-        this.add.text(640, sceneY + 120, '公共区域', {
-            fontSize: '14px',
-            color: '#888888'
-        }).setOrigin(0.5);
-
-        // 右侧：同事工位
-        const colleagueDeskBg = this.add.rectangle(1080, sceneY, 300, 200, 0x3a3a4a);
-        colleagueDeskBg.setStrokeStyle(2, 0x4a4a5a);
-
-        this.createSceneObject(1030, sceneY - 50, '🖥️', 'colleague_computer', '同事的电脑', '隔壁同事的电脑，屏幕上是代码');
-        this.createSceneObject(1130, sceneY - 50, '🍶', 'waterbottle', '水杯', '同事的保温杯');
-        this.createSceneObject(1080, sceneY + 20, '📱', 'phone', '手机', '同事的手机，锁屏状态');
-
-        this.add.text(1080, sceneY + 120, '隔壁同事工位', {
-            fontSize: '14px',
-            color: '#888888'
-        }).setOrigin(0.5);
+        // 同事桌
+        this.createIsoObject(200, 200, '🖥️', 'colleague_computer', '同事电脑', '隔壁同事的电脑');
     }
 
-    /**
-     * 创建场景物品
-     */
-    private createSceneObject(x: number, y: number, icon: string, id: string, name: string, description: string): void {
-        const text = this.add.text(x, y, icon, {
+    private createIsoObject(worldX: number, worldY: number, icon: string, id: string, name: string, description: string): void {
+        const iso = this.cartToIso(worldX, worldY);
+        const text = this.add.text(iso.x, iso.y, icon, {
             fontSize: '32px'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5, 0.8);
+        text.setDepth(iso.y + 1000);
 
         text.setInteractive({ useHandCursor: true });
+        this.worldContainer.add(text);
 
         // 悬停显示名称
         text.on('pointerover', () => {
             text.setScale(1.2);
-            const tooltip = this.add.text(x, y - 40, name, {
+            const tooltip = this.add.text(iso.x, iso.y - 60, name, {
                 fontSize: '12px',
                 color: '#ffffff',
                 backgroundColor: '#000000aa',
                 padding: { x: 8, y: 4 }
             }).setOrigin(0.5);
-            tooltip.setDepth(10000);
+            tooltip.setDepth(20000);
             text.setData('tooltip', tooltip);
+            this.worldContainer.add(tooltip);
         });
 
         text.on('pointerout', () => {
@@ -151,7 +281,6 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             if (tooltip) tooltip.destroy();
         });
 
-        // 点击显示详情
         text.on('pointerdown', () => {
             this.showObjectDetail(name, description);
         });
@@ -169,38 +298,47 @@ export class ImprovedOfficeScene extends Phaser.Scene {
      */
     private createColleagues(): void {
         const colleagues = [
-            { name: '张经理', emoji: '👔', x: 1000, y: 150, position: '项目经理', relationship: 20 },
-            { name: '李同事', emoji: '👨‍💻', x: 1080, y: 220, position: '前端开发', relationship: 50 },
-            { name: '王测试', emoji: '👩‍💻', x: 950, y: 220, position: '测试工程师', relationship: 40 }
+            { name: '张经理', emoji: '👔', wx: 300, wy: -300, position: '项目经理', relationship: 20 },
+            { name: '李同事', emoji: '👨‍💻', wx: 400, wy: 300, position: '前端开发', relationship: 50 },
+            { name: '王测试', emoji: '👩‍💻', wx: -300, wy: 400, position: '测试工程师', relationship: 40 }
         ];
 
         colleagues.forEach(col => {
-            const sprite = this.add.text(col.x, col.y, col.emoji, {
+            const iso = this.cartToIso(col.wx, col.wy);
+            const sprite = this.add.text(iso.x, iso.y, col.emoji, {
                 fontSize: '40px'
-            }).setOrigin(0.5);
+            }).setOrigin(0.5, 0.8);
+            sprite.setDepth(iso.y + 1000);
 
             sprite.setInteractive({ useHandCursor: true });
+            this.worldContainer.add(sprite);
 
             // 悬停显示关系
             sprite.on('pointerover', () => {
                 sprite.setScale(1.2);
                 const relationText = col.relationship >= 60 ? '😊关系好' :
                     col.relationship >= 30 ? '😐一般' : '😒关系差';
-                const tooltip = this.add.text(col.x, col.y - 50, `${col.name} (${col.position})\n${relationText}`, {
+                const tooltip = this.add.text(iso.x, iso.y - 70, `${col.name} (${col.position})\n${relationText}`, {
                     fontSize: '12px',
                     color: '#ffffff',
                     backgroundColor: '#000000aa',
                     padding: { x: 8, y: 4 },
                     align: 'center'
                 }).setOrigin(0.5);
-                tooltip.setDepth(10000);
+                tooltip.setDepth(20000);
                 sprite.setData('tooltip', tooltip);
+                this.worldContainer.add(tooltip);
             });
 
             sprite.on('pointerout', () => {
                 sprite.setScale(1);
                 const tooltip = sprite.getData('tooltip');
                 if (tooltip) tooltip.destroy();
+            });
+
+            // 点击对话
+            sprite.on('pointerdown', () => {
+                this.showChatDialog(col.name);
             });
 
             this.colleagues.set(col.name, {
@@ -218,13 +356,15 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     private createStatusPanel(): void {
         this.statusPanel = this.add.container(100, 500);
 
-        const bg = this.add.rectangle(0, 0, 300, 180, 0x1a1a2e, 0.9);
-        bg.setStrokeStyle(2, 0x4a90d9);
+        const bg = this.add.rectangle(0, 0, 300, 180, COLORS.panel, 0.8);
+        bg.setStrokeStyle(1, COLORS.primary, 0.3);
         bg.setOrigin(0, 0);
+        applyGlassEffect(bg, 0.8);
         this.statusPanel.add(bg);
 
-        const title = this.add.text(10, 10, '📊 状态', {
-            fontSize: '16px',
+        const title = this.add.text(15, 15, 'SYSTEM STATUS / 实时状态', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
             color: '#4a90d9',
             fontStyle: 'bold'
         });
@@ -287,53 +427,65 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     private createCommandInput(): void {
         this.commandPanel = this.add.container(440, 600);
 
-        const bg = this.add.rectangle(0, 0, 800, 100, 0x1a1a2e, 0.95);
-        bg.setStrokeStyle(2, 0x4a90d9);
+        const bg = this.add.rectangle(0, 0, 800, 100, COLORS.panel, 0.9);
+        bg.setStrokeStyle(1, COLORS.primary, 0.3);
         bg.setOrigin(0, 0);
+        applyGlassEffect(bg, 0.9);
         this.commandPanel.add(bg);
 
-        const title = this.add.text(10, 10, '💬 输入你的行动（可以做任何事）', {
-            fontSize: '14px',
-            color: '#4a90d9',
-            fontStyle: 'bold'
+        const title = this.add.text(15, 12, 'COMMAND INTERFACE / 执行指令', {
+            fontSize: '11px',
+            fontFamily: FONTS.mono,
+            color: '#888888'
         });
         this.commandPanel.add(title);
 
         // 创建输入框+提交按钮（使用HTML）
         const inputHTML = `
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="commandInput" 
-                       placeholder="例如：拿起咖啡杯喝一口 / 砸向张经理 / 摸鱼刷手机 / 认真工作..."
-                       style="width: 620px; 
-                              padding: 10px; 
+                       placeholder="TRY: '砸向同事' / '拿起水杯喝水' / '疯狂加班'..."
+                       style="width: 600px; 
+                              padding: 12px; 
                               font-size: 14px; 
-                              background: #2a2a3a; 
+                              background: rgba(0,0,0,0.3); 
                               color: #ffffff; 
                               border: 1px solid #4a90d9; 
                               border-radius: 4px;
-                              outline: none;" />
+                              outline: none;
+                              font-family: Inter, sans-serif;" />
                 <button id="commandSubmit"
-                        style="width: 120px;
-                               padding: 10px;
+                        style="width: 100px;
+                               padding: 12px;
                                font-size: 14px;
                                background: #4a90d9;
                                color: #ffffff;
                                border: none;
                                border-radius: 4px;
                                cursor: pointer;
-                               font-weight: bold;">
-                    提交
+                               font-weight: bold;
+                               font-family: Inter, sans-serif;">
+                    EXECUTE
                 </button>
             </div>
         `;
 
-        const input = this.add.dom(400, 60, 'div').createFromHTML(inputHTML);
-        this.commandPanel.add(input);
+        const input = this.add.dom(440 + 400, 600 + 60, 'div').createFromHTML(inputHTML);
+        // 不要把 DOM 元素放入 Container，这会导致缩放和坐标错位
+        // this.commandPanel.add(input);
+        input.setDepth(2000);
 
         // 延迟绑定事件，确保DOM已渲染
         this.time.delayedCall(100, () => {
             const inputElement = document.getElementById('commandInput') as HTMLInputElement;
             const submitBtn = document.getElementById('commandSubmit') as HTMLButtonElement;
+
+            inputElement?.addEventListener('focus', () => {
+                this.input.keyboard!.enabled = false;
+            });
+            inputElement?.addEventListener('blur', () => {
+                this.input.keyboard!.enabled = true;
+            });
 
             const handleSubmit = () => {
                 if (inputElement) {
@@ -376,21 +528,23 @@ export class ImprovedOfficeScene extends Phaser.Scene {
      * 创建行为日志
      */
     private createActionLog(): void {
-        const logBg = this.add.rectangle(1130, 500, 280, 180, 0x1a1a2e, 0.9);
-        logBg.setStrokeStyle(2, 0x666666);
+        const logBg = this.add.rectangle(1130, 500, 280, 180, COLORS.panel, 0.6);
+        logBg.setStrokeStyle(1, 0xffffff, 0.1);
         logBg.setOrigin(1, 0);
+        applyGlassEffect(logBg, 0.6);
 
-        const logTitle = this.add.text(860, 510, '📜 行为记录', {
-            fontSize: '14px',
-            color: '#888888',
-            fontStyle: 'bold'
+        const logTitle = this.add.text(865, 515, 'ACTION LOG / 行为日志', {
+            fontSize: '10px',
+            fontFamily: FONTS.mono,
+            color: '#666666'
         });
 
-        this.logDisplay = this.add.text(860, 540, '', {
+        this.logDisplay = this.add.text(865, 545, '', {
             fontSize: '12px',
+            fontFamily: FONTS.main,
             color: '#cccccc',
-            wordWrap: { width: 260 },
-            lineSpacing: 4
+            wordWrap: { width: 250 },
+            lineSpacing: 6
         });
     }
 
@@ -567,6 +721,163 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             this.actionLog.pop();
         }
         this.logDisplay.setText(this.actionLog.join('\n'));
+    }
+
+    /**
+     * 显示对话弹窗
+     */
+    private showChatDialog(npcName: string): void {
+        const colleague = this.colleagues.get(npcName);
+        const player = gameState.getPlayer();
+        const workplace = workplaceSystem.getStatus();
+
+        // 创建遮罩容器
+        const chatContainer = this.add.container(640, 360);
+        chatContainer.setDepth(10000);
+
+        const overlay = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.7);
+        overlay.setInteractive();
+        chatContainer.add(overlay);
+
+        const dialogBg = this.add.rectangle(0, 0, 800, 450, COLORS.panel, 0.95);
+        applyGlassEffect(dialogBg);
+        chatContainer.add(dialogBg);
+
+        // 标题
+        const title = this.add.text(0, -190, ` 与 ${npcName} 对话中...`, {
+            fontSize: '24px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        chatContainer.add(title);
+
+        const divider = this.add.rectangle(0, -150, 740, 1, 0x4a90d9, 0.3);
+        chatContainer.add(divider);
+
+        // 回复展示区域
+        const responseBg = this.add.rectangle(0, -30, 740, 200, 0xffffff, 0.05);
+        chatContainer.add(responseBg);
+
+        const responseText = this.add.text(0, -30, `${npcName}: "你好，有什么事吗？"`, {
+            fontSize: '18px',
+            fontFamily: FONTS.main,
+            color: '#e0e0e0',
+            wordWrap: { width: 700 },
+            lineSpacing: 8
+        }).setOrigin(0.5);
+        chatContainer.add(responseText);
+
+        // HTML 输入区域
+        const inputHTML = `
+            <div style="display: flex; flex-direction: column; gap: 12px; width: 740px;">
+                <textarea id="chatInput" 
+                          placeholder="输入你想说的话 (Ctrl+Enter 提交)..."
+                          style="width: 100%; 
+                                 height: 80px;
+                                 padding: 12px; 
+                                 font-size: 14px; 
+                                 background: rgba(255,255,255,0.05); 
+                                 color: #ffffff; 
+                                 border: 1px solid #4a90d9; 
+                                 border-radius: 4px;
+                                 outline: none;
+                                 resize: none;
+                                 font-family: Inter, sans-serif;
+                                 box-sizing: border-box;"></textarea>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="chatSubmit"
+                            style="padding: 10px 30px;
+                                   background: #4a90d9;
+                                   color: #ffffff;
+                                   border: none;
+                                   border-radius: 4px;
+                                   cursor: pointer;
+                                   font-weight: bold;">
+                        SEND MESSAGE
+                    </button>
+                    <button id="chatClose"
+                            style="padding: 10px 30px;
+                                   background: rgba(255,255,255,0.1);
+                                   color: #ffffff;
+                                   border: none;
+                                   border-radius: 4px;
+                                   cursor: pointer;">
+                        CLOSE
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const domElement = this.add.dom(640, 360 + 140, 'div').createFromHTML(inputHTML);
+        // 不要放入 container
+        // chatContainer.add(domElement);
+        domElement.setDepth(10001);
+
+        this.time.delayedCall(100, () => {
+            const input = document.getElementById('chatInput') as HTMLTextAreaElement;
+            const submitBtn = document.getElementById('chatSubmit') as HTMLButtonElement;
+            const closeBtn = document.getElementById('chatClose') as HTMLButtonElement;
+        
+            input?.focus();
+        
+            input?.addEventListener('focus', () => {
+                this.input.keyboard!.enabled = false;
+            });
+            input?.addEventListener('blur', () => {
+                this.input.keyboard!.enabled = true;
+            });
+        
+            const handleSend = () => {
+                const message = input.value.trim();
+                if (!message) return;
+        
+                responseText.setText('正在思考...');
+                input.value = '';
+                input.disabled = true;
+                submitBtn.disabled = true;
+        
+                apiService.chatWithNPC(
+                    npcName,
+                    message,
+                    { name: player.name, position: player.position, day: player.day },
+                    {
+                        kpi: workplace.performance.kpiScore,
+                        stress: workplace.stress,
+                        reputation: workplace.reputation,
+                        faction: workplace.currentFaction
+                    }
+                ).then(result => {
+                    responseText.setText(`${npcName}: "${result.npc_response}"`);
+                            
+                    if (result.relationship_change !== 0) {
+                        gameState.updateRelationship(npcName, result.relationship_change);
+                        notificationManager.info('关系变化', `${npcName} 对你的好感 ${result.relationship_change > 0 ? '+' : ''}${result.relationship_change}`, 4000);
+                    }
+        
+                    input.disabled = false;
+                    submitBtn.disabled = false;
+                    input.focus();
+                }).catch(err => {
+                    responseText.setText('系统: 通讯中断，请重试。');
+                    input.disabled = false;
+                    submitBtn.disabled = false;
+                });
+            };
+        
+            submitBtn?.addEventListener('click', handleSend);
+            closeBtn?.addEventListener('click', () => {
+                chatContainer.destroy();
+                domElement.destroy(); // 销毁 DOM
+            });
+            input?.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') handleSend();
+                if (e.key === 'Escape') {
+                    chatContainer.destroy();
+                    domElement.destroy(); // 销毁 DOM
+                }
+            });
+        });
     }
 
     /**

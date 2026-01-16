@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { gameState } from '../GameState';
 import type { KLineData, Stock } from '../StockMarket';
 import { stockMarket } from '../StockMarket';
+import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
 
 /**
  * 股票交易界面
@@ -29,10 +30,39 @@ export class StockScene extends Phaser.Scene {
 
     create(): void {
         // 背景
-        this.add.rectangle(640, 360, 1280, 720, 0x1a1a2a);
+        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+
+        // 背景装饰
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
+
+        // 标题容器
+        const headerContainer = this.add.container(640, 60);
+        const titleText = this.add.text(0, -15, '📈 股票交易所', {
+            fontSize: '36px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        const subTitleText = this.add.text(0, 25, 'STOCK MARKET / WEALTH ACCUMULATION STRATEGY', {
+            fontSize: '12px',
+            fontFamily: FONTS.mono,
+            color: '#4a90d9',
+            letterSpacing: 2
+        }).setOrigin(0.5);
+        headerContainer.add([titleText, subTitleText]);
 
         // 创建容器
-        this.headerContainer = this.add.container(0, 0);
+        this.headerContainer = this.add.container(0, 50); // 往下移动
         this.stockListContainer = this.add.container(0, 0);
         this.detailContainer = this.add.container(0, 0);
         this.positionContainer = this.add.container(0, 0);
@@ -59,61 +89,76 @@ export class StockScene extends Phaser.Scene {
     private drawHeader(): void {
         this.headerContainer.removeAll(true);
 
-        // 背景
-        const bg = this.add.rectangle(640, 35, 1280, 70, 0x2a2a3a);
+        // 背景 (磨砂玻璃)
+        const bg = this.add.rectangle(640, 40, 1280, 80, COLORS.panel, 0.9);
+        bg.setStrokeStyle(1, COLORS.primary, 0.2);
+        applyGlassEffect(bg, 0.9);
         this.headerContainer.add(bg);
 
         // 返回按钮
-        const backBtn = this.add.text(50, 35, '← 返回', {
-            fontSize: '18px',
-            color: '#ffffff'
-        });
-        backBtn.setOrigin(0, 0.5);
-        backBtn.setInteractive({ useHandCursor: true });
+        const backBtn = this.add.text(40, 40, '← BACK / 返回', {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
+            color: '#888888'
+        }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+
+        backBtn.on('pointerover', () => backBtn.setColor('#ffffff'));
+        backBtn.on('pointerout', () => backBtn.setColor('#888888'));
         backBtn.on('pointerdown', () => this.goBack());
         this.headerContainer.add(backBtn);
 
         // 标题
-        const title = this.add.text(640, 35, '股票交易', {
-            fontSize: '24px',
+        const title = this.add.text(640, 30, 'STOCK EXCHANGE / 股票交易所', {
+            fontSize: '20px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
-            fontStyle: 'bold'
-        });
-        title.setOrigin(0.5, 0.5);
+            fontStyle: 'bold',
+            letterSpacing: 2
+        }).setOrigin(0.5, 0.5);
         this.headerContainer.add(title);
 
         // 账户信息
         const account = gameState.getAccount();
-        const accountText = this.add.text(1100, 25, `可用: ¥${account.cash.toFixed(2)}`, {
-            fontSize: '14px',
-            color: '#00ff88'
-        });
-        accountText.setOrigin(0.5, 0.5);
-        this.headerContainer.add(accountText);
+        const accountBox = this.add.container(1100, 40);
+        this.headerContainer.add(accountBox);
 
-        const profitText = this.add.text(1100, 45, `今日盈亏: ${account.todayProfit >= 0 ? '+' : ''}¥${account.todayProfit.toFixed(2)}`, {
-            fontSize: '12px',
-            color: account.todayProfit >= 0 ? '#00ff88' : '#ff4444'
-        });
-        profitText.setOrigin(0.5, 0.5);
-        this.headerContainer.add(profitText);
+        const cashLabel = this.add.text(0, -10, 'AVAILABLE CASH', {
+            fontSize: '10px',
+            fontFamily: FONTS.mono,
+            color: '#888888'
+        }).setOrigin(0.5);
+        const cashValue = this.add.text(0, 10, `¥${account.cash.toLocaleString()}`, {
+            fontSize: '18px',
+            fontFamily: FONTS.mono,
+            color: '#00ff88',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        accountBox.add([cashLabel, cashValue]);
 
         // 导航标签
         const tabs = [
-            { name: '行情', view: 'list' as const },
-            { name: '持仓', view: 'position' as const },
+            { name: 'MARKET 行情', view: 'list' as const, x: 300 },
+            { name: 'POSITION 持仓', view: 'position' as const, x: 450 },
         ];
 
-        tabs.forEach((tab, index) => {
-            const x = 300 + index * 100;
+        tabs.forEach((tab) => {
             const isActive = this.currentView === tab.view || (this.currentView === 'detail' && tab.view === 'list');
 
-            const tabBtn = this.add.text(x, 55, tab.name, {
+            const tabBtn = this.add.text(tab.x, 40, tab.name, {
                 fontSize: '14px',
-                color: isActive ? '#00ff88' : '#888888'
-            });
-            tabBtn.setOrigin(0.5, 0.5);
+                fontFamily: FONTS.main,
+                color: isActive ? '#ffffff' : '#666666',
+                fontStyle: isActive ? 'bold' : 'normal'
+            }).setOrigin(0.5, 0.5);
+
+            if (isActive) {
+                const indicator = this.add.rectangle(tab.x, 65, 40, 2, COLORS.primary);
+                this.headerContainer.add(indicator);
+            }
+
             tabBtn.setInteractive({ useHandCursor: true });
+            tabBtn.on('pointerover', () => !isActive && tabBtn.setColor('#aaaaaa'));
+            tabBtn.on('pointerout', () => !isActive && tabBtn.setColor('#666666'));
             tabBtn.on('pointerdown', () => {
                 if (tab.view === 'list') this.showStockList();
                 else if (tab.view === 'position') this.showPositions();
@@ -131,108 +176,105 @@ export class StockScene extends Phaser.Scene {
         this.stockListContainer.removeAll(true);
         this.drawHeader();
 
-        // 列表头
-        const headers = ['代码', '名称', '最新价', '涨跌幅', '涨跌额', '成交量'];
-        const headerWidths = [100, 120, 100, 100, 100, 120];
-        let headerX = 50;
+        // 列表背景 (磨砂卡片)
+        const listBg = this.add.rectangle(640, 400, 1200, 560, COLORS.panel, 0.4);
+        applyGlassEffect(listBg, 0.4);
+        this.stockListContainer.add(listBg);
 
-        headers.forEach((header, index) => {
-            const text = this.add.text(headerX, 90, header, {
-                fontSize: '12px',
-                color: '#888888'
+        // 列表头
+        const headers = [
+            { label: 'SYMBOL 代码', x: 80 },
+            { label: 'NAME 名称', x: 200 },
+            { label: 'LAST 最新', x: 350 },
+            { label: 'CHG 涨跌幅', x: 500 },
+            { label: 'AMOUNT 涨跌额', x: 650 },
+            { label: 'VOL 成交量', x: 800 },
+            { label: 'ACTION 操作', x: 1000 }
+        ];
+
+        headers.forEach((h) => {
+            const text = this.add.text(h.x, 140, h.label, {
+                fontSize: '11px',
+                fontFamily: FONTS.mono,
+                color: '#666666'
             });
             this.stockListContainer.add(text);
-            headerX += headerWidths[index];
         });
 
         // 股票列表
         const stocks = stockMarket.getAllStocks();
         stocks.forEach((stock, index) => {
-            this.drawStockRow(stock, index, 120 + index * 35);
+            this.drawStockRow(stock, index, 180 + index * 45);
         });
     }
 
-    /** 绘制股票行 */
     private drawStockRow(stock: Stock, index: number, y: number): void {
-        const rowBg = this.add.rectangle(640, y, 1200, 32, index % 2 === 0 ? 0x252535 : 0x2a2a3a);
+        const rowContainer = this.add.container(0, 0);
+        this.stockListContainer.add(rowContainer);
+
+        const rowBg = this.add.rectangle(640, y, 1160, 38, 0xffffff, index % 2 === 0 ? 0.02 : 0);
         rowBg.setInteractive({ useHandCursor: true });
-        rowBg.on('pointerover', () => rowBg.setFillStyle(0x3a3a4a));
-        rowBg.on('pointerout', () => rowBg.setFillStyle(index % 2 === 0 ? 0x252535 : 0x2a2a3a));
+
+        rowBg.on('pointerover', () => rowBg.setFillStyle(0xffffff, 0.05));
+        rowBg.on('pointerout', () => rowBg.setFillStyle(0xffffff, index % 2 === 0 ? 0.02 : 0));
         rowBg.on('pointerdown', () => this.showStockDetail(stock.code));
-        this.stockListContainer.add(rowBg);
+        rowContainer.add(rowBg);
 
         const changeColor = stock.changePercent > 0 ? '#ff4444' : stock.changePercent < 0 ? '#00ff88' : '#ffffff';
 
         // 代码
-        const codeText = this.add.text(50, y, stock.code, {
+        rowContainer.add(this.add.text(80, y, stock.code, {
             fontSize: '13px',
+            fontFamily: FONTS.mono,
             color: '#ffffff'
-        });
-        codeText.setOrigin(0, 0.5);
-        this.stockListContainer.add(codeText);
+        }).setOrigin(0, 0.5));
 
         // 名称
-        const nameText = this.add.text(150, y, stock.name, {
-            fontSize: '13px',
-            color: '#ffffff'
-        });
-        nameText.setOrigin(0, 0.5);
-        this.stockListContainer.add(nameText);
+        rowContainer.add(this.add.text(200, y, stock.name, {
+            fontSize: '14px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5));
 
         // 最新价
-        const priceText = this.add.text(270, y, stock.price.toFixed(2), {
-            fontSize: '13px',
-            color: changeColor
-        });
-        priceText.setOrigin(0, 0.5);
-        this.stockListContainer.add(priceText);
+        rowContainer.add(this.add.text(350, y, stock.price.toFixed(2), {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
+            color: changeColor,
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5));
 
         // 涨跌幅
         let changePercentStr = stock.changePercent.toFixed(2) + '%';
         if (stock.changePercent > 0) changePercentStr = '+' + changePercentStr;
-        if (stock.isLimitUp) changePercentStr += ' 涨停';
-        if (stock.isLimitDown) changePercentStr += ' 跌停';
 
-        const changePercentText = this.add.text(370, y, changePercentStr, {
-            fontSize: '13px',
+        rowContainer.add(this.add.text(500, y, changePercentStr, {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
             color: changeColor
-        });
-        changePercentText.setOrigin(0, 0.5);
-        this.stockListContainer.add(changePercentText);
+        }).setOrigin(0, 0.5));
 
         // 涨跌额
         let changeStr = stock.change.toFixed(2);
         if (stock.change > 0) changeStr = '+' + changeStr;
 
-        const changeText = this.add.text(480, y, changeStr, {
-            fontSize: '13px',
+        rowContainer.add(this.add.text(650, y, changeStr, {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
             color: changeColor
-        });
-        changeText.setOrigin(0, 0.5);
-        this.stockListContainer.add(changeText);
+        }).setOrigin(0, 0.5));
 
         // 成交量
-        const volumeText = this.add.text(580, y, this.formatVolume(stock.volume), {
+        rowContainer.add(this.add.text(800, y, this.formatVolume(stock.volume), {
             fontSize: '13px',
+            fontFamily: FONTS.mono,
             color: '#888888'
-        });
-        volumeText.setOrigin(0, 0.5);
-        this.stockListContainer.add(volumeText);
+        }).setOrigin(0, 0.5));
 
-        // 快捷买入按钮
-        const buyBtn = this.add.text(700, y, '买入', {
-            fontSize: '12px',
-            color: '#ff4444',
-            backgroundColor: '#442222',
-            padding: { x: 8, y: 4 }
-        });
-        buyBtn.setOrigin(0, 0.5);
-        buyBtn.setInteractive({ useHandCursor: true });
-        buyBtn.on('pointerdown', (e: Phaser.Input.Pointer) => {
-            e.event.stopPropagation();
-            this.showStockDetail(stock.code);
-        });
-        this.stockListContainer.add(buyBtn);
+        // 操作按钮
+        const tradeBtn = createStyledButton(this, 1040, y, 90, 26, 'TRADE', () => this.showStockDetail(stock.code));
+        rowContainer.add(tradeBtn);
     }
 
     /** 显示股票详情 */
@@ -267,21 +309,29 @@ export class StockScene extends Phaser.Scene {
     private drawStockInfo(stock: Stock): void {
         const changeColor = stock.changePercent > 0 ? '#ff4444' : stock.changePercent < 0 ? '#00ff88' : '#ffffff';
 
-        // 背景
-        const infoBg = this.add.rectangle(200, 160, 380, 180, 0x2a2a3a);
+        // 信息面板 (磨砂卡片)
+        const infoBg = this.add.rectangle(200, 210, 360, 220, COLORS.panel, 0.4);
+        applyGlassEffect(infoBg, 0.4);
         this.detailContainer.add(infoBg);
 
         // 名称和代码
-        const nameText = this.add.text(30, 90, `${stock.name} (${stock.code})`, {
-            fontSize: '20px',
+        const nameText = this.add.text(40, 130, `${stock.name}`, {
+            fontSize: '24px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         });
-        this.detailContainer.add(nameText);
+        const codeText = this.add.text(40, 165, `${stock.code}`, {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
+            color: '#888888'
+        });
+        this.detailContainer.add([nameText, codeText]);
 
         // 当前价格
-        const priceText = this.add.text(30, 130, stock.price.toFixed(2), {
-            fontSize: '36px',
+        const priceText = this.add.text(40, 195, stock.price.toFixed(2), {
+            fontSize: '42px',
+            fontFamily: FONTS.mono,
             color: changeColor,
             fontStyle: 'bold'
         });
@@ -289,60 +339,66 @@ export class StockScene extends Phaser.Scene {
 
         // 涨跌信息
         let changeInfo = `${stock.change >= 0 ? '+' : ''}${stock.change.toFixed(2)}  ${stock.changePercent >= 0 ? '+' : ''}${stock.changePercent.toFixed(2)}%`;
-        if (stock.isLimitUp) changeInfo += ' 涨停';
-        if (stock.isLimitDown) changeInfo += ' 跌停';
+        if (stock.isLimitUp) changeInfo += ' [LIMIT UP]';
+        if (stock.isLimitDown) changeInfo += ' [LIMIT DOWN]';
 
-        const changeInfoText = this.add.text(30, 175, changeInfo, {
-            fontSize: '16px',
-            color: changeColor
+        const changeInfoText = this.add.text(40, 245, changeInfo, {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
+            color: changeColor,
+            fontStyle: 'bold'
         });
         this.detailContainer.add(changeInfoText);
 
-        // 详细数据
+        // 详细数据网格
         const details = [
-            [`开盘: ${stock.open.toFixed(2)}`, `最高: ${stock.high.toFixed(2)}`],
-            [`昨收: ${stock.close.toFixed(2)}`, `最低: ${stock.low.toFixed(2)}`],
-            [`涨停: ${stock.limitUp.toFixed(2)}`, `跌停: ${stock.limitDown.toFixed(2)}`],
-            [`成交量: ${this.formatVolume(stock.volume)}`, `成交额: ${this.formatAmount(stock.amount)}`],
+            { label: 'OPEN / 今开', val: stock.open.toFixed(2) },
+            { label: 'HIGH / 最高', val: stock.high.toFixed(2) },
+            { label: 'PREV / 昨收', val: stock.close.toFixed(2) },
+            { label: 'LOW  / 最低', val: stock.low.toFixed(2) },
+            { label: 'VOL  / 成交量', val: this.formatVolume(stock.volume) },
+            { label: 'VAL  / 成交额', val: this.formatAmount(stock.amount) }
         ];
 
-        details.forEach((row, rowIndex) => {
-            row.forEach((item, colIndex) => {
-                const x = 30 + colIndex * 170;
-                const y = 210 + rowIndex * 22;
-                const text = this.add.text(x, y, item, {
-                    fontSize: '12px',
-                    color: '#888888'
-                });
-                this.detailContainer.add(text);
-            });
+        details.forEach((item, i) => {
+            const x = 40 + (i % 2) * 160;
+            const y = 280 + Math.floor(i / 2) * 25;
+
+            const l = this.add.text(x, y, item.label, { fontSize: '10px', fontFamily: FONTS.mono, color: '#666666' });
+            const v = this.add.text(x + 80, y, item.val, { fontSize: '10px', fontFamily: FONTS.mono, color: '#aaaaaa' });
+            this.detailContainer.add([l, v]);
         });
     }
 
     /** 绘制K线图 */
     private drawKLineChart(stock: Stock): void {
         // K线图区域
-        const chartBg = this.add.rectangle(640, 380, 460, 400, 0x1a1a2a);
-        chartBg.setStrokeStyle(1, 0x333333);
+        const chartBg = this.add.rectangle(640, 430, 480, 420, COLORS.panel, 0.2);
+        chartBg.setStrokeStyle(1, 0xffffff, 0.1);
+        applyGlassEffect(chartBg, 0.2);
         this.detailContainer.add(chartBg);
 
         // K线周期选择
         const periods: Array<{ name: string; value: 'day' | 'week' | 'month' }> = [
-            { name: '日K', value: 'day' },
-            { name: '周K', value: 'week' },
-            { name: '月K', value: 'month' },
+            { name: '1D', value: 'day' },
+            { name: '1W', value: 'week' },
+            { name: '1M', value: 'month' },
         ];
 
         periods.forEach((period, index) => {
-            const x = 450 + index * 60;
+            const x = 430 + index * 50;
             const isActive = this.klinePeriod === period.value;
 
-            const btn = this.add.text(x, 200, period.name, {
-                fontSize: '14px',
-                color: isActive ? '#00ff88' : '#666666',
-                backgroundColor: isActive ? '#2a3a2a' : 'transparent',
-                padding: { x: 8, y: 4 }
+            const btn = this.add.text(x, 245, period.name, {
+                fontSize: '11px',
+                fontFamily: FONTS.mono,
+                color: isActive ? '#ffffff' : '#666666',
+                backgroundColor: isActive ? COLORS.primary.toString(16) : 'transparent', // Will fix this later
+                padding: { x: 6, y: 3 }
             });
+            // Fix color string
+            if (isActive) btn.setBackgroundColor('#4a90d9');
+
             btn.setInteractive({ useHandCursor: true });
             btn.on('pointerdown', () => {
                 this.klinePeriod = period.value;
@@ -356,7 +412,7 @@ export class StockScene extends Phaser.Scene {
         this.detailContainer.add(this.klineGraphics);
 
         const klineData = stockMarket.getKLineData(stock.code, this.klinePeriod);
-        this.drawKLines(klineData, 420, 240, 440, 320);
+        this.drawKLines(klineData, 410, 270, 460, 320);
     }
 
     /** 绘制K线 */
@@ -425,74 +481,47 @@ export class StockScene extends Phaser.Scene {
     private drawOrderBook(stock: Stock): void {
         const orderBook = stockMarket.getOrderBook(stock.code);
 
-        // 盘口背景
-        const bookBg = this.add.rectangle(1050, 230, 250, 300, 0x2a2a3a);
+        // 盘口背景 (磨砂卡片)
+        const bookBg = this.add.rectangle(1050, 280, 240, 360, COLORS.panel, 0.4);
+        applyGlassEffect(bookBg, 0.4);
         this.detailContainer.add(bookBg);
 
-        const title = this.add.text(940, 95, '五档盘口', {
-            fontSize: '14px',
-            color: '#888888'
+        const title = this.add.text(940, 115, 'ORDER BOOK / 五档盘口', {
+            fontSize: '10px',
+            fontFamily: FONTS.mono,
+            color: '#666666'
         });
         this.detailContainer.add(title);
 
-        // 卖盘（从高到低显示，即卖5到卖1）
+        // 卖盘
         const reversedAsks = [...orderBook.asks].reverse();
         reversedAsks.forEach((ask, index) => {
-            const y = 120 + index * 28;
+            const y = 145 + index * 26;
 
-            const label = this.add.text(940, y, `卖${5 - index}`, {
-                fontSize: '12px',
-                color: '#888888'
-            });
-            this.detailContainer.add(label);
-
-            const price = this.add.text(1000, y, ask.price.toFixed(2), {
-                fontSize: '12px',
-                color: '#00ff88'
-            });
-            this.detailContainer.add(price);
-
-            const volume = this.add.text(1100, y, ask.volume.toString(), {
-                fontSize: '12px',
-                color: '#888888'
-            });
-            this.detailContainer.add(volume);
+            const label = this.add.text(940, y, `ASK${5 - index}`, { fontSize: '10px', fontFamily: FONTS.mono, color: '#888888' });
+            const price = this.add.text(1000, y, ask.price.toFixed(2), { fontSize: '12px', fontFamily: FONTS.mono, color: '#00ff88' });
+            const volume = this.add.text(1110, y, ask.volume.toString(), { fontSize: '11px', fontFamily: FONTS.mono, color: '#666666' }).setOrigin(1, 0);
+            this.detailContainer.add([label, price, volume]);
         });
-
-        // 分隔线
-        const divider = this.add.rectangle(1050, 262, 220, 2, 0x444444);
-        this.detailContainer.add(divider);
 
         // 当前价
+        const divider = this.add.rectangle(1050, 280, 210, 1, 0xffffff, 0.1);
         const currentPrice = this.add.text(1050, 280, stock.price.toFixed(2), {
-            fontSize: '16px',
+            fontSize: '18px',
+            fontFamily: FONTS.mono,
             color: stock.changePercent >= 0 ? '#ff4444' : '#00ff88',
             fontStyle: 'bold'
-        });
-        currentPrice.setOrigin(0.5, 0.5);
-        this.detailContainer.add(currentPrice);
+        }).setOrigin(0.5, 0.5);
+        this.detailContainer.add([divider, currentPrice]);
 
         // 买盘
         orderBook.bids.forEach((bid, index) => {
-            const y = 305 + index * 28;
+            const y = 315 + index * 26;
 
-            const label = this.add.text(940, y, `买${index + 1}`, {
-                fontSize: '12px',
-                color: '#888888'
-            });
-            this.detailContainer.add(label);
-
-            const price = this.add.text(1000, y, bid.price.toFixed(2), {
-                fontSize: '12px',
-                color: '#ff4444'
-            });
-            this.detailContainer.add(price);
-
-            const volume = this.add.text(1100, y, bid.volume.toString(), {
-                fontSize: '12px',
-                color: '#888888'
-            });
-            this.detailContainer.add(volume);
+            const label = this.add.text(940, y, `BID${index + 1}`, { fontSize: '10px', fontFamily: FONTS.mono, color: '#888888' });
+            const price = this.add.text(1000, y, bid.price.toFixed(2), { fontSize: '12px', fontFamily: FONTS.mono, color: '#ff4444' });
+            const volume = this.add.text(1110, y, bid.volume.toString(), { fontSize: '11px', fontFamily: FONTS.mono, color: '#666666' }).setOrigin(1, 0);
+            this.detailContainer.add([label, price, volume]);
         });
     }
 
@@ -501,112 +530,57 @@ export class StockScene extends Phaser.Scene {
         const account = gameState.getAccount();
         const position = gameState.getPosition(stock.code);
 
-        // 交易面板背景
-        const tradeBg = this.add.rectangle(1050, 530, 250, 220, 0x2a2a3a);
+        // 交易面板背景 (磨砂卡片)
+        const tradeBg = this.add.rectangle(1050, 580, 240, 220, COLORS.panel, 0.4);
+        applyGlassEffect(tradeBg, 0.4);
         this.detailContainer.add(tradeBg);
 
         // 委托价格
-        const priceLabel = this.add.text(940, 440, '委托价格:', {
-            fontSize: '12px',
-            color: '#888888'
-        });
+        const priceLabel = this.add.text(940, 480, 'PRICE / 价格', { fontSize: '10px', fontFamily: FONTS.mono, color: '#666666' });
         this.detailContainer.add(priceLabel);
 
-        // 价格调整按钮
-        const priceDown = this.add.text(940, 465, '-', {
-            fontSize: '20px',
-            color: '#ffffff',
-            backgroundColor: '#444444',
-            padding: { x: 10, y: 2 }
-        });
-        priceDown.setInteractive({ useHandCursor: true });
+        const priceDown = this.add.text(940, 500, '-', { fontSize: '20px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 10, y: 2 } }).setInteractive({ useHandCursor: true });
         priceDown.on('pointerdown', () => {
             this.tradePrice = Math.max(stock.limitDown, parseFloat((this.tradePrice - 0.01).toFixed(2)));
             this.showStockDetail(stock.code);
         });
-        this.detailContainer.add(priceDown);
 
-        const priceDisplay = this.add.text(1050, 465, this.tradePrice.toFixed(2), {
-            fontSize: '16px',
-            color: '#ffffff',
-            backgroundColor: '#333333',
-            padding: { x: 20, y: 5 }
-        });
-        priceDisplay.setOrigin(0.5, 0);
-        this.detailContainer.add(priceDisplay);
+        const priceDisplay = this.add.text(1050, 500, this.tradePrice.toFixed(2), { fontSize: '16px', fontFamily: FONTS.mono, color: '#ffffff', backgroundColor: '#000000', padding: { x: 20, y: 5 } }).setOrigin(0.5, 0);
 
-        const priceUp = this.add.text(1130, 465, '+', {
-            fontSize: '20px',
-            color: '#ffffff',
-            backgroundColor: '#444444',
-            padding: { x: 10, y: 2 }
-        });
-        priceUp.setInteractive({ useHandCursor: true });
+        const priceUp = this.add.text(1130, 500, '+', { fontSize: '20px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 10, y: 2 } }).setInteractive({ useHandCursor: true });
         priceUp.on('pointerdown', () => {
             this.tradePrice = Math.min(stock.limitUp, parseFloat((this.tradePrice + 0.01).toFixed(2)));
             this.showStockDetail(stock.code);
         });
-        this.detailContainer.add(priceUp);
+        this.detailContainer.add([priceDown, priceDisplay, priceUp]);
 
         // 委托数量
-        const quantityLabel = this.add.text(940, 500, '委托数量:', {
-            fontSize: '12px',
-            color: '#888888'
-        });
+        const quantityLabel = this.add.text(940, 540, 'QUANTITY / 数量', { fontSize: '10px', fontFamily: FONTS.mono, color: '#666666' });
         this.detailContainer.add(quantityLabel);
 
-        const quantityDown = this.add.text(940, 525, '-', {
-            fontSize: '20px',
-            color: '#ffffff',
-            backgroundColor: '#444444',
-            padding: { x: 10, y: 2 }
-        });
-        quantityDown.setInteractive({ useHandCursor: true });
+        const quantityDown = this.add.text(940, 560, '-', { fontSize: '20px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 10, y: 2 } }).setInteractive({ useHandCursor: true });
         quantityDown.on('pointerdown', () => {
             this.tradeQuantity = Math.max(100, this.tradeQuantity - 100);
             this.showStockDetail(stock.code);
         });
-        this.detailContainer.add(quantityDown);
 
-        const quantityDisplay = this.add.text(1050, 525, this.tradeQuantity.toString(), {
-            fontSize: '16px',
-            color: '#ffffff',
-            backgroundColor: '#333333',
-            padding: { x: 20, y: 5 }
-        });
-        quantityDisplay.setOrigin(0.5, 0);
-        this.detailContainer.add(quantityDisplay);
+        const quantityDisplay = this.add.text(1050, 560, this.tradeQuantity.toString(), { fontSize: '16px', fontFamily: FONTS.mono, color: '#ffffff', backgroundColor: '#000000', padding: { x: 20, y: 5 } }).setOrigin(0.5, 0);
 
-        const quantityUp = this.add.text(1130, 525, '+', {
-            fontSize: '20px',
-            color: '#ffffff',
-            backgroundColor: '#444444',
-            padding: { x: 10, y: 2 }
-        });
-        quantityUp.setInteractive({ useHandCursor: true });
+        const quantityUp = this.add.text(1130, 560, '+', { fontSize: '20px', color: '#ffffff', backgroundColor: '#333333', padding: { x: 10, y: 2 } }).setInteractive({ useHandCursor: true });
         quantityUp.on('pointerdown', () => {
             this.tradeQuantity += 100;
             this.showStockDetail(stock.code);
         });
-        this.detailContainer.add(quantityUp);
+        this.detailContainer.add([quantityDown, quantityDisplay, quantityUp]);
 
         // 快捷数量按钮
-        const quickAmounts = [100, 500, 1000, '全仓'];
+        const quickAmounts = [100, 500, 1000, 'MAX'];
         quickAmounts.forEach((amount, index) => {
-            const x = 950 + index * 55;
-            const btn = this.add.text(x, 560, amount.toString(), {
-                fontSize: '11px',
-                color: '#888888',
-                backgroundColor: '#333333',
-                padding: { x: 5, y: 3 }
-            });
-            btn.setInteractive({ useHandCursor: true });
+            const x = 945 + index * 52;
+            const btn = this.add.text(x, 605, amount.toString(), { fontSize: '10px', fontFamily: FONTS.mono, color: '#888888', backgroundColor: '#222222', padding: { x: 5, y: 3 } }).setInteractive({ useHandCursor: true });
             btn.on('pointerdown', () => {
-                if (amount === '全仓') {
-                    this.tradeQuantity = Math.floor(account.cash / this.tradePrice / 100) * 100;
-                } else {
-                    this.tradeQuantity = amount as number;
-                }
+                if (amount === 'MAX') this.tradeQuantity = Math.floor(account.cash / this.tradePrice / 100) * 100;
+                else this.tradeQuantity = amount as number;
                 this.showStockDetail(stock.code);
             });
             this.detailContainer.add(btn);
@@ -614,54 +588,13 @@ export class StockScene extends Phaser.Scene {
 
         // 预估金额
         const estimatedCost = this.tradePrice * this.tradeQuantity;
-        const estimatedText = this.add.text(1050, 595, `预估金额: ¥${estimatedCost.toFixed(2)}`, {
-            fontSize: '12px',
-            color: '#888888'
-        });
-        estimatedText.setOrigin(0.5, 0);
+        const estimatedText = this.add.text(1050, 635, `ESTIMATED: ¥${estimatedCost.toLocaleString()}`, { fontSize: '11px', fontFamily: FONTS.mono, color: '#aaaaaa' }).setOrigin(0.5, 0);
         this.detailContainer.add(estimatedText);
 
-        // 可用/可卖
-        const availableText = this.add.text(940, 615, `可用: ¥${account.cash.toFixed(2)}`, {
-            fontSize: '11px',
-            color: '#666666'
-        });
-        this.detailContainer.add(availableText);
-
-        const sellableText = this.add.text(1100, 615, `可卖: ${position?.quantity || 0}股`, {
-            fontSize: '11px',
-            color: '#666666'
-        });
-        this.detailContainer.add(sellableText);
-
         // 买入/卖出按钮
-        const buyBtn = this.add.rectangle(990, 660, 100, 40, 0xaa2222);
-        buyBtn.setInteractive({ useHandCursor: true });
-        buyBtn.on('pointerover', () => buyBtn.setFillStyle(0xcc3333));
-        buyBtn.on('pointerout', () => buyBtn.setFillStyle(0xaa2222));
-        buyBtn.on('pointerdown', () => this.executeBuy(stock));
-        this.detailContainer.add(buyBtn);
-
-        const buyText = this.add.text(990, 660, '买入', {
-            fontSize: '16px',
-            color: '#ffffff'
-        });
-        buyText.setOrigin(0.5, 0.5);
-        this.detailContainer.add(buyText);
-
-        const sellBtn = this.add.rectangle(1110, 660, 100, 40, 0x22aa22);
-        sellBtn.setInteractive({ useHandCursor: true });
-        sellBtn.on('pointerover', () => sellBtn.setFillStyle(0x33cc33));
-        sellBtn.on('pointerout', () => sellBtn.setFillStyle(0x22aa22));
-        sellBtn.on('pointerdown', () => this.executeSell(stock));
-        this.detailContainer.add(sellBtn);
-
-        const sellText = this.add.text(1110, 660, '卖出', {
-            fontSize: '16px',
-            color: '#ffffff'
-        });
-        sellText.setOrigin(0.5, 0.5);
-        this.detailContainer.add(sellText);
+        const buyBtn = createStyledButton(this, 1000, 675, 90, 36, 'BUY', () => this.executeBuy(stock));
+        const sellBtn = createStyledButton(this, 1100, 675, 90, 36, 'SELL', () => this.executeSell(stock));
+        this.detailContainer.add([buyBtn, sellBtn]);
     }
 
     /** 显示持仓 */
@@ -676,29 +609,32 @@ export class StockScene extends Phaser.Scene {
         const positions = gameState.getPositions();
         const account = gameState.getAccount();
 
-        // 账户汇总
-        const summaryBg = this.add.rectangle(640, 140, 1200, 100, 0x2a2a3a);
+        // 账户汇总 (磨砂卡片)
+        const summaryBg = this.add.rectangle(640, 160, 1200, 120, COLORS.panel, 0.4);
+        applyGlassEffect(summaryBg, 0.4);
         this.positionContainer.add(summaryBg);
 
         const summaryItems = [
-            { label: '总资产', value: `¥${account.totalAssets.toFixed(2)}`, color: '#ffffff' },
-            { label: '股票市值', value: `¥${account.stockValue.toFixed(2)}`, color: '#ffffff' },
-            { label: '可用资金', value: `¥${account.cash.toFixed(2)}`, color: '#00ff88' },
-            { label: '今日盈亏', value: `${account.todayProfit >= 0 ? '+' : ''}¥${account.todayProfit.toFixed(2)}`, color: account.todayProfit >= 0 ? '#ff4444' : '#00ff88' },
-            { label: '累计盈亏', value: `${account.totalProfit >= 0 ? '+' : ''}¥${account.totalProfit.toFixed(2)}`, color: account.totalProfit >= 0 ? '#ff4444' : '#00ff88' },
+            { label: 'TOTAL ASSETS / 总资产', value: `¥${account.totalAssets.toLocaleString()}`, color: '#ffffff' },
+            { label: 'MARKET VALUE / 市值', value: `¥${account.stockValue.toLocaleString()}`, color: '#ffffff' },
+            { label: 'CASH / 可用资金', value: `¥${account.cash.toLocaleString()}`, color: '#00ff88' },
+            { label: 'TODAY P&L / 今日盈亏', value: `${account.todayProfit >= 0 ? '+' : ''}¥${account.todayProfit.toLocaleString()}`, color: account.todayProfit >= 0 ? '#ff4444' : '#00ff88' },
+            { label: 'TOTAL P&L / 累计盈亏', value: `${account.totalProfit >= 0 ? '+' : ''}¥${account.totalProfit.toLocaleString()}`, color: account.totalProfit >= 0 ? '#ff4444' : '#00ff88' },
         ];
 
         summaryItems.forEach((item, index) => {
-            const x = 100 + index * 230;
+            const x = 110 + index * 230;
 
-            const label = this.add.text(x, 115, item.label, {
-                fontSize: '12px',
-                color: '#888888'
+            const label = this.add.text(x, 130, item.label, {
+                fontSize: '10px',
+                fontFamily: FONTS.mono,
+                color: '#666666'
             });
             this.positionContainer.add(label);
 
-            const value = this.add.text(x, 140, item.value, {
-                fontSize: '18px',
+            const value = this.add.text(x, 160, item.value, {
+                fontSize: '20px',
+                fontFamily: FONTS.mono,
                 color: item.color,
                 fontStyle: 'bold'
             });
@@ -707,114 +643,74 @@ export class StockScene extends Phaser.Scene {
 
         // 持仓列表头
         if (positions.length > 0) {
-            const headers = ['股票', '持仓', '成本价', '现价', '市值', '盈亏', '盈亏率', '操作'];
-            const headerX = [50, 180, 280, 380, 480, 600, 720, 850];
+            const headers = [
+                { label: 'SYMBOL 股票', x: 80 },
+                { label: 'QTY 持仓', x: 220 },
+                { label: 'COST 成本', x: 340 },
+                { label: 'LAST 现价', x: 460 },
+                { label: 'MKT VAL 市值', x: 580 },
+                { label: 'P&L 盈亏', x: 720 },
+                { label: 'P&L% 盈亏率', x: 860 },
+                { label: 'ACTION 操作', x: 1040 }
+            ];
 
-            headers.forEach((header, index) => {
-                const text = this.add.text(headerX[index], 210, header, {
-                    fontSize: '12px',
-                    color: '#888888'
+            headers.forEach((h) => {
+                const text = this.add.text(h.x, 240, h.label, {
+                    fontSize: '11px',
+                    fontFamily: FONTS.mono,
+                    color: '#666666'
                 });
                 this.positionContainer.add(text);
             });
 
             // 持仓列表
             positions.forEach((pos, index) => {
-                // 更新当前价格
                 const stock = stockMarket.getStock(pos.code);
-                if (stock) {
-                    gameState.updatePositionPrice(pos.code, stock.price);
-                }
+                if (stock) gameState.updatePositionPrice(pos.code, stock.price);
 
-                const y = 250 + index * 45;
+                const y = 290 + index * 50;
                 const profitColor = pos.profit >= 0 ? '#ff4444' : '#00ff88';
 
-                const rowBg = this.add.rectangle(640, y, 1200, 40, index % 2 === 0 ? 0x252535 : 0x2a2a3a);
+                const rowContainer = this.add.container(0, 0);
+                this.positionContainer.add(rowContainer);
+
+                const rowBg = this.add.rectangle(640, y, 1160, 44, 0xffffff, index % 2 === 0 ? 0.02 : 0);
                 rowBg.setInteractive({ useHandCursor: true });
                 rowBg.on('pointerdown', () => this.showStockDetail(pos.code));
-                this.positionContainer.add(rowBg);
+                rowContainer.add(rowBg);
 
-                // 股票名称
-                const nameText = this.add.text(50, y, `${pos.name}\n${pos.code}`, {
-                    fontSize: '12px',
-                    color: '#ffffff',
-                    lineSpacing: 2
-                });
-                nameText.setOrigin(0, 0.5);
-                this.positionContainer.add(nameText);
+                // 股票
+                rowContainer.add(this.add.text(80, y, `${pos.name}\n${pos.code}`, { fontSize: '12px', fontFamily: FONTS.main, color: '#ffffff', lineSpacing: 4 }).setOrigin(0, 0.5));
 
-                // 持仓数量
-                const quantityText = this.add.text(180, y, pos.quantity.toString(), {
-                    fontSize: '14px',
-                    color: '#ffffff'
-                });
-                quantityText.setOrigin(0, 0.5);
-                this.positionContainer.add(quantityText);
+                // 数量
+                rowContainer.add(this.add.text(220, y, pos.quantity.toString(), { fontSize: '14px', fontFamily: FONTS.mono, color: '#ffffff' }).setOrigin(0, 0.5));
 
-                // 成本价
-                const costText = this.add.text(280, y, pos.costPrice.toFixed(2), {
-                    fontSize: '14px',
-                    color: '#ffffff'
-                });
-                costText.setOrigin(0, 0.5);
-                this.positionContainer.add(costText);
-
-                // 现价
-                const currentText = this.add.text(380, y, pos.currentPrice.toFixed(2), {
-                    fontSize: '14px',
-                    color: profitColor
-                });
-                currentText.setOrigin(0, 0.5);
-                this.positionContainer.add(currentText);
+                // 价格
+                rowContainer.add(this.add.text(340, y, pos.costPrice.toFixed(2), { fontSize: '14px', fontFamily: FONTS.mono, color: '#ffffff' }).setOrigin(0, 0.5));
+                rowContainer.add(this.add.text(460, y, pos.currentPrice.toFixed(2), { fontSize: '14px', fontFamily: FONTS.mono, color: profitColor }).setOrigin(0, 0.5));
 
                 // 市值
-                const marketValue = pos.currentPrice * pos.quantity;
-                const valueText = this.add.text(480, y, `¥${marketValue.toFixed(2)}`, {
-                    fontSize: '14px',
-                    color: '#ffffff'
-                });
-                valueText.setOrigin(0, 0.5);
-                this.positionContainer.add(valueText);
+                const mktVal = pos.currentPrice * pos.quantity;
+                rowContainer.add(this.add.text(580, y, `¥${mktVal.toLocaleString()}`, { fontSize: '14px', fontFamily: FONTS.mono, color: '#ffffff' }).setOrigin(0, 0.5));
 
                 // 盈亏
-                const profitText = this.add.text(600, y, `${pos.profit >= 0 ? '+' : ''}¥${pos.profit.toFixed(2)}`, {
-                    fontSize: '14px',
-                    color: profitColor
-                });
-                profitText.setOrigin(0, 0.5);
-                this.positionContainer.add(profitText);
-
-                // 盈亏率
-                const rateText = this.add.text(720, y, `${pos.profitRate >= 0 ? '+' : ''}${(pos.profitRate * 100).toFixed(2)}%`, {
-                    fontSize: '14px',
-                    color: profitColor
-                });
-                rateText.setOrigin(0, 0.5);
-                this.positionContainer.add(rateText);
+                rowContainer.add(this.add.text(720, y, `${pos.profit >= 0 ? '+' : ''}¥${pos.profit.toFixed(2)}`, { fontSize: '14px', fontFamily: FONTS.mono, color: profitColor }).setOrigin(0, 0.5));
+                rowContainer.add(this.add.text(860, y, `${pos.profitRate >= 0 ? '+' : ''}${(pos.profitRate * 100).toFixed(2)}%`, { fontSize: '14px', fontFamily: FONTS.mono, color: profitColor }).setOrigin(0, 0.5));
 
                 // 操作按钮
-                const sellBtn = this.add.text(850, y, '卖出', {
-                    fontSize: '12px',
-                    color: '#00ff88',
-                    backgroundColor: '#223322',
-                    padding: { x: 10, y: 5 }
-                });
-                sellBtn.setOrigin(0, 0.5);
-                sellBtn.setInteractive({ useHandCursor: true });
-                sellBtn.on('pointerdown', (e: Phaser.Input.Pointer) => {
-                    e.event.stopPropagation();
+                const sellBtn = createStyledButton(this, 1080, y, 80, 26, 'SELL', () => {
                     this.tradeQuantity = pos.quantity;
                     this.showStockDetail(pos.code);
                 });
-                this.positionContainer.add(sellBtn);
+                rowContainer.add(sellBtn);
             });
         } else {
-            const emptyText = this.add.text(640, 350, '暂无持仓\n\n去行情页面买入股票吧~', {
-                fontSize: '18px',
-                color: '#666666',
+            const emptyText = this.add.text(640, 450, 'NO POSITIONS FOUND\n\n数据为空，请前往行情页面进行交易。', {
+                fontSize: '14px',
+                fontFamily: FONTS.mono,
+                color: '#444444',
                 align: 'center'
-            });
-            emptyText.setOrigin(0.5, 0.5);
+            }).setOrigin(0.5);
             this.positionContainer.add(emptyText);
         }
     }

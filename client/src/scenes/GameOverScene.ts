@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { jobHuntSystem } from '../JobHuntSystem';
+import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
 
 /**
  * 游戏结束场景
- * 支持两种结局：胜利（入职成功）和失败（破产/超时）
+ * 支持多种结局：成功入职、失业破产、精神崩溃、财富自由
  */
 export class GameOverScene extends Phaser.Scene {
     private isVictory: boolean = false;
@@ -54,15 +55,33 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 背景渐变
-        const bg = this.add.rectangle(640, 360, 1280, 720, this.isVictory ? 0x1a3a1a : 0x3a1a1a);
+        // 背景
+        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
 
-        // 渐入动画
-        bg.setAlpha(0);
+        // 背景装饰
+        const deco = this.add.graphics();
+        deco.lineStyle(2, COLORS.primary, 0.1);
+        for (let i = 0; i < 1280; i += 40) {
+            deco.moveTo(i, 0);
+            deco.lineTo(i, 720);
+        }
+        for (let i = 0; i < 720; i += 40) {
+            deco.moveTo(0, i);
+            deco.lineTo(1280, i);
+        }
+        deco.strokePath();
+
+        // 装饰性光晕
+        const glowColor = this.isVictory ? COLORS.success : COLORS.danger;
+        const glow = this.add.circle(640, 360, 300, glowColor, 0.05);
         this.tweens.add({
-            targets: bg,
-            alpha: 1,
-            duration: 1000
+            targets: glow,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            alpha: 0.1,
+            duration: 3000,
+            yoyo: true,
+            repeat: -1
         });
 
         if (this.isVictory) {
@@ -79,10 +98,12 @@ export class GameOverScene extends Phaser.Scene {
 
     private createVictoryScreen(): void {
         // 胜利标题
-        const title = this.add.text(640, 100, '🎉 恭喜入职！', {
-            fontSize: '48px',
+        const title = this.add.text(640, 100, '🎉 MISSION ACCOMPLISHED', {
+            fontSize: '40px',
+            fontFamily: FONTS.mono,
             color: '#00ff88',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            letterSpacing: 4
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -90,18 +111,20 @@ export class GameOverScene extends Phaser.Scene {
             alpha: 1,
             y: 120,
             duration: 800,
-            ease: 'Back.easeOut'
+            ease: 'Power2'
         });
 
         // 公司信息
-        const companyText = this.add.text(640, 200, `成功入职 ${this.companyName}`, {
-            fontSize: '28px',
+        const companyText = this.add.text(640, 200, `已获得 ${this.companyName} 录用确认`, {
+            fontSize: '24px',
+            fontFamily: FONTS.main,
             color: '#ffffff'
         }).setOrigin(0.5).setAlpha(0);
 
-        const salaryText = this.add.text(640, 245, `年薪: ¥${(this.salary * 12).toLocaleString()}`, {
-            fontSize: '24px',
-            color: '#ffdd00'
+        const salaryText = this.add.text(640, 245, `ESTIMATED ANNUAL INCOME: ¥${(this.salary * 12).toLocaleString()}`, {
+            fontSize: '18px',
+            fontFamily: FONTS.mono,
+            color: '#ffaa00'
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -117,10 +140,12 @@ export class GameOverScene extends Phaser.Scene {
         // 评价
         const evaluation = this.getVictoryEvaluation();
         const evalText = this.add.text(640, 580, evaluation, {
-            fontSize: '16px',
-            color: '#aaaaaa',
+            fontSize: '15px',
+            fontFamily: FONTS.main,
+            color: '#888888',
             align: 'center',
-            wordWrap: { width: 600 }
+            wordWrap: { width: 600 },
+            lineSpacing: 8
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -133,10 +158,12 @@ export class GameOverScene extends Phaser.Scene {
 
     private createDefeatScreen(): void {
         // 失败标题
-        const title = this.add.text(640, 100, '💔 求职失败', {
-            fontSize: '48px',
+        const title = this.add.text(640, 100, '💀 SYSTEM TERMINATED', {
+            fontSize: '40px',
+            fontFamily: FONTS.mono,
             color: '#ff4444',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            letterSpacing: 4
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -144,12 +171,13 @@ export class GameOverScene extends Phaser.Scene {
             alpha: 1,
             y: 120,
             duration: 800,
-            ease: 'Back.easeOut'
+            ease: 'Power2'
         });
 
         // 失败原因
         const reasonText = this.add.text(640, 200, this.endReason, {
             fontSize: '24px',
+            fontFamily: FONTS.main,
             color: '#ffaaaa'
         }).setOrigin(0.5).setAlpha(0);
 
@@ -166,10 +194,12 @@ export class GameOverScene extends Phaser.Scene {
         // 建议
         const advice = this.getDefeatAdvice();
         const adviceText = this.add.text(640, 580, advice, {
-            fontSize: '16px',
-            color: '#aaaaaa',
+            fontSize: '15px',
+            fontFamily: FONTS.main,
+            color: '#888888',
             align: 'center',
-            wordWrap: { width: 600 }
+            wordWrap: { width: 600 },
+            lineSpacing: 8
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -185,44 +215,49 @@ export class GameOverScene extends Phaser.Scene {
         panel.setAlpha(0);
 
         // 背景
-        const bg = this.add.rectangle(0, 0, 700, 250, 0x2a2a3a, 0.8);
-        bg.setStrokeStyle(2, isVictory ? 0x00ff88 : 0xff4444);
+        const bg = this.add.rectangle(0, 0, 700, 250, COLORS.panel, 0.5);
+        bg.setStrokeStyle(1, isVictory ? COLORS.success : COLORS.danger, 0.3);
+        applyGlassEffect(bg, 0.5);
         panel.add(bg);
 
         // 标题
-        const panelTitle = this.add.text(0, -100, '求职历程', {
-            fontSize: '20px',
+        const panelTitle = this.add.text(0, -100, 'HISTORICAL DATA / 历史记录', {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
             color: '#ffffff',
-            fontStyle: 'bold'
+            letterSpacing: 2
         }).setOrigin(0.5);
         panel.add(panelTitle);
 
-        // 统计数据（两列布局）
+        // 统计数据
         const stats = [
-            { label: '求职天数', value: `${this.stats.days} 天`, icon: '📅' },
-            { label: '投递简历', value: `${this.stats.applications} 份`, icon: '📨' },
-            { label: '面试次数', value: `${this.stats.interviews} 次`, icon: '🎤' },
-            { label: '获得Offer', value: `${this.stats.offers} 个`, icon: '✅' },
-            { label: '被拒次数', value: `${this.stats.rejections} 次`, icon: '❌' },
-            { label: '剩余存款', value: `¥${this.stats.finalSavings.toLocaleString()}`, icon: '💰' }
+            { label: 'SURVIVAL DAYS / 存活天数', value: `${this.stats.days}`, icon: '📅' },
+            { label: 'APPLICATIONS / 简历投递', value: `${this.stats.applications}`, icon: '📨' },
+            { label: 'INTERVIEWS / 面试经历', value: `${this.stats.interviews}`, icon: '🎤' },
+            { label: 'OFFERS / 录用确认', value: `${this.stats.offers}`, icon: '✅' },
+            { label: 'REJECTIONS / 被拒次数', value: `${this.stats.rejections}`, icon: '❌' },
+            { label: 'FINAL ASSETS / 最终资产', value: `¥${this.stats.finalSavings.toLocaleString()}`, icon: '💰' }
         ];
-
-        const leftX = -250;
-        const rightX = 150;
-        const startItemY = -50;
-        const lineHeight = 40;
 
         stats.forEach((stat, index) => {
             const isLeft = index < 3;
-            const x = isLeft ? leftX : rightX;
-            const y = startItemY + (index % 3) * lineHeight;
+            const x = isLeft ? -300 : 50;
+            const y = -50 + (index % 3) * 45;
 
-            const statText = this.add.text(x, y,
-                `${stat.icon} ${stat.label}: ${stat.value}`, {
+            const icon = this.add.text(x, y, stat.icon, { fontSize: '18px' }).setOrigin(0, 0.5);
+            const label = this.add.text(x + 35, y - 10, stat.label, {
+                fontSize: '10px',
+                fontFamily: FONTS.mono,
+                color: '#666666'
+            }).setOrigin(0, 0.5);
+            const value = this.add.text(x + 35, y + 10, stat.value, {
                 fontSize: '16px',
-                color: '#cccccc'
-            });
-            panel.add(statText);
+                fontFamily: FONTS.mono,
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0, 0.5);
+
+            panel.add([icon, label, value]);
         });
 
         this.tweens.add({
@@ -238,13 +273,13 @@ export class GameOverScene extends Phaser.Scene {
         const rejectRate = applications > 0 ? rejections / applications : 0;
 
         if (days <= 30 && rejectRate < 0.3) {
-            return '⭐⭐⭐⭐⭐ 完美！你以极高的效率和通过率完成了求职。\n你是一个真正的职场精英！';
+            return '完美达成目标。你以极高的效率和精准度完成了求职过程，展现了卓越的职场适应力和竞争优势。你是天生的职场赢家。';
         } else if (days <= 60 && rejectRate < 0.5) {
-            return '⭐⭐⭐⭐ 优秀！在合理的时间内找到了心仪的工作。\n保持这种积极的态度，未来可期！';
+            return '表现出色。在合理的周期内锁定了心仪职位，具备稳定的专业素养和沟通能力。保持这种节奏，职场之路将一帆风顺。';
         } else if (days <= 90) {
-            return '⭐⭐⭐ 不错！虽然过程有些曲折，但最终还是成功了。\n求职本就不易，坚持就是胜利！';
+            return '达成目标。求职过程虽有波折，但你凭借韧性最终获得了回报。坚持是职场中最重要的品质之一。';
         } else {
-            return '⭐⭐ 终于找到工作了！过程虽然漫长，但好结果就是最好的回报。\n记住这段经历，未来会更好！';
+            return '虽过程漫长，但最终结果令人欣慰。这段艰难的求职经历将成为你职业生涯中的宝贵财富。';
         }
     }
 
@@ -252,78 +287,31 @@ export class GameOverScene extends Phaser.Scene {
         const { rejections, interviews, applications, finalSavings } = this.stats;
 
         if (finalSavings <= 0) {
-            return '💡 提示：控制每日开支很重要！\n下次可以尝试：\n• 尽早投递简历，增加面试机会\n• 通过理财增加收入\n• 优化简历提高通过率';
+            return '系统分析：财务管理失控。资产耗尽是导致失败的主要原因。\n策略建议：优先控制每日开销，并通过理财尝试增加被动收入，延长生存周期。';
         } else if (applications < 10) {
-            return '💡 提示：投递量不够！\n求职是一个概率游戏，多投递才有更多机会。\n建议每周至少投递 5-10 份简历。';
+            return '系统分析：样本量不足。求职是概率博弈，过低的参与度导致机会匮乏。\n策略建议：大幅提升每日投递量，至少建立 5 份以上的并行流程。';
         } else if (interviews === 0) {
-            return '💡 提示：简历可能需要优化！\n• 检查学历和经验是否匹配职位要求\n• 丰富技能列表和项目经验\n• 适当降低目标公司难度';
+            return '系统分析：简历匹配度极低。市场对你的简历未能产生有效响应。\n策略建议：全面重构简历内容，降低目标职位门槛，或提升相关专业技能。';
         } else if (rejections > interviews * 2) {
-            return '💡 提示：面试表现需要提升！\n• 认真准备面试，思考后再回答\n• 避免选择过于自大或消极的回答\n• 压力面试要保持冷静';
+            return '系统分析：临场表现异常。简历成功转化面试，但未能通过最终考核。\n策略建议：针对面试环节进行深度复盘，优化沟通逻辑和问题应对策略。';
         } else {
-            return '💡 求职不易，失败是正常的。\n调整心态，总结经验，再战一次！';
+            return '系统分析：综合环境压力过载。\n策略建议：调整心态，总结历史数据，重新开启求职序列。';
         }
     }
 
     private createButtons(): void {
         const buttonY = 660;
-        const buttonContainer = this.add.container(640, buttonY);
-        buttonContainer.setAlpha(0);
 
         // 重新开始
-        const restartBg = this.add.rectangle(-100, 0, 180, 50, 0x4a90d9);
-        restartBg.setStrokeStyle(2, 0x6ab0f9);
-        const restartText = this.add.text(-100, 0, '🔄 重新开始', {
-            fontSize: '18px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        restartBg.setInteractive({ useHandCursor: true });
-        restartBg.on('pointerover', () => {
-            restartBg.setFillStyle(0x5aa0e9);
-            this.tweens.add({ targets: [restartBg, restartText], scaleX: 1.05, scaleY: 1.05, duration: 100 });
-        });
-        restartBg.on('pointerout', () => {
-            restartBg.setFillStyle(0x4a90d9);
-            this.tweens.add({ targets: [restartBg, restartText], scaleX: 1, scaleY: 1, duration: 100 });
-        });
-        restartBg.on('pointerdown', () => {
-            this.restartGame();
-        });
-
-        buttonContainer.add([restartBg, restartText]);
+        const restartBtn = createStyledButton(this, 540, buttonY, 180, 50, '🔄 RELOAD SYSTEM', () => this.restartGame());
 
         // 继续游戏（仅胜利时显示）
         if (this.isVictory) {
-            const continueBg = this.add.rectangle(100, 0, 180, 50, 0x2a5a2a);
-            continueBg.setStrokeStyle(2, 0x00ff88);
-            const continueText = this.add.text(100, 0, '➡️ 继续职场', {
-                fontSize: '18px',
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            continueBg.setInteractive({ useHandCursor: true });
-            continueBg.on('pointerover', () => {
-                continueBg.setFillStyle(0x3a7a3a);
-                this.tweens.add({ targets: [continueBg, continueText], scaleX: 1.05, scaleY: 1.05, duration: 100 });
-            });
-            continueBg.on('pointerout', () => {
-                continueBg.setFillStyle(0x2a5a2a);
-                this.tweens.add({ targets: [continueBg, continueText], scaleX: 1, scaleY: 1, duration: 100 });
-            });
-            continueBg.on('pointerdown', () => {
-                this.continueToOffice();
-            });
-
-            buttonContainer.add([continueBg, continueText]);
+            const continueBtn = createStyledButton(this, 740, buttonY, 180, 50, '➡️ ENTER OFFICE', () => this.continueToOffice());
+        } else {
+            // 失败时按钮居中
+            restartBtn.setX(640);
         }
-
-        this.tweens.add({
-            targets: buttonContainer,
-            alpha: 1,
-            duration: 500
-        });
     }
 
     private restartGame(): void {
@@ -340,7 +328,7 @@ export class GameOverScene extends Phaser.Scene {
     private continueToOffice(): void {
         this.cameras.main.fadeOut(500);
         this.time.delayedCall(500, () => {
-            this.scene.start('OfficeScene');
+            this.scene.start('ImprovedOfficeScene');
         });
     }
 }
