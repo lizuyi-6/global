@@ -127,8 +127,7 @@ def create_gradio_interface():
     """创建游戏演示界面"""
 
     with gr.Blocks(
-        title="职场沙盒游戏 - Office Sandbox",
-        theme=gr.themes.Soft()
+        title="职场沙盒游戏 - Office Sandbox"
     ) as demo:
 
         gr.HTML("""
