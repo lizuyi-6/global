@@ -8,6 +8,7 @@ import { notificationManager } from '../NotificationManager';
  */
 export class JobHuntScene extends Phaser.Scene {
     private statusPanel!: Phaser.GameObjects.Container;
+    private navPanel!: Phaser.GameObjects.Container;
     private mainContent!: Phaser.GameObjects.Container;
     private navButtons: Phaser.GameObjects.Text[] = [];
     private currentTab: 'jobs' | 'applications' | 'interviews' | 'offers' = 'jobs';
@@ -31,6 +32,7 @@ export class JobHuntScene extends Phaser.Scene {
 
         // 创建主内容区域
         this.mainContent = this.add.container(700, 360);
+        this.mainContent.setDepth(10); // 设置基础层级，确保弹窗能覆盖
 
         // 默认显示职位列表
         this.showJobList();
@@ -43,22 +45,32 @@ export class JobHuntScene extends Phaser.Scene {
     }
 
     private createStatusBar(): void {
+        // 清理旧的状态栏
+        if (this.statusPanel) {
+            this.statusPanel.destroy();
+        }
+        this.statusPanel = this.add.container(0, 0);
+        this.statusPanel.setDepth(5);
+
         const status = jobHuntSystem.getStatus();
 
         // 状态栏背景
         const statusBg = this.add.rectangle(640, 40, 1280, 80, 0x2a2a3a);
+        this.statusPanel.add(statusBg);
 
         // 存款
         const savingsText = this.add.text(50, 25, `💰 存款: ¥${status.savings.toLocaleString()}`, {
             fontSize: '16px',
             color: status.savings < 5000 ? '#ff4444' : '#00ff88'
         });
+        this.statusPanel.add(savingsText);
 
         // 每日开销
         const expenseText = this.add.text(50, 50, `📉 日开销: ¥${status.dailyExpense}`, {
             fontSize: '12px',
             color: '#888888'
         });
+        this.statusPanel.add(expenseText);
 
         // 焦虑值
         const anxietyColor = status.anxiety > 70 ? '#ff4444' : status.anxiety > 40 ? '#ffaa00' : '#00ff88';
@@ -66,31 +78,37 @@ export class JobHuntScene extends Phaser.Scene {
             fontSize: '16px',
             color: anxietyColor
         });
+        this.statusPanel.add(anxietyText);
 
         // 焦虑条
         const anxietyBarBg = this.add.rectangle(280, 55, 100, 8, 0x333333);
         anxietyBarBg.setOrigin(0, 0.5);
+        this.statusPanel.add(anxietyBarBg);
         const anxietyBar = this.add.rectangle(280, 55, status.anxiety, 8,
             status.anxiety > 70 ? 0xff4444 : status.anxiety > 40 ? 0xffaa00 : 0x00ff88);
         anxietyBar.setOrigin(0, 0.5);
+        this.statusPanel.add(anxietyBar);
 
         // 信心值
         const confidenceText = this.add.text(450, 25, `💪 信心: ${status.confidence}%`, {
             fontSize: '16px',
             color: status.confidence > 50 ? '#00ff88' : '#ff4444'
         });
+        this.statusPanel.add(confidenceText);
 
         // 求职天数
         const daysText = this.add.text(620, 25, `📅 第${status.currentDay}天`, {
             fontSize: '16px',
             color: '#ffffff'
         });
+        this.statusPanel.add(daysText);
 
         // 失业天数
         const unemployedText = this.add.text(620, 50, `已失业 ${status.unemployedDays} 天`, {
             fontSize: '12px',
             color: status.unemployedDays > 30 ? '#ff4444' : '#888888'
         });
+        this.statusPanel.add(unemployedText);
 
         // 统计数据
         const statsText = this.add.text(800, 25,
@@ -98,6 +116,7 @@ export class JobHuntScene extends Phaser.Scene {
             fontSize: '14px',
             color: '#aaaaaa'
         });
+        this.statusPanel.add(statsText);
 
         // 下一天按钮
         const nextDayBtn = this.add.text(1180, 40, '⏭️ 下一天', {
@@ -109,9 +128,18 @@ export class JobHuntScene extends Phaser.Scene {
         nextDayBtn.setOrigin(0.5, 0.5);
         nextDayBtn.setInteractive({ useHandCursor: true });
         nextDayBtn.on('pointerdown', () => this.advanceDay());
+        this.statusPanel.add(nextDayBtn);
     }
 
     private createNavigation(): void {
+        // 清理旧的导航栏
+        if (this.navPanel) {
+            this.navPanel.destroy();
+        }
+        this.navPanel = this.add.container(0, 0);
+        this.navPanel.setDepth(5);
+        this.navButtons = [];
+
         const navItems = [
             { key: 'jobs', label: '🔍 找工作', y: 150 },
             { key: 'applications', label: '📨 我的投递', y: 210 },
@@ -120,11 +148,8 @@ export class JobHuntScene extends Phaser.Scene {
         ];
 
         // 导航背景
-        this.add.rectangle(100, 400, 180, 500, 0x2a2a3a);
-
-        // 清空旧按钮
-        this.navButtons.forEach(btn => btn.destroy());
-        this.navButtons = [];
+        const navBg = this.add.rectangle(100, 400, 180, 500, 0x2a2a3a);
+        this.navPanel.add(navBg);
 
         navItems.forEach(item => {
             const isActive = this.currentTab === item.key;
@@ -183,6 +208,7 @@ export class JobHuntScene extends Phaser.Scene {
             });
 
             this.navButtons.push(btn);
+            this.navPanel.add(btn);
         });
 
         // 简历编辑
@@ -197,6 +223,7 @@ export class JobHuntScene extends Phaser.Scene {
         resumeBtn.on('pointerover', () => resumeBtn.setStyle({ color: '#ffffff' }));
         resumeBtn.on('pointerout', () => resumeBtn.setStyle({ color: '#888888' }));
         resumeBtn.on('pointerdown', () => this.showResumeEditor());
+        this.navPanel.add(resumeBtn);
 
         // 理财入口
         const financeBtn = this.add.text(100, 500, '📈 理财', {
@@ -213,6 +240,24 @@ export class JobHuntScene extends Phaser.Scene {
             this.scene.pause();
             this.scene.launch('StockScene');
         });
+        this.navPanel.add(financeBtn);
+
+        // 新场景测试入口
+        const testOfficeBtn = this.add.text(100, 550, '🏢 职场(新)', {
+            fontSize: '14px',
+            color: '#ffaa00',
+            backgroundColor: '#2a2a3a',
+            padding: { x: 10, y: 8 }
+        });
+        testOfficeBtn.setOrigin(0.5, 0.5);
+        testOfficeBtn.setInteractive({ useHandCursor: true });
+        testOfficeBtn.on('pointerover', () => testOfficeBtn.setStyle({ color: '#ffffff' }));
+        testOfficeBtn.on('pointerout', () => testOfficeBtn.setStyle({ color: '#ffaa00' }));
+        testOfficeBtn.on('pointerdown', () => {
+            this.scene.pause();
+            this.scene.launch('ImprovedOfficeScene');
+        });
+        this.navPanel.add(testOfficeBtn);
     }
 
     private updateNavStyles(): void {
@@ -352,17 +397,17 @@ export class JobHuntScene extends Phaser.Scene {
             // 投递按钮 - 检查是否已投递
             const applications = jobHuntSystem.getApplications();
             const hasApplied = applications.some(app => app.jobId === job.id);
-            
+
             const applyBtn = this.add.text(350, y, hasApplied ? '✅ 已投递' : '投递简历', {
                 fontSize: '14px',
                 color: hasApplied ? '#888888' : '#ffffff',
                 backgroundColor: hasApplied ? '#3a3a3a' : '#4a90d9',
                 padding: { x: 15, y: 8 }
             });
-            
+
             if (!hasApplied) {
                 applyBtn.setInteractive({ useHandCursor: true });
-                
+
                 // 悬停效果
                 applyBtn.on('pointerover', () => {
                     applyBtn.setStyle({ backgroundColor: '#5aa0e9' });
@@ -382,14 +427,14 @@ export class JobHuntScene extends Phaser.Scene {
                         duration: 100
                     });
                 });
-                
+
                 // 点击动画反馈
                 applyBtn.on('pointerdown', () => {
                     // 按下效果 - 文字变为“投递中...”
                     applyBtn.setText('投递中...');
                     applyBtn.setStyle({ backgroundColor: '#3a80c9', color: '#aaaaaa' });
                     applyBtn.disableInteractive();
-                    
+
                     this.tweens.add({
                         targets: applyBtn,
                         scaleX: 0.95,
@@ -682,11 +727,14 @@ export class JobHuntScene extends Phaser.Scene {
             notificationManager.success(
                 '简历投递成功',
                 `您的简历已成功投递至 ${company?.name || '公司'}`,
-                5000
+                8000
             );
-            this.scene.restart();
+            // 延迟刷新内容，让通知有时间显示
+            this.time.delayedCall(500, () => {
+                this.refreshContent();
+            });
         } else {
-            notificationManager.warning('投递失败', result.message, 4000);
+            notificationManager.warning('投递失败', result.message, 5000);
         }
     }
 
@@ -694,10 +742,10 @@ export class JobHuntScene extends Phaser.Scene {
         // 创建详情弹窗
         const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7);
         overlay.setInteractive();
-        overlay.setDepth(100);
+        overlay.setDepth(1000);
 
         const dialog = this.add.container(640, 360);
-        dialog.setDepth(101);
+        dialog.setDepth(1001);
 
         const bg = this.add.rectangle(0, 0, 700, 500, 0x2a2a3a);
         bg.setStrokeStyle(2, 0x4a90d9);
@@ -761,7 +809,7 @@ export class JobHuntScene extends Phaser.Scene {
         // 投递按钮 - 检查是否已投递
         const applications = jobHuntSystem.getApplications();
         const hasApplied = applications.some(app => app.jobId === job.id);
-        
+
         const applyBtn = this.add.text(0, 200, hasApplied ? '✅ 已投递' : '📨 投递简历', {
             fontSize: '18px',
             color: hasApplied ? '#888888' : '#ffffff',
@@ -769,10 +817,10 @@ export class JobHuntScene extends Phaser.Scene {
             padding: { x: 30, y: 12 }
         });
         applyBtn.setOrigin(0.5, 0.5);
-        
+
         if (!hasApplied) {
             applyBtn.setInteractive({ useHandCursor: true });
-            
+
             // 悬停效果
             applyBtn.on('pointerover', () => {
                 applyBtn.setStyle({ backgroundColor: '#5aa0e9' });
@@ -782,13 +830,13 @@ export class JobHuntScene extends Phaser.Scene {
                 applyBtn.setStyle({ backgroundColor: '#4a90d9' });
                 this.tweens.add({ targets: applyBtn, scaleX: 1, scaleY: 1, duration: 100 });
             });
-            
+
             // 点击动画反馈
             applyBtn.on('pointerdown', () => {
                 applyBtn.setText('投递中...');
                 applyBtn.setStyle({ backgroundColor: '#3a80c9', color: '#aaaaaa' });
                 applyBtn.disableInteractive();
-                
+
                 this.tweens.add({
                     targets: applyBtn,
                     scaleX: 0.95,
@@ -837,14 +885,14 @@ export class JobHuntScene extends Phaser.Scene {
         const result = jobHuntSystem.acceptOffer(app.id);
 
         if (result) {
-            notificationManager.success(
-                '入职成功',
-                `恭喜您成功入职 ${company?.name || '公司'}！即将开始职场生活...`,
-                5000
-            );
-            // 延迟后进入入职流程
-            this.time.delayedCall(3000, () => {
-                this.scene.start('OfficeScene');
+            // 跳转到胜利结局
+            this.time.delayedCall(1500, () => {
+                this.scene.start('GameOverScene', {
+                    victory: true,
+                    reason: '成功入职',
+                    companyName: company?.name || '公司',
+                    salary: app.offerDetails?.baseSalary || 15000
+                });
             });
         } else {
             notificationManager.error('入职失败', '接受Offer时出现问题', 4000);
@@ -886,10 +934,10 @@ export class JobHuntScene extends Phaser.Scene {
 
         const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7);
         overlay.setInteractive();
-        overlay.setDepth(100);
+        overlay.setDepth(1000);
 
         const dialog = this.add.container(640, 360);
-        dialog.setDepth(101);
+        dialog.setDepth(1001);
 
         const bg = this.add.rectangle(0, 0, 600, 450, 0x2a2a3a);
         bg.setStrokeStyle(2, 0x4a90d9);
@@ -983,11 +1031,22 @@ export class JobHuntScene extends Phaser.Scene {
                         );
                         break;
                     case 'bankrupt':
-                        notificationManager.error(
-                            '游戏结束',
-                            '存款已耗尽，无法继续求职',
-                            0  // 不自动消失
-                        );
+                        // 直接跳转到游戏结束场景
+                        this.time.delayedCall(2000, () => {
+                            this.scene.start('GameOverScene', {
+                                victory: false,
+                                reason: '存款耗尽，无法继续求职'
+                            });
+                        });
+                        break;
+                    case 'timeout':
+                        // 时间超限失败
+                        this.time.delayedCall(2000, () => {
+                            this.scene.start('GameOverScene', {
+                                victory: false,
+                                reason: '求职时间过长，精神崩溃了...'
+                            });
+                        });
                         break;
                 }
             });
@@ -1001,16 +1060,21 @@ export class JobHuntScene extends Phaser.Scene {
             3000
         );
 
-        // 刷新界面
+        // 刷新界面（不使用restart以保留通知）
         this.time.delayedCall(500, () => {
-            this.scene.restart();
+            this.createStatusBar();
+            this.createNavigation();
+            this.refreshContent();
         });
     }
 
     private setupEventListeners(): void {
         // 监听从其他场景返回
         this.events.on('resume', () => {
-            this.scene.restart();
+            // 不使用restart以保留通知
+            this.createStatusBar();
+            this.createNavigation();
+            this.refreshContent();
         });
     }
 
@@ -1022,7 +1086,7 @@ export class JobHuntScene extends Phaser.Scene {
             padding: { x: 20, y: 10 }
         });
         toast.setOrigin(0.5, 0.5);
-        toast.setDepth(200);
+        toast.setDepth(2000);
 
         this.tweens.add({
             targets: toast,

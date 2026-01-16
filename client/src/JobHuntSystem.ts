@@ -559,6 +559,11 @@ class JobHuntSystem {
             events.push({ type: 'bankrupt', data: { message: '存款耗尽，求职失败' } });
         }
 
+        // 检查时间限制（180天）
+        if (this.status.currentDay > 180 && this.applications.filter(app => app.status === 'offer').length === 0) {
+            events.push({ type: 'timeout', data: { message: '求职时间太长，心态崩溃' } });
+        }
+
         return { events };
     }
 

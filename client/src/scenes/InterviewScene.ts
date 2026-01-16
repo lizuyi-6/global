@@ -3,17 +3,23 @@ import type { Application, InterviewRound } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
 
 /**
- * 面试场景 - AI驱动的面试体验
+ * 面试场景 - 自由回答版
+ * 玩家通过观察面试官表情判断自己的表现
  */
 export class InterviewScene extends Phaser.Scene {
     private application!: Application;
     private currentRound!: InterviewRound;
-    private chatHistory: { role: string; content: string }[] = [];
     private questionCount = 0;
     private performance = 50;
     private responseText!: Phaser.GameObjects.Text;
-    private dialogItems: Phaser.GameObjects.GameObject[] = [];
-    private askedQuestions: string[] = []; // 跟踪已问过的问题，防止重复
+    private hintText!: Phaser.GameObjects.Text;
+    private interviewerMood: 'happy' | 'neutral' | 'unhappy' | 'angry' = 'neutral';
+    private moodEmoji!: Phaser.GameObjects.Text;
+    private isPressureInterview = false;
+    private totalQuestions = 6;
+    private askedQuestions: string[] = [];
+    private currentQuestion = '';
+    private answerBtn!: Phaser.GameObjects.Text;
 
     constructor() {
         super({ key: 'InterviewScene' });
@@ -22,403 +28,557 @@ export class InterviewScene extends Phaser.Scene {
     init(data: { application: Application }): void {
         this.application = data.application;
         this.currentRound = this.application.interviewRounds.find(r => r.status === 'scheduled')!;
-        this.chatHistory = [];
         this.questionCount = 0;
-        this.performance = 50;
-        this.askedQuestions = []; // 重置已问问题列表
+        this.askedQuestions = [];
+
+        // 压力面判断
+        this.isPressureInterview =
+            this.currentRound.interviewerRole === '部门主管' ||
+            this.currentRound.round >= 3;
+
+        if (this.isPressureInterview) {
+            this.performance = 40;
+            this.totalQuestions = 7;
+            this.interviewerMood = 'unhappy';
+        } else {
+            this.performance = 50;
+            this.totalQuestions = 5;
+            this.interviewerMood = 'neutral';
+        }
     }
 
     create(): void {
-        // 背景
         this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e);
 
         const job = jobHuntSystem.getJobPosition(this.application.jobId);
         const company = jobHuntSystem.getCompany(this.application.companyId);
 
-        // 顶部信息
-        const headerBg = this.add.rectangle(640, 50, 1280, 100, 0x2a2a3a);
-
-        const companyText = this.add.text(50, 30, `${company?.name} - ${job?.title}`, {
+        // 顶部
+        this.add.rectangle(640, 50, 1280, 100, 0x2a2a3a);
+        this.add.text(50, 30, `${company?.name} - ${job?.title}`, {
             fontSize: '20px',
             color: '#4a90d9',
             fontStyle: 'bold'
         });
 
-        const roundText = this.add.text(50, 60,
-            `第${this.currentRound.round}轮面试 | ${this.getInterviewTypeName(this.currentRound.type)} | 面试官: ${this.currentRound.interviewerRole} ${this.currentRound.interviewerName}`, {
+        const typeLabel = this.isPressureInterview ? '【压力面试】' : '';
+        this.add.text(50, 60,
+            `第${this.currentRound.round}轮 ${typeLabel} | 面试官: ${this.currentRound.interviewerName} (${this.currentRound.interviewerRole})`, {
+            fontSize: '14px',
+            color: this.isPressureInterview ? '#ff6644' : '#888888'
+        });
+
+        // 进度
+        this.add.text(1100, 45, `问题 1/${this.totalQuestions}`, {
             fontSize: '14px',
             color: '#888888'
         });
 
-        // 表现评分
-        const performanceText = this.add.text(1000, 40, `表现: ${this.performance}`, {
-            fontSize: '16px',
-            color: this.performance >= 60 ? '#00ff88' : '#ff4444'
-        });
-        this.dialogItems.push(performanceText);
+        // 面试官区域
+        this.createInterviewerArea();
 
         // 对话区域
-        const chatBg = this.add.rectangle(640, 350, 1100, 450, 0x2a2a3a);
-        chatBg.setStrokeStyle(1, 0x444444);
+        this.add.rectangle(700, 280, 700, 240, 0x2a2a3a).setStrokeStyle(1, 0x444444);
 
-        // 面试官头像区域
-        const interviewerBg = this.add.rectangle(150, 200, 180, 180, 0x3a3a4a);
-        const interviewerLabel = this.add.text(150, 300, this.currentRound.interviewerName, {
-            fontSize: '14px',
-            color: '#ffffff'
-        });
-        interviewerLabel.setOrigin(0.5, 0.5);
-
-        // 面试官发言
-        this.responseText = this.add.text(640, 280, '', {
+        this.responseText = this.add.text(700, 280, '', {
             fontSize: '16px',
             color: '#ffffff',
-            wordWrap: { width: 800 },
-            align: 'center',
+            wordWrap: { width: 650 },
+            align: 'left',
             lineSpacing: 8
+        }).setOrigin(0.5);
+
+        // 参考提示区域
+        this.add.rectangle(700, 460, 700, 100, 0x252535).setStrokeStyle(1, 0x3a3a4a);
+        this.add.text(360, 420, '💡 回答参考方向:', {
+            fontSize: '12px',
+            color: '#666666'
         });
-        this.responseText.setOrigin(0.5, 0.5);
 
-        // 开始面试
-        this.startInterview();
+        this.hintText = this.add.text(700, 470, '', {
+            fontSize: '13px',
+            color: '#888888',
+            wordWrap: { width: 680 },
+            align: 'center',
+            lineSpacing: 6
+        }).setOrigin(0.5);
 
-        // 回答选项区域
-        this.createAnswerOptions();
+        // 回答按钮
+        this.createAnswerButton();
 
-        // 底部操作
+        // 底部
         this.createBottomBar();
+
+        // 开始
+        this.startInterview();
     }
 
-    private getInterviewTypeName(type: string): string {
-        const names: { [key: string]: string } = {
-            'phone': '电话面试',
-            'video': '视频面试',
-            'onsite': '现场面试',
-            'group': '群面',
-            'hr': 'HR面试'
-        };
-        return names[type] || '面试';
-    }
+    private createInterviewerArea(): void {
+        this.add.rectangle(180, 300, 220, 320, 0x2a2a3a).setStrokeStyle(1, 0x444444);
 
-    private async startInterview(): Promise<void> {
-        this.responseText.setText('面试官正在查看你的简历...');
+        // 表情
+        this.moodEmoji = this.add.text(180, 240, this.getMoodEmoji(), {
+            fontSize: '90px'
+        }).setOrigin(0.5);
 
-        const job = jobHuntSystem.getJobPosition(this.application.jobId);
-        const company = jobHuntSystem.getCompany(this.application.companyId);
+        // 名字
+        this.add.text(180, 340, this.currentRound.interviewerName, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
 
-        // 获取AI面试官的开场白
-        try {
-            const prompt = this.currentRound.round === 1 ?
-                `你好，我是${this.currentRound.interviewerName}，${this.currentRound.interviewerRole}。先简单自我介绍一下吧。` :
-                `我们进入第${this.currentRound.round}轮面试。上一轮你的表现还不错。这一轮我们会更深入地聊一聊。`;
+        this.add.text(180, 365, this.currentRound.interviewerRole, {
+            fontSize: '12px',
+            color: '#888888'
+        }).setOrigin(0.5);
 
-            this.responseText.setText(`${this.currentRound.interviewerName}:\n\n"${prompt}"`);
-            this.chatHistory.push({ role: 'interviewer', content: prompt });
-
-        } catch (error) {
-            this.responseText.setText(`${this.currentRound.interviewerName}:\n\n"你好，先简单自我介绍一下吧。"`);
+        if (this.isPressureInterview) {
+            this.add.text(180, 400, '面试官看起来很严肃...', {
+                fontSize: '11px',
+                color: '#ff6644'
+            }).setOrigin(0.5);
         }
     }
 
-    private createAnswerOptions(): void {
-        const optionY = 520;
-        const options = this.getAnswerOptions();
-
-        options.forEach((option, index) => {
-            const x = 250 + index * 260;
-
-            const btn = this.add.text(x, optionY, option.text, {
-                fontSize: '14px',
-                color: '#ffffff',
-                backgroundColor: '#3a3a4a',
-                padding: { x: 15, y: 10 },
-                wordWrap: { width: 220 }
-            });
-            btn.setOrigin(0.5, 0.5);
-            btn.setInteractive({ useHandCursor: true });
-
-            btn.on('pointerover', () => btn.setStyle({ backgroundColor: '#4a4a5a' }));
-            btn.on('pointerout', () => btn.setStyle({ backgroundColor: '#3a3a4a' }));
-            btn.on('pointerdown', () => this.selectAnswer(option));
-
-            this.dialogItems.push(btn);
-        });
-
-        // 自由回答
-        const customBtn = this.add.text(1000, optionY, '💬 自由回答', {
-            fontSize: '14px',
-            color: '#4a90d9',
-            backgroundColor: '#2a2a3a',
-            padding: { x: 15, y: 10 }
-        });
-        customBtn.setOrigin(0.5, 0.5);
-        customBtn.setInteractive({ useHandCursor: true });
-        customBtn.on('pointerdown', () => this.customAnswer());
-        this.dialogItems.push(customBtn);
+    private getMoodEmoji(): string {
+        const moods = {
+            'happy': '😊',
+            'neutral': '😐',
+            'unhappy': '😒',
+            'angry': '😠'
+        };
+        return moods[this.interviewerMood];
     }
 
-    private getAnswerOptions(): Array<{ text: string; quality: 'good' | 'neutral' | 'bad' }> {
-        const round = this.currentRound.round;
-        const type = this.currentRound.interviewerRole;
-
-        if (type === 'HR') {
-            return [
-                { text: '专业自信地介绍自己的经历和优势', quality: 'good' },
-                { text: '简单介绍基本情况', quality: 'neutral' },
-                { text: '紧张地说"我...我叫..."', quality: 'bad' }
-            ];
-        } else if (type === '技术面试官') {
-            return [
-                { text: '清晰地解释技术原理并举例', quality: 'good' },
-                { text: '给出基本正确的回答', quality: 'neutral' },
-                { text: '支支吾吾地说"这个...我不太确定"', quality: 'bad' }
-            ];
-        } else if (type === '部门主管') {
-            return [
-                { text: '展示项目经验和解决问题的能力', quality: 'good' },
-                { text: '按照要求回答问题', quality: 'neutral' },
-                { text: '回答得过于简短', quality: 'bad' }
-            ];
+    private updateMood(): void {
+        if (this.performance >= 70) {
+            this.interviewerMood = 'happy';
+        } else if (this.performance >= 55) {
+            this.interviewerMood = 'neutral';
+        } else if (this.performance >= 40) {
+            this.interviewerMood = 'unhappy';
         } else {
-            return [
-                { text: '表现出强烈的入职意愿和职业规划', quality: 'good' },
-                { text: '诚实地表达想法', quality: 'neutral' },
-                { text: '显得犹豫不决', quality: 'bad' }
-            ];
+            this.interviewerMood = 'angry';
         }
+
+        if (this.isPressureInterview && this.interviewerMood === 'happy') {
+            this.interviewerMood = 'neutral';
+        }
+
+        this.moodEmoji.setText(this.getMoodEmoji());
     }
 
-    private async selectAnswer(option: { text: string; quality: 'good' | 'neutral' | 'bad' }): Promise<void> {
-        this.questionCount++;
+    private createAnswerButton(): void {
+        this.answerBtn = this.add.text(700, 560, '✍️ 输入你的回答', {
+            fontSize: '18px',
+            color: '#ffffff',
+            backgroundColor: '#4a90d9',
+            padding: { x: 40, y: 15 }
+        }).setOrigin(0.5);
 
-        // 更新表现
-        const performanceChange = option.quality === 'good' ? 15 : option.quality === 'neutral' ? 5 : -10;
-        this.performance = Math.max(0, Math.min(100, this.performance + performanceChange));
+        this.answerBtn.setInteractive({ useHandCursor: true });
 
-        // 更新表现显示
-        const perfText = this.dialogItems[0] as Phaser.GameObjects.Text;
-        perfText.setText(`表现: ${this.performance}`);
-        perfText.setColor(this.performance >= 60 ? '#00ff88' : '#ff4444');
-
-        // 显示你的回答
-        this.responseText.setText(`你: "${option.text}"\n\n${this.currentRound.interviewerName}正在思考...`);
-
-        // 延迟后显示面试官的回应
-        this.time.delayedCall(1500, () => {
-            this.showInterviewerResponse(option);
+        this.answerBtn.on('pointerover', () => {
+            this.answerBtn.setStyle({ backgroundColor: '#5aa0e9' });
+        });
+        this.answerBtn.on('pointerout', () => {
+            this.answerBtn.setStyle({ backgroundColor: '#4a90d9' });
+        });
+        this.answerBtn.on('pointerdown', () => {
+            this.submitAnswer();
         });
     }
 
-    private showInterviewerResponse(option: { text: string; quality: 'good' | 'neutral' | 'bad' }): void {
-        const responses = {
-            'good': [
-                '嗯，回答得很好。那我们继续下一个问题...',
-                '不错，看来你在这方面很有经验。',
-                '很好，这正是我们想要的答案。'
-            ],
-            'neutral': [
-                '嗯，可以。我再问一个问题...',
-                '好的，我理解了。那么...',
-                '还行，继续说说...'
-            ],
-            'bad': [
-                '嗯...这个回答有点简单了。算了，下一个问题...',
-                '好吧...我们换个问题。',
-                '我需要更具体的回答...'
-            ]
+    private startInterview(): void {
+        const openings = this.isPressureInterview ? [
+            '行，开始吧。简单介绍下自己，别说废话。',
+            '我时间紧，直接开始。你有什么特别的？',
+            '看了你的简历，一般。来，证明一下自己。'
+        ] : [
+            '你好，请先简单自我介绍一下吧。',
+            '欢迎来面试，先聊聊你自己？',
+            '我们开始吧，介绍一下你的经历。'
+        ];
+
+        const opening = openings[Math.floor(Math.random() * openings.length)];
+        this.currentQuestion = '自我介绍';
+
+        this.responseText.setText(`${this.currentRound.interviewerName}:\n\n"${opening}"`);
+        this.updateHint('自我介绍');
+    }
+
+    private updateHint(questionType: string): void {
+        const hints: { [key: string]: string } = {
+            '自我介绍': '可以说: 姓名、工作经验、技术栈、项目亮点、为什么来应聘',
+            '优缺点': '可以说: 真实的优点+例子、可改进的缺点+改进计划',
+            '期望薪资': '可以说: 基于市场行情、个人能力、可协商范围',
+            '离职原因': '可以说: 职业发展、学习机会、新挑战（避免说前公司坏话）',
+            '职业规划': '可以说: 短期目标、长期方向、与公司发展的结合',
+            '技术问题': '可以说: 原理解释、实际应用、遇到的问题和解决方案',
+            '项目经验': '可以说: 项目背景、你的角色、技术难点、成果数据',
+            '压力处理': '可以说: 具体例子、处理方式、结果和反思',
+            '团队协作': '可以说: 沟通方式、冲突处理、协作成果',
+            '加班看法': '可以说: 效率优先、必要时配合、work-life balance',
+            '其他': '可以说: 真诚回答、结合实际经验、展示思考过程'
         };
 
-        const responseList = responses[option.quality];
-        const response = responseList[Math.floor(Math.random() * responseList.length)];
+        this.hintText.setText(hints[questionType] || hints['其他']);
+    }
 
-        // 检查是否结束面试
-        if (this.questionCount >= 5) {
-            this.endInterview();
+    private submitAnswer(): void {
+        // 创建内嵌输入框
+        const inputContainer = this.add.container(640, 360);
+        inputContainer.setDepth(10000);
+
+        // 背景遮罩
+        const overlay = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.8);
+        overlay.setOrigin(0.5);
+        inputContainer.add(overlay);
+
+        // 输入框背景
+        const inputBg = this.add.rectangle(0, 0, 800, 300, 0x1a1a2e);
+        inputBg.setStrokeStyle(3, 0x4a90d9);
+        inputBg.setOrigin(0.5);
+        inputContainer.add(inputBg);
+
+        // 问题标题
+        const questionTitle = this.add.text(0, -100, `面试官问: "${this.currentQuestion}"`, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            wordWrap: { width: 750 },
+            align: 'center'
+        }).setOrigin(0.5);
+        inputContainer.add(questionTitle);
+
+        // HTML输入框
+        const inputHTML = `
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 750px;">
+                <textarea id="interviewInput" 
+                          placeholder="输入你的回答..."
+                          style="width: 100%; 
+                                 height: 120px;
+                                 padding: 12px; 
+                                 font-size: 14px; 
+                                 background: #2a2a3a; 
+                                 color: #ffffff; 
+                                 border: 2px solid #4a90d9; 
+                                 border-radius: 6px;
+                                 outline: none;
+                                 resize: none;
+                                 font-family: inherit;"></textarea>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="interviewSubmit"
+                            style="padding: 12px 40px;
+                                   font-size: 15px;
+                                   background: #4a90d9;
+                                   color: #ffffff;
+                                   border: none;
+                                   border-radius: 6px;
+                                   cursor: pointer;
+                                   font-weight: bold;">
+                        ✅ 提交回答
+                    </button>
+                    <button id="interviewCancel"
+                            style="padding: 12px 40px;
+                                   font-size: 15px;
+                                   background: #666666;
+                                   color: #ffffff;
+                                   border: none;
+                                   border-radius: 6px;
+                                   cursor: pointer;">
+                        ❌ 取消
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const domElement = this.add.dom(0, 20, 'div').createFromHTML(inputHTML);
+        inputContainer.add(domElement);
+
+        // 延迟绑定事件
+        this.time.delayedCall(100, () => {
+            const textarea = document.getElementById('interviewInput') as HTMLTextAreaElement;
+            const submitBtn = document.getElementById('interviewSubmit') as HTMLButtonElement;
+            const cancelBtn = document.getElementById('interviewCancel') as HTMLButtonElement;
+
+            if (textarea) {
+                textarea.focus();
+            }
+
+            const handleSubmit = () => {
+                if (!textarea) return;
+
+                const input = textarea.value.trim();
+                if (input === '') {
+                    return;
+                }
+
+                // 销毁输入框
+                inputContainer.destroy();
+
+                // 禁用按钮
+                this.answerBtn.disableInteractive();
+                this.answerBtn.setStyle({ backgroundColor: '#3a3a4a', color: '#888888' });
+                this.answerBtn.setText('思考中...');
+
+                this.questionCount++;
+
+                // 评估回答
+                const evaluation = this.evaluateAnswer(input, this.currentQuestion);
+                this.performance = Math.max(0, Math.min(100, this.performance + evaluation.change));
+                this.updateMood();
+
+                // 显示回答和反馈
+                this.responseText.setText(`你: "${input.substring(0, 100)}${input.length > 100 ? '...' : ''}"\n\n${this.currentRound.interviewerName}正在思考...`);
+
+                this.time.delayedCall(1500, () => {
+                    this.showResponse(evaluation);
+                });
+            };
+
+            const handleCancel = () => {
+                inputContainer.destroy();
+            };
+
+            // 提交按钮
+            if (submitBtn) {
+                submitBtn.addEventListener('click', handleSubmit);
+                submitBtn.addEventListener('mouseenter', () => {
+                    submitBtn.style.background = '#5aa0e9';
+                });
+                submitBtn.addEventListener('mouseleave', () => {
+                    submitBtn.style.background = '#4a90d9';
+                });
+            }
+
+            // 取消按钮
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', handleCancel);
+                cancelBtn.addEventListener('mouseenter', () => {
+                    cancelBtn.style.background = '#888888';
+                });
+                cancelBtn.addEventListener('mouseleave', () => {
+                    cancelBtn.style.background = '#666666';
+                });
+            }
+
+            // Ctrl+Enter 快捷键提交
+            if (textarea) {
+                textarea.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        handleSubmit();
+                    }
+                });
+            }
+        });
+    }
+
+    private evaluateAnswer(answer: string, questionType: string): { change: number; quality: 'good' | 'ok' | 'bad' } {
+        const len = answer.length;
+        let score = 0;
+
+        // 基础分：回答长度
+        if (len >= 100) score += 3;
+        else if (len >= 50) score += 1;
+        else if (len < 20) score -= 3;
+
+        // 正面关键词
+        const goodKeywords = [
+            '经验', '项目', '解决', '优化', '学习', '团队', '成长', '提升',
+            '负责', '主导', '设计', '实现', '分析', '思考', '改进', '创新',
+            '沟通', '协作', '结果', '数据', '效率', '质量', '用户', '业务'
+        ];
+        const goodCount = goodKeywords.filter(k => answer.includes(k)).length;
+        score += Math.min(goodCount * 2, 8);
+
+        // 负面关键词
+        const badKeywords = [
+            '不知道', '不会', '不确定', '没做过', '算了', '随便', '无所谓',
+            '差不多', '还行吧', '一般', '不太', '可能'
+        ];
+        const badCount = badKeywords.filter(k => answer.includes(k)).length;
+        score -= badCount * 3;
+
+        // 自大/消极词汇
+        const trapKeywords = [
+            '最强', '第一', '完美', '没缺点', '都会', '简单', '垃圾', '傻'
+        ];
+        const trapCount = trapKeywords.filter(k => answer.includes(k)).length;
+        score -= trapCount * 4;
+
+        // 压力面更严格
+        if (this.isPressureInterview) {
+            score = Math.floor(score * 0.7);
+        }
+
+        // 转换为分数变化
+        let change: number;
+        let quality: 'good' | 'ok' | 'bad';
+
+        if (score >= 6) {
+            change = this.isPressureInterview ? 8 : 12;
+            quality = 'good';
+        } else if (score >= 0) {
+            change = this.isPressureInterview ? -2 : 2;
+            quality = 'ok';
+        } else {
+            change = this.isPressureInterview ? -12 : -8;
+            quality = 'bad';
+        }
+
+        return { change, quality };
+    }
+
+    private showResponse(evaluation: { change: number; quality: 'good' | 'ok' | 'bad' }): void {
+        const responses = this.getResponses(evaluation.quality);
+        const response = responses[Math.floor(Math.random() * responses.length)];
+
+        // 检查是否结束
+        if (this.questionCount >= this.totalQuestions) {
+            this.responseText.setText(`${this.currentRound.interviewerName}: "${response}"`);
+            this.time.delayedCall(1500, () => this.endInterview());
             return;
         }
 
-        // 生成下一个问题
-        const nextQuestion = this.generateNextQuestion();
+        // 下一个问题
+        const nextQ = this.getNextQuestion();
+        this.currentQuestion = nextQ.display;
+
         this.responseText.setText(`${this.currentRound.interviewerName}:
 
 "${response}
 
-${nextQuestion}"`);
+${nextQ.question}"`);
+        this.updateHint(nextQ.type);
 
-        // 更新选项
-        this.refreshAnswerOptions();
+        // 恢复按钮
+        this.answerBtn.setInteractive({ useHandCursor: true });
+        this.answerBtn.setStyle({ backgroundColor: '#4a90d9', color: '#ffffff' });
+        this.answerBtn.setText('✍️ 输入你的回答');
     }
 
-    private generateNextQuestion(): string {
-        const questions = {
-            'HR': [
-                '你为什么想加入我们公司？',
-                '说说你最大的优点和缺点。',
-                '你的期望薪资是多少？',
-                '你有什么问题想问我吗？',
-                '如果遇到与同事意见不一致，你会怎么处理？',
-                '你对加班怎么看？',
-                '你的职业规划是什么？',
-                '说说你的离职原因。',
-                '你对我们公司有什么了解？'
-            ],
-            '技术面试官': [
-                '说说你对React/Vue的理解。',
-                '如何优化页面加载性能？',
-                '描述一下你遇到过最难的技术问题。',
-                '说说你对设计模式的理解。',
-                'HTTP和HTTPS有什么区别？',
-                '说说你对前端工程化的理解。',
-                '如何处理跨域问题？',
-                '说说你对TypeScript的理解。',
-                '如何进行代码审查？'
-            ],
-            '部门主管': [
-                '说说你做过最有挑战的项目。',
-                '如何平衡工作质量和进度？',
-                '你对加班怎么看？',
-                '你的职业规划是什么？',
-                '为什么离开上一家公司？',
-                '你如何带新人？',
-                '如何处理紧急任务？',
-                '说说你的管理风格。'
-            ],
-            'VP': [
-                '你认为你能为团队带来什么？',
-                '如何看待我们这个行业？',
-                '有什么问题想问我吗？',
-                '你对公司文化有什么期待？',
-                '说说你的长期职业目标。'
-            ]
-        };
+    private getResponses(quality: string): string[] {
+        if (this.isPressureInterview) {
+            if (quality === 'good') {
+                return ['还行。', '嗯，继续。', '可以。'];
+            } else if (quality === 'ok') {
+                return ['就这？', '一般。', '没什么亮点。'];
+            } else {
+                return ['这回答不行。', '你没准备过？', '算了，下一题。'];
+            }
+        } else {
+            if (quality === 'good') {
+                return ['回答得不错！', '嗯，很好。', '这点说得很到位。'];
+            } else if (quality === 'ok') {
+                return ['好的，我了解了。', '嗯，继续。', '还可以。'];
+            } else {
+                return ['嗯...这个回答有点简单。', '需要再具体一些。', '好吧...'];
+            }
+        }
+    }
 
-        const roleQuestions = questions[this.currentRound.interviewerRole as keyof typeof questions] || questions['HR'];
+    private getNextQuestion(): { question: string; type: string; display: string } {
+        const role = this.currentRound.interviewerRole;
 
-        // 过滤掉已经问过的问题
-        const availableQuestions = roleQuestions.filter(q => !this.askedQuestions.includes(q));
+        const questionPool = [
+            { q: '说说你最大的优点和缺点。', type: '优缺点', display: '优缺点' },
+            { q: '你的期望薪资是多少？', type: '期望薪资', display: '期望薪资' },
+            { q: '为什么离开上一家公司？', type: '离职原因', display: '离职原因' },
+            { q: '你的职业规划是什么？', type: '职业规划', display: '职业规划' },
+            { q: '如何看待加班？', type: '加班看法', display: '加班看法' },
+            { q: '有什么想问我们的？', type: '其他', display: '反问环节' }
+        ];
 
-        // 如果所有问题都问过了，重置列表（不应该发生，但做个保险）
-        if (availableQuestions.length === 0) {
-            this.askedQuestions = [];
-            return roleQuestions[0];
+        if (role === '技术面试官') {
+            questionPool.push(
+                { q: '说说你对前端框架的理解。', type: '技术问题', display: '技术理解' },
+                { q: '描述一个你解决过的技术难题。', type: '技术问题', display: '技术难题' },
+                { q: '如何优化页面性能？', type: '技术问题', display: '性能优化' }
+            );
         }
 
-        // 随机选择一个未问过的问题
-        const selectedQuestion = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
-        this.askedQuestions.push(selectedQuestion);
-
-        return selectedQuestion;
-    }
-
-    private refreshAnswerOptions(): void {
-        // 移除旧选项（保留第一个表现文本）
-        while (this.dialogItems.length > 1) {
-            const item = this.dialogItems.pop();
-            item?.destroy();
+        if (role === '部门主管') {
+            questionPool.push(
+                { q: '说说你做过最有挑战的项目。', type: '项目经验', display: '项目经验' },
+                { q: '如何处理紧急任务和压力？', type: '压力处理', display: '压力处理' },
+                { q: '如何与团队成员协作？', type: '团队协作', display: '团队协作' }
+            );
         }
-        this.createAnswerOptions();
-    }
 
-    private async customAnswer(): Promise<void> {
-        const input = prompt('输入你的回答:');
-        if (!input) return;
+        // 过滤已问过的
+        const available = questionPool.filter(q => !this.askedQuestions.includes(q.q));
 
-        this.questionCount++;
+        if (available.length === 0) {
+            return { question: '还有什么想补充的吗？', type: '其他', display: '补充' };
+        }
 
-        // AI评估回答质量
-        const quality = this.evaluateAnswer(input);
-        const performanceChange = quality === 'good' ? 15 : quality === 'neutral' ? 5 : -10;
-        this.performance = Math.max(0, Math.min(100, this.performance + performanceChange));
+        const selected = available[Math.floor(Math.random() * available.length)];
+        this.askedQuestions.push(selected.q);
 
-        // 更新表现显示
-        const perfText = this.dialogItems[0] as Phaser.GameObjects.Text;
-        perfText.setText(`表现: ${this.performance}`);
-        perfText.setColor(this.performance >= 60 ? '#00ff88' : '#ff4444');
-
-        this.responseText.setText(`你: "${input}"\n\n${this.currentRound.interviewerName}正在思考...`);
-
-        this.time.delayedCall(1500, () => {
-            this.showInterviewerResponse({ text: input, quality });
-        });
-    }
-
-    private evaluateAnswer(answer: string): 'good' | 'neutral' | 'bad' {
-        // 简单的关键词评估
-        const goodKeywords = ['经验', '项目', '解决', '学习', '团队', '成长', '优化', '创新'];
-        const badKeywords = ['不知道', '没有', '不会', '不确定', '算了'];
-
-        const lowerAnswer = answer.toLowerCase();
-        const goodCount = goodKeywords.filter(k => answer.includes(k)).length;
-        const badCount = badKeywords.filter(k => lowerAnswer.includes(k)).length;
-
-        if (goodCount >= 2 && answer.length > 20) return 'good';
-        if (badCount > 0 || answer.length < 10) return 'bad';
-        return 'neutral';
+        return { question: selected.q, type: selected.type, display: selected.display };
     }
 
     private endInterview(): void {
         const passed = this.performance >= 60;
 
-        // 清除选项
-        while (this.dialogItems.length > 1) {
-            const item = this.dialogItems.pop();
-            item?.destroy();
+        // 最终表情
+        if (passed) {
+            this.interviewerMood = 'happy';
+        } else {
+            this.interviewerMood = this.isPressureInterview ? 'angry' : 'unhappy';
         }
+        this.moodEmoji.setText(this.getMoodEmoji());
 
-        // 显示面试结果
-        const resultText = passed ?
-            `面试结束。你的表现不错，我们会尽快通知你下一轮的安排。` :
-            `面试结束。谢谢你来面试，我们会综合考虑后通知你结果。`;
+        const endText = passed ?
+            (this.isPressureInterview ? '表现还可以，算你过了。' : '今天面试到这里，表现不错。') :
+            (this.isPressureInterview ? '准备不够，回去再练练。' : '感谢你来面试，我们会通知你结果。');
 
-        this.responseText.setText(`${this.currentRound.interviewerName}:
+        this.responseText.setText(`${this.currentRound.interviewerName}: "${endText}"\n\n` +
+            `${passed ? '✅ 本轮面试通过' : '❌ 本轮面试未通过'}`);
 
-"${resultText}"
+        this.answerBtn.destroy();
+        this.hintText.setText('');
 
-
-面试得分: ${this.performance}/100
-${passed ? '✅ 面试通过!' : '❌ 面试未通过'}`);
-
-        // 处理面试结果
+        // 处理结果
         const nextRound = jobHuntSystem.scheduleNextRound(this.application.id, passed);
 
-        // 显示结果按钮
-        const message = passed ?
-            (nextRound ? `恭喜通过！已安排第${nextRound.round}轮面试` : '🎉 所有面试通过！等待Offer!') :
-            '很遗憾，面试未通过';
+        this.time.delayedCall(2000, () => {
+            const msg = passed ?
+                (nextRound ? `恭喜通过！已安排第${nextRound.round}轮面试` : '🎉 所有面试通过！等待Offer!') :
+                '很遗憾，面试未通过';
 
-        const resultBtn = this.add.text(640, 620, message, {
-            fontSize: '16px',
-            color: passed ? '#00ff88' : '#ff4444',
-            backgroundColor: '#333333',
-            padding: { x: 30, y: 15 }
-        });
-        resultBtn.setOrigin(0.5, 0.5);
+            const resultBtn = this.add.text(640, 550, msg, {
+                fontSize: '20px',
+                color: passed ? '#00ff88' : '#ff4444',
+                backgroundColor: '#333333',
+                padding: { x: 40, y: 15 }
+            }).setOrigin(0.5);
 
-        // 返回按钮
-        const backBtn = this.add.text(640, 680, '返回', {
-            fontSize: '14px',
-            color: '#ffffff',
-            backgroundColor: '#4a90d9',
-            padding: { x: 30, y: 10 }
-        });
-        backBtn.setOrigin(0.5, 0.5);
-        backBtn.setInteractive({ useHandCursor: true });
-        backBtn.on('pointerdown', () => {
-            this.scene.stop();
-            this.scene.resume('JobHuntScene');
+            const backBtn = this.add.text(640, 620, '返回', {
+                fontSize: '16px',
+                color: '#ffffff',
+                backgroundColor: '#4a90d9',
+                padding: { x: 50, y: 12 }
+            }).setOrigin(0.5);
+            backBtn.setInteractive({ useHandCursor: true });
+            backBtn.on('pointerdown', () => {
+                this.scene.stop();
+                this.scene.resume('JobHuntScene');
+            });
         });
     }
 
     private createBottomBar(): void {
-        // 提示
-        const tipText = this.add.text(640, 690, '💡 不同的回答会影响面试表现，获得60分以上即可通过', {
+        this.add.text(640, 680, this.isPressureInterview ?
+            '⚠️ 压力面试：请认真思考后回答，面试官会更严格评判' :
+            '💡 提示：观察面试官表情判断回答效果，参考提示组织回答', {
             fontSize: '12px',
-            color: '#666666'
-        });
-        tipText.setOrigin(0.5, 0.5);
+            color: this.isPressureInterview ? '#ff6644' : '#666666'
+        }).setOrigin(0.5);
 
-        // 放弃按钮
-        const quitBtn = this.add.text(1200, 690, '放弃面试', {
+        const quitBtn = this.add.text(1200, 680, '放弃面试', {
             fontSize: '12px',
             color: '#ff4444'
         });
