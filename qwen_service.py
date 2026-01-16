@@ -7,15 +7,19 @@ from openai import OpenAI
 from typing import List, Optional
 import json
 import re
+import os
 
 
 class QwenService:
     """Qwen3 API 服务封装"""
 
     def __init__(self):
+        # 从环境变量读取 API key，如果不存在则使用默认值
+        api_key = os.getenv('MODELSCOPE_API_KEY', 'ms-afd08d8f-34cf-4d75-9aa4-6387d6c34a96')
+
         self.client = OpenAI(
             base_url='https://api-inference.modelscope.cn/v1',
-            api_key='ms-afd08d8f-34cf-4d75-9aa4-6387d6c34a96',
+            api_key=api_key,
         )
         self.model = 'Qwen/Qwen3-235B-A22B-Instruct-2507'
 
