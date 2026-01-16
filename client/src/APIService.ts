@@ -133,6 +133,33 @@ class APIService {
     }
 
     /**
+     * 生成招聘职位列表
+     */
+    async generateJobs(playerResume: any, count: number = 15): Promise<any[]> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/jobs/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    player_resume: playerResume,
+                    count: count
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`API 请求失败: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('职位生成失败:', error);
+            return [];
+        }
+    }
+
+    /**
      * 清除对话历史
      */
     clearHistory(npcName?: string): void {

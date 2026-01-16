@@ -140,6 +140,121 @@ class QwenService:
             print(f"Qwen API 错误: {e}")
             return self._mock_npc_response(npc_name, player_info, workplace_status)
 
+    async def generate_job_listings(self, player_info: dict, count: int = 15) -> List[dict]:
+        """
+        生成求职列表
+        
+        Args:
+            player_info: 玩家信息（姓名、学历、经验、技能等）
+            count: 生成数量
+        """
+        system_prompt = f"""你是一个职场模拟游戏的招聘职位生成器。
+        
+【玩家背景】
+- 姓名: {player_info.get('name', '求职者')}
+- 学历: {player_info.get('education', '本科')}
+- 专业: {player_info.get('major', '计算机')}
+- 经验: {player_info.get('experience', 2)}年
+- 技能: {', '.join(player_info.get('skills', ['JavaScript']))}
+
+【生成要求】
+请生成 {count} 个招聘职位信息。
+这些职位应该围绕玩家背景，但也要有一定的随机性和真实感。
+包含：
+1. 知名大厂、中型企业、初创公司、外企、甚至不靠谱的小公司。
+2. 职位不仅限于技术，也可以有管理、销售、甚至一些奇怪的兼职。
+3. 薪资要符合公司类型和要求。
+4. 包含职位描述、任职要求、公司福利。
+
+【返回格式】
+必须返回一个包含 {count} 个对象的 JSON 数组。
+对象格式：
+{{
+    "id": "job_随机ID",
+    "company": {{
+        "name": "公司名称",
+        "type": "large|mid|startup|foreign|small",
+        "industry": "行业",
+        "size": "公司规模",
+        "reputation": 1-5,
+        "difficulty": 1-5,
+        "salaryLevel": 1-5,
+        "description": "公司简介"
+    }},
+    "position": {{
+        "title": "职位名称",
+        "department": "所属部门",
+        "salaryRange": [最低月薪, 最高月薪],
+        "requirements": ["要求1", "要求2", "要求3"],
+        "benefits": ["福利1", "福利2"],
+        "workType": "onsite|remote|hybrid",
+        "experience": "经验要求(如: 1-3年)",
+        "education": "学历要求(如: 本科)",
+        "headcount": 招聘人数,
+        "urgency": "normal|urgent|asap"
+    }}
+}}
+
+不要输出思考过程，直接输出 JSON 数组。"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"请生成 {count} 个招聘职位"}
+                ],
+                max_tokens=4000,
+                temperature=0.8,
+                stream=False
+            )
+
+            response_text = response.choices[0].message.content
+            response_text = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL)
+            
+            # 查找 JSON 数组
+            json_match = re.search(r'\[[\s\S]+\]', response_text)
+            if json_match:
+                return json.loads(json_match.group())
+                
+        except Exception as e:
+            print(f"Qwen API 错误 (generate_job_listings): {e}")
+            
+        return self._mock_job_listings(count)
+
+    def _mock_job_listings(self, count: int) -> List[dict]:
+        """模拟职位列表"""
+        import random
+        listings = []
+        for i in range(count):
+            c_id = f"mock_job_{i}"
+            listings.append({
+                "id": c_id,
+                "company": {
+                    "name": f"模拟科技_{i}",
+                    "type": random.choice(["large", "mid", "startup", "foreign"]),
+                    "industry": "互联网",
+                    "size": "100-500人",
+                    "reputation": random.randint(1, 5),
+                    "difficulty": random.randint(1, 5),
+                    "salaryLevel": random.randint(1, 5),
+                    "description": "一家正在快速发展的模拟公司。"
+                },
+                "position": {
+                    "title": random.choice(["前端开发", "后端开发", "产品经理", "UI设计师", "销售经理"]),
+                    "department": "技术部",
+                    "salaryRange": [10000 + random.randint(0, 5000), 20000 + random.randint(0, 10000)],
+                    "requirements": ["熟悉 JavaScript", "良好的沟通能力"],
+                    "benefits": ["五险一金", "带薪休假"],
+                    "workType": "onsite",
+                    "experience": "1-3年",
+                    "education": "本科",
+                    "headcount": 1,
+                    "urgency": "normal"
+                }
+            })
+        return listings
+
     def _format_player_info(self, player_info: dict, workplace_status: dict) -> str:
         """格式化玩家信息"""
         if not player_info:

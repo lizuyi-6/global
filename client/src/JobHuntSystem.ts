@@ -5,6 +5,8 @@
 
 // ========== 类型定义 ==========
 
+import { apiService } from './APIService';
+
 /** 公司类型 */
 export type CompanyType = 'startup' | 'mid' | 'large' | 'foreign' | 'state';
 
@@ -394,6 +396,12 @@ class JobHuntSystem {
     private status: JobHuntStatus;
     private listeners: ((event: string, data: any) => void)[] = [];
 
+    // 动态生成的职位和公司
+    private dynamicJobs: JobPosition[] = [];
+    private dynamicCompanies: Company[] = [];
+    private isFetchingJobs: boolean = false;
+    private jobPoolSize: number = 0;
+
     constructor() {
         this.resume = this.createDefaultResume();
         this.status = this.createInitialStatus();
@@ -449,14 +457,60 @@ class JobHuntSystem {
         return { ...this.status };
     }
 
+    // ========== 动态职位加载 ==========
+
+    async initializeDynamicJobs(): Promise<void> {
+        if (this.dynamicJobs.length > 0) return;
+        await this.fetchMoreJobs();
+    }
+
+    async fetchMoreJobs(): Promise<void> {
+        if (this.isFetchingJobs) return;
+        this.isFetchingJobs = true;
+
+        try {
+            const newListing = await apiService.generateJobs(this.resume, 15);
+            
+            if (newListing && Array.isArray(newListing)) {
+                newListing.forEach(item => {
+                    const company: Company = item.company;
+                    const position: JobPosition = item.position;
+                    
+                    // 确保 ID 唯一且关联正确
+                    company.id = company.id || `dyn_comp_${Date.now()}_${Math.random()}`;
+                    position.id = position.id || `dyn_job_${Date.now()}_${Math.random()}`;
+                    position.companyId = company.id;
+                    position.postedDays = position.postedDays || 1;
+
+                    // 避免重复公司名称 (可选)
+                    if (!this.dynamicCompanies.find(c => c.name === company.name)) {
+                        this.dynamicCompanies.push(company);
+                    }
+                    this.dynamicJobs.push(position);
+                });
+                
+                this.jobPoolSize = this.dynamicJobs.length;
+                this.emit('jobs_updated', { count: this.dynamicJobs.length });
+            }
+        } catch (error) {
+            console.error('Fetch more jobs failed:', error);
+        } finally {
+            this.isFetchingJobs = false;
+        }
+    }
+
+    isFetching(): boolean {
+        return this.isFetchingJobs;
+    }
+
     // ========== 公司和职位 ==========
 
     getCompanies(): Company[] {
-        return [...COMPANIES];
+        return [...COMPANIES, ...this.dynamicCompanies];
     }
 
     getCompany(id: string): Company | undefined {
-        return COMPANIES.find(c => c.id === id);
+        return COMPANIES.find(c => c.id === id) || this.dynamicCompanies.find(c => c.id === id);
     }
 
     getJobPositions(filters?: {
@@ -464,7 +518,7 @@ class JobHuntSystem {
         industry?: string;
         salaryMin?: number;
     }): JobPosition[] {
-        let positions = [...JOB_POSITIONS];
+        let positions = [...JOB_POSITIONS, ...this.dynamicJobs];
 
         if (filters?.companyId) {
             positions = positions.filter(p => p.companyId === filters.companyId);
@@ -484,7 +538,7 @@ class JobHuntSystem {
     }
 
     getJobPosition(id: string): JobPosition | undefined {
-        return JOB_POSITIONS.find(p => p.id === id);
+        return JOB_POSITIONS.find(p => p.id === id) || this.dynamicJobs.find(p => p.id === id);
     }
 
     // ========== 投递管理 ==========

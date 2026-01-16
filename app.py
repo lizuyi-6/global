@@ -69,7 +69,27 @@ NPC_PROFILES = {
     }
 }
 
+class JobGenerateRequest(BaseModel):
+    player_resume: dict
+    count: Optional[int] = 15
+
 # ========== FastAPI 端点 ==========
+
+@fastapi_app.post("/api/jobs/generate")
+async def generate_jobs(request: JobGenerateRequest):
+    """AI 生成招聘职位列表"""
+    if not qwen_service:
+        return qwen_service._mock_job_listings(request.count)
+    
+    try:
+        jobs = await qwen_service.generate_job_listings(
+            player_info=request.player_resume,
+            count=request.count
+        )
+        return jobs
+    except Exception as e:
+        print(f"生成职位列表失败: {e}")
+        return qwen_service._mock_job_listings(request.count)
 
 @fastapi_app.get("/api/status")
 async def root():

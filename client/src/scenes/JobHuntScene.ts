@@ -13,6 +13,8 @@ export class JobHuntScene extends Phaser.Scene {
     private mainContent!: Phaser.GameObjects.Container;
     private navButtons: Phaser.GameObjects.Container[] = [];
     private currentTab: 'jobs' | 'applications' | 'interviews' | 'offers' = 'jobs';
+    private jobListPage: number = 0;
+    private jobsPerPage: number = 5;
 
     constructor() {
         super({ key: 'JobHuntScene' });
@@ -21,6 +23,21 @@ export class JobHuntScene extends Phaser.Scene {
     create(): void {
         // 绑定通知系统到当前场景
         notificationManager.bindScene(this);
+
+        // 初始加载动态职位
+        jobHuntSystem.initializeDynamicJobs().then(() => {
+            if (this.currentTab === 'jobs') {
+                this.refreshContent();
+            }
+        });
+
+        // 监听职位更新
+        jobHuntSystem.onEvent((event, data) => {
+            if (event === 'jobs_updated' && this.currentTab === 'jobs') {
+                // 如果当前正在查看最后一页，可能需要刷新显示以激活下一页按钮
+                this.refreshContent();
+            }
+        });
 
         // 背景
         this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
@@ -308,8 +325,12 @@ export class JobHuntScene extends Phaser.Scene {
         title.setOrigin(0.5, 0.5);
         this.mainContent.add(title);
 
+        const totalPages = Math.ceil(jobs.length / this.jobsPerPage);
+        const startIdx = this.jobListPage * this.jobsPerPage;
+        const pageJobs = jobs.slice(startIdx, startIdx + this.jobsPerPage);
+
         // 职位列表
-        jobs.slice(0, 6).forEach((job, index) => {
+        pageJobs.forEach((job, index) => {
             const company = companies.find(c => c.id === job.companyId);
             if (!company) return;
 
@@ -449,6 +470,57 @@ export class JobHuntScene extends Phaser.Scene {
             });
             bg.on('pointerdown', () => this.showJobDetail(job, company));
         });
+
+        // 分页控制
+        this.createPaginationControls(totalPages);
+    }
+
+    private createPaginationControls(totalPages: number): void {
+        const y = 280;
+        const controlContainer = this.add.container(0, y);
+        this.mainContent.add(controlContainer);
+
+        // 页码信息
+        const pageText = this.add.text(0, 0, `第 ${this.jobListPage + 1} / ${totalPages} 页`, {
+            fontSize: '14px',
+            fontFamily: FONTS.mono,
+            color: '#888888'
+        }).setOrigin(0.5);
+        controlContainer.add(pageText);
+
+        // 上一页
+        if (this.jobListPage > 0) {
+            const prevBtn = createStyledButton(this, -120, 0, 100, 30, 'PREV', () => {
+                this.jobListPage--;
+                this.refreshContent();
+            });
+            controlContainer.add(prevBtn);
+        }
+
+        // 下一页
+        if (this.jobListPage < totalPages - 1) {
+            const nextBtn = createStyledButton(this, 120, 0, 100, 30, 'NEXT', () => {
+                this.jobListPage++;
+                
+                // 预加载逻辑：当用户翻到第 2 页（如果是每批 15 个，第 2 页是 6-10）
+                // 或者是接近当前池子的末尾时，触发加载下一批
+                const currentPoolEnd = (this.jobListPage + 1) * this.jobsPerPage;
+                const jobs = jobHuntSystem.getJobPositions();
+                
+                if (currentPoolEnd >= jobs.length - 5) {
+                    jobHuntSystem.fetchMoreJobs();
+                }
+                
+                this.refreshContent();
+            });
+            controlContainer.add(nextBtn);
+        } else if (jobHuntSystem.isFetching()) {
+            const loadingText = this.add.text(120, 0, '加载中...', {
+                fontSize: '12px',
+                color: '#4a90d9'
+            }).setOrigin(0.5);
+            controlContainer.add(loadingText);
+        }
     }
 
     private showApplications(): void {
