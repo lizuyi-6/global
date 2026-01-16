@@ -69,7 +69,7 @@ NPC_PROFILES = {
 
 # ========== FastAPI 端点 ==========
 
-@fastapi_app.get("/")
+@fastapi_app.get("/api/status")
 async def root():
     return {
         "status": "running",
@@ -286,15 +286,17 @@ globe/
 
     return demo
 
+# ========== 创建并挂载 Gradio 界面 ==========
+
+# 创建 Gradio 界面
+demo = create_gradio_interface()
+
+# 将 Gradio 挂载到 FastAPI 的根路径
+fastapi_app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+
 # ========== 启动应用 ==========
 
 if __name__ == "__main__":
-    demo = create_gradio_interface()
-
-    # 将 Gradio 挂载到 FastAPI
-    fastapi_app = gr.mount_gradio_app(fastapi_app, demo, path="/")
-
-    # 启动服务器
     uvicorn.run(
         fastapi_app,
         host="0.0.0.0",
