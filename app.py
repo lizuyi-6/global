@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import os
+import uvicorn
 
 # ========== 导入后端服务 ==========
 try:
@@ -326,13 +327,13 @@ if __name__ == "__main__":
     # 创建 Gradio 界面
     demo = create_gradio_interface()
 
-    # 将 FastAPI 应用挂载到 Gradio
-    # 这样可以同时访问 Gradio 界面和 FastAPI 端点
-    demo.app = fastapi_app
+    # 将 Gradio 应用挂载到 FastAPI
+    # 这样 Gradio 界面在根路径，API 在 /api/* 路径
+    fastapi_app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
-    # 启动应用
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=False
+    # 使用 uvicorn 启动 FastAPI（包含 Gradio）
+    uvicorn.run(
+        fastapi_app,
+        host="0.0.0.0",
+        port=7860
     )
