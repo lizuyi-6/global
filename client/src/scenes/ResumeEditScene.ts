@@ -12,6 +12,7 @@ export class ResumeEditScene extends Phaser.Scene {
     private currentEducation: PlayerResume['education'] = 'bachelor';
     private currentSalaryMin = 10000;
     private currentSalaryMax = 25000;
+    private educationButtons: any[] = [];  // 保存学历按钮引用
 
     constructor() {
         super({ key: 'ResumeEditScene' });
@@ -119,21 +120,16 @@ export class ResumeEditScene extends Phaser.Scene {
         ];
 
         let x = 80;
-        educations.forEach(edu => {
-            const btn = this.createToggleButton(x, y, edu.label, this.currentEducation === edu.value);
+        this.educationButtons = [];  // 清空按钮数组
+        educations.forEach((edu, index) => {
+            const btn = this.createToggleButton(x, y, edu.label, this.currentEducation === edu.value, edu.value);
             btn.on('click', () => {
-                // 切换按钮状态
-                educations.forEach(e => {
-                    if (e.value !== edu.value) {
-                        // 重置其他按钮
-                    }
-                });
                 this.currentEducation = edu.value;
                 this.formData.education = edu.value;
-
                 // 更新所有按钮视觉
                 this.updateEducationButtons();
             });
+            this.educationButtons.push(btn);
             x += 110;
         });
         this.formData.education = 'bachelor';
@@ -166,9 +162,26 @@ export class ResumeEditScene extends Phaser.Scene {
     }
 
     private updateEducationButtons(): void {
-        // 更新学历按钮的视觉状态
-        const educations = ['high_school', 'college', 'bachelor', 'master', 'phd'];
-        // 简化实现，实际需要保存按钮引用并更新
+        // 更新所有学历按钮的视觉状态
+        this.educationButtons.forEach(btn => {
+            const eduValue = btn.getData('value');
+            const isActive = eduValue === this.currentEducation;
+            btn.setData('active', isActive);
+
+            // 更新背景颜色
+            const bg = btn.getAt(0) as Phaser.GameObjects.Rectangle;
+            const text = btn.getAt(1) as Phaser.GameObjects.Text;
+
+            if (isActive) {
+                bg.setFillStyle(0x4a90d9);
+                bg.setStrokeStyle(2, 0x6ab0f9);
+                text.setColor('#ffffff');
+            } else {
+                bg.setFillStyle(0x3a3a4a);
+                bg.setStrokeStyle(2, 0x4a4a5a);
+                text.setColor('#aaaaaa');
+            }
+        });
     }
 
     private createSkillsSection(container: Phaser.GameObjects.Container): void {
@@ -325,7 +338,7 @@ export class ResumeEditScene extends Phaser.Scene {
         return container;
     }
 
-    private createToggleButton(x: number, y: number, text: string, active: boolean): any {
+    private createToggleButton(x: number, y: number, text: string, active: boolean, value: string): any {
         const bg = this.add.rectangle(x + 50, y + 20, 100, 40, active ? 0x4a90d9 : 0x3a3a4a);
         bg.setStrokeStyle(2, active ? 0x6ab0f9 : 0x4a4a5a);
 
@@ -338,11 +351,25 @@ export class ResumeEditScene extends Phaser.Scene {
         container.add([bg, textObj]);
         container.setSize(100, 40);
         container.setData('active', active);
+        container.setData('value', value);  // 保存学历值
 
         bg.setInteractive({ useHandCursor: true });
         bg.on('pointerdown', () => {
             container.emit('click');
         });
+
+        // 实现事件系统（类似 createInput）
+        (container as any).on = (event: string, callback: Function) => {
+            container.events = container.events || {};
+            container.events[event] = container.events[event] || [];
+            container.events[event].push(callback);
+        };
+
+        (container as any).emit = (event: string, data: any) => {
+            if (container.events && container.events[event]) {
+                container.events[event].forEach((cb: Function) => cb(data));
+            }
+        };
 
         return container;
     }
