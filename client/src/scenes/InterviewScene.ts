@@ -229,23 +229,23 @@ export class InterviewScene extends Phaser.Scene {
     private submitAnswer(): void {
         // 禁用按钮防止重复点击
         this.answerBtn.disableInteractive();
-            
+
         // 创建内嵌输入框
         const inputContainer = this.add.container(640, 360);
         inputContainer.setDepth(10000);
-            
+
         // 背景遮罩 - 阻止点击穿透
         const overlay = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.8);
         overlay.setOrigin(0.5);
         overlay.setInteractive();  // 关键！阻止点击穿透到后面
         inputContainer.add(overlay);
-            
+
         // 输入框背景
         const inputBg = this.add.rectangle(0, 0, 800, 300, 0x1a1a2e);
         inputBg.setStrokeStyle(3, 0x4a90d9);
         inputBg.setOrigin(0.5);
         inputContainer.add(inputBg);
-            
+
         // 问题标题
         const questionTitle = this.add.text(0, -100, `面试官问: "${this.currentQuestion}"`, {
             fontSize: '16px',
@@ -255,7 +255,7 @@ export class InterviewScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
         inputContainer.add(questionTitle);
-            
+
         // HTML输入框
         const inputHTML = `
             <div style="display: flex; flex-direction: column; gap: 10px; width: 750px;">
@@ -298,56 +298,56 @@ export class InterviewScene extends Phaser.Scene {
                 </div>
             </div>
         `;
-            
+
         const domElement = this.add.dom(0, 20, 'div').createFromHTML(inputHTML);
         inputContainer.add(domElement);
-            
+
         // 延迟绑定事件
         this.time.delayedCall(100, () => {
             const textarea = document.getElementById('interviewInput') as HTMLTextAreaElement;
             const submitBtn = document.getElementById('interviewSubmit') as HTMLButtonElement;
             const cancelBtn = document.getElementById('interviewCancel') as HTMLButtonElement;
-                
+
             if (textarea) {
                 textarea.focus();
             }
-                
+
             const handleSubmit = () => {
                 if (!textarea) return;
-                    
+
                 const input = textarea.value.trim();
                 if (input === '') {
                     return;
                 }
-                    
+
                 // 销毁输入框
                 inputContainer.destroy();
-                    
+
                 // 禁用按钮
                 this.answerBtn.setStyle({ backgroundColor: '#3a3a4a', color: '#888888' });
                 this.answerBtn.setText('思考中...');
-                    
+
                 this.questionCount++;
-                    
+
                 // 评估回答
                 const evaluation = this.evaluateAnswer(input, this.currentQuestion);
                 this.performance = Math.max(0, Math.min(100, this.performance + evaluation.change));
                 this.updateMood();
-                    
+
                 // 显示回答和反馈
                 this.responseText.setText(`你: "${input.substring(0, 100)}${input.length > 100 ? '...' : ''}"\n\n${this.currentRound.interviewerName}正在思考...`);
-                    
+
                 this.time.delayedCall(1500, () => {
                     this.showResponse(evaluation);
                 });
             };
-                
+
             const handleCancel = () => {
                 inputContainer.destroy();
                 // 恢复按钮
                 this.answerBtn.setInteractive({ useHandCursor: true });
             };
-                
+
             // 提交按钮
             if (submitBtn) {
                 submitBtn.addEventListener('click', handleSubmit);
@@ -358,7 +358,7 @@ export class InterviewScene extends Phaser.Scene {
                     submitBtn.style.background = '#4a90d9';
                 });
             }
-                
+
             // 取消按钮
             if (cancelBtn) {
                 cancelBtn.addEventListener('click', handleCancel);
@@ -369,7 +369,7 @@ export class InterviewScene extends Phaser.Scene {
                     cancelBtn.style.background = '#666666';
                 });
             }
-                
+
             // Ctrl+Enter 快捷键提交
             if (textarea) {
                 textarea.addEventListener('keydown', (e) => {
