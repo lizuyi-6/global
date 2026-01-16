@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { gameState } from '../GameState';
+import { jobHuntSystem } from '../JobHuntSystem';
 
 /**
  * 资源预加载场景
@@ -144,7 +146,19 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 资源加载完成，切换到求职场景（游戏从求职开始）
-        this.scene.start('JobHuntScene');
+        // 资源加载完成，检查是否需要创建简历
+        const hasSaveData = gameState.hasSaveData();
+
+        // 检查求职系统是否有自定义简历（通过检查简历名称是否为默认值）
+        const resume = jobHuntSystem.getResume();
+        const hasCustomResume = resume.name !== '求职者' || hasSaveData;
+
+        if (hasCustomResume) {
+            // 已有自定义简历或存档，直接进入求职场景
+            this.scene.start('JobHuntScene');
+        } else {
+            // 首次游戏，进入简历编辑场景
+            this.scene.start('ResumeEditScene');
+        }
     }
 }

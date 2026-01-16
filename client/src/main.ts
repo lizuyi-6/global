@@ -5,6 +5,7 @@ import { JobHuntScene } from './scenes/JobHuntScene';
 import { OfficeScene } from './scenes/OfficeScene';
 import { PhoneScene } from './scenes/PhoneScene';
 import { PreloadScene } from './scenes/PreloadScene';
+import { ResumeEditScene } from './scenes/ResumeEditScene';
 import { StockScene } from './scenes/StockScene';
 import { TaskGameScene } from './scenes/TaskGameScene';
 import { WorkplaceEventScene } from './scenes/WorkplaceEventScene';
@@ -28,7 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [PreloadScene, JobHuntScene, InterviewScene, OfficeScene, PhoneScene, StockScene, TaskGameScene, WorkplaceEventScene],
+  scene: [PreloadScene, ResumeEditScene, JobHuntScene, InterviewScene, OfficeScene, PhoneScene, StockScene, TaskGameScene, WorkplaceEventScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
