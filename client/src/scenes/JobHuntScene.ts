@@ -326,9 +326,7 @@ export class JobHuntScene extends Phaser.Scene {
             this.scene.launch('StockScene');
         });
         this.createSecondaryNavBtn(220, 1080, '职场行动', 'briefcase', () => {
-            if (confirm('直接进入职场？')) {
-                this.scene.start('ImprovedOfficeScene');
-            }
+            this.scene.start('ImprovedOfficeScene');
         });
 
         // DEBUG 按钮
