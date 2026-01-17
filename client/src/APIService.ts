@@ -5,7 +5,7 @@
 
 // 使用相对路径，在本地开发时代理到后端，部署时使用同一域名
 const API_BASE_URL = import.meta.env.MODE === 'development'
-    ? 'http://localhost:8000'
+    ? 'http://localhost:7860'
     : '';  // 生产环境使用相对路径
 
 export interface ChatRequest {
@@ -248,6 +248,78 @@ class APIService {
             ]
         };
     }
+
+    /**
+     * 执行玩家行动 - 调用 /api/action
+     */
+    async executeAction(
+        action: string,
+        playerInfo?: { name: string; position: string; day: number },
+        workplaceStatus?: { kpi: number; stress: number; reputation: number },
+        visibleObjects: string[] = [],
+        visibleNpcs: string[] = []
+    ): Promise<ActionResponse> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/action`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action,
+                    player_info: playerInfo,
+                    workplace_status: workplaceStatus,
+                    visible_objects: visibleObjects,
+                    visible_npcs: visibleNpcs
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`API 请求失败: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('执行行动失败:', error);
+            return this.getFallbackAction(action);
+        }
+    }
+
+    /**
+     * 备用行动响应
+     */
+    private getFallbackAction(action: string): ActionResponse {
+        return {
+            feasible: true,
+            description: `你尝试${action}...`,
+            animations: [{ type: 'generic', duration: 1000 }],
+            npc_reactions: {},
+            state_changes: { mood: 0, stress: 0, work_progress: 0, relationships: {} },
+            dialogue: null
+        };
+    }
+}
+
+// 行动响应接口
+export interface ActionResponse {
+    feasible: boolean;
+    description: string;
+    animations: Array<{
+        type: string;
+        target?: string;
+        object?: string;
+        duration?: number;
+        delay?: number;
+        variant?: string;
+    }>;
+    npc_reactions: { [npcName: string]: string };
+    state_changes: {
+        mood?: number;
+        stress?: number;
+        work_progress?: number;
+        relationships?: { [npcName: string]: number };
+    };
+    dialogue: string | null;
 }
 
 // 全局单例

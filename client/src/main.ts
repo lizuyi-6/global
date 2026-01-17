@@ -13,11 +13,10 @@ import { TaskGameScene } from './scenes/TaskGameScene';
 import { WorkplaceEventScene } from './scenes/WorkplaceEventScene';
 import { stockMarket } from './StockMarket';
 
-// 设计基准尺寸
-const DESIGN_WIDTH = 1280;
-const DESIGN_HEIGHT = 720;
+// 设计基准尺寸 (2K 分辨率)
+const DESIGN_WIDTH = 2560;
+const DESIGN_HEIGHT = 1440;
 
-// 游戏配置 - 使用 FIT 模式保持布局稳定
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
   width: DESIGN_WIDTH,
@@ -39,14 +38,12 @@ const config: Phaser.Types.Core.GameConfig = {
     createContainer: true
   },
   scale: {
-    mode: Phaser.Scale.FIT,           // 保持比例填充
+    mode: Phaser.Scale.FIT,              // 自动缩放以适应屏幕，保持比例
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    parent: 'app',
     width: DESIGN_WIDTH,
     height: DESIGN_HEIGHT
   },
-  // 提高渲染分辨率，解决模糊问题 (1280 * 1.5 = 1920, * 2 = 2560)
-  // 提高渲染分辨率，解决模糊问题 (Force ultra high res)
-  resolution: Math.max(window.devicePixelRatio || 1, 3),
   render: {
     antialias: true,
     antialiasGL: true,
@@ -56,6 +53,14 @@ const config: Phaser.Types.Core.GameConfig = {
 
 // 启动游戏
 const game = new Phaser.Game(config);
+
+// 移除手动 Resize 监听，完全依赖 Phaser Scale.FIT
+// window.addEventListener('resize', () => {
+//   const { width, height, dpr } = getActualSize();
+//   // 通知 Phaser 调整游戏尺寸
+//   game.scale.resize(width, height);
+//   console.log(`[Resolution] Resized to ${width}x${height} @ ${dpr}x DPR`);
+// });
 
 // 尝试加载存档
 if (gameState.hasSaveData()) {
@@ -67,3 +72,4 @@ if (gameState.hasSaveData()) {
 stockMarket.startMarket();
 
 export default game;
+

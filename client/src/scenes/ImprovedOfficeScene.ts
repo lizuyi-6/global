@@ -54,12 +54,26 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         super({ key: 'ImprovedOfficeScene' });
     }
 
-    create(): void {
-        // 背景
-        this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e); // 深色背景
+    // 响应式布局帮助方法
+    private getLayoutInfo() {
+        const cam = this.cameras.main;
+        return {
+            centerX: cam.width / 2,
+            centerY: cam.height / 2,
+            width: cam.width,
+            height: cam.height
+        };
+    }
 
-        // 创建世界容器
-        this.worldContainer = this.add.container(640, 300);
+    create(): void {
+        // 获取响应式布局参数
+        const { centerX, centerY, width, height } = this.getLayoutInfo();
+
+        // 背景
+        this.add.rectangle(centerX, centerY, width, height, 0x1a1a2e); // 深色背景
+
+        // 创建世界容器 (相对于屏幕中心)
+        this.worldContainer = this.add.container(centerX, centerY - 60);
 
         // 绘制地面（地毯质感）
         this.createIsometricFloor();
@@ -77,7 +91,7 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         this.createPlayer();
 
         // 标题容器
-        const header = this.add.container(640, 60);
+        const header = this.add.container(centerX, 60);
         const titleText = this.add.text(0, -15, '🏢 赛博办公室 (2.5D RPG)', {
             fontSize: '36px',
             fontFamily: FONTS.main,
@@ -126,13 +140,13 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     }
 
     /**
-     * 创建等距地面 (地毯质感)
+     * 创建等距地面 (地毯质感 - 高清重绘)
      */
     private createIsometricFloor(): void {
         const floorGraphics = this.add.graphics();
 
-        const gridSize = 10; // 缩小网格数量，使空间更紧凑
-        const tileSize = 80; // 增大单个瓷砖大小，配合紧凑布局
+        const gridSize = 10;
+        const tileSize = 80;
 
         for (let x = -gridSize; x < gridSize; x++) {
             for (let y = -gridSize; y < gridSize; y++) {
@@ -141,9 +155,12 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                 const p2 = this.cartToIso((x + 1) * tileSize, (y + 1) * tileSize);
                 const p3 = this.cartToIso(x * tileSize, (y + 1) * tileSize);
 
-                // 交替颜色营造地毯纹理
-                const color = ((x + y) % 2 === 0) ? 0x2c3e50 : 0x34495e;
-                floorGraphics.fillStyle(color, 1);
+                // 交替颜色营造地毯纹理 - 使用更高级的蓝灰色调
+                const isAlt = (x + y) % 2 === 0;
+                const baseColor = isAlt ? 0x2c3e50 : 0x34495e;
+
+                // 1. 基础填充
+                floorGraphics.fillStyle(baseColor, 1);
                 floorGraphics.beginPath();
                 floorGraphics.moveTo(iso.x, iso.y);
                 floorGraphics.lineTo(p1.x, p1.y);
@@ -152,9 +169,18 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                 floorGraphics.closePath();
                 floorGraphics.fillPath();
 
-                // 网格线
-                floorGraphics.lineStyle(1, 0x4a90d9, 0.1);
+                // 2. 边缘高光 (模拟地毯接缝反射)
+                floorGraphics.lineStyle(1, 0xffffff, 0.05);
+                floorGraphics.beginPath();
+                floorGraphics.moveTo(iso.x, iso.y);
+                floorGraphics.lineTo(p1.x, p1.y);
                 floorGraphics.strokePath();
+
+                // 3. 内部纹理 (简单的躁点模拟)
+                if (Math.random() > 0.5) {
+                    floorGraphics.fillStyle(0xffffff, 0.03);
+                    floorGraphics.fillCircle(iso.x, iso.y + 20, 2);
+                }
             }
         }
         this.worldContainer.add(floorGraphics);
@@ -162,20 +188,27 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     }
 
     /**
-     * 创建办公室墙体
+     * 创建办公室墙体 (高清重绘)
      */
     private createOfficeWalls(): void {
         const wallGraphics = this.add.graphics();
         const gridSize = 12;
         const tileSize = 60;
-        const wallHeight = 100;
+        const wallHeight = 120; // 增高墙体
+
+        // 墙体颜色
+        const wallColorLeft = 0x1f2937;
+        const wallColorRight = 0x111827; // 稍微深一点作为阴影面
+        const baseboardColor = 0x000000; // 踢脚线
+        const trimColor = 0x374151; // 顶部装饰条
 
         // 后方左墙
         for (let x = -gridSize; x < gridSize; x++) {
             const p1 = this.cartToIso(x * tileSize, -gridSize * tileSize);
             const p2 = this.cartToIso((x + 1) * tileSize, -gridSize * tileSize);
 
-            wallGraphics.fillStyle(0x1a2533, 1);
+            // 主墙面
+            wallGraphics.fillStyle(wallColorLeft, 1);
             wallGraphics.beginPath();
             wallGraphics.moveTo(p1.x, p1.y);
             wallGraphics.lineTo(p2.x, p2.y);
@@ -184,8 +217,34 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             wallGraphics.closePath();
             wallGraphics.fillPath();
 
-            wallGraphics.lineStyle(1, 0x4a90d9, 0.2);
-            wallGraphics.strokePath();
+            // 踢脚线 (底部 10px)
+            wallGraphics.fillStyle(baseboardColor, 0.5);
+            wallGraphics.beginPath();
+            wallGraphics.moveTo(p1.x, p1.y);
+            wallGraphics.lineTo(p2.x, p2.y);
+            wallGraphics.lineTo(p2.x, p2.y - 12);
+            wallGraphics.lineTo(p1.x, p1.y - 12);
+            wallGraphics.closePath();
+            wallGraphics.fillPath();
+
+            // 顶部装饰 (顶部 5px)
+            wallGraphics.fillStyle(trimColor, 1);
+            wallGraphics.beginPath();
+            wallGraphics.moveTo(p1.x, p1.y - wallHeight);
+            wallGraphics.lineTo(p2.x, p2.y - wallHeight);
+            wallGraphics.lineTo(p2.x, p2.y - wallHeight + 6);
+            wallGraphics.lineTo(p1.x, p1.y - wallHeight + 6);
+            wallGraphics.closePath();
+            wallGraphics.fillPath();
+
+            // 墙面细节 (每隔几块画个分割线)
+            if (x % 4 === 0) {
+                wallGraphics.lineStyle(1, 0xffffff, 0.05);
+                wallGraphics.beginPath();
+                wallGraphics.moveTo(p1.x, p1.y - 12);
+                wallGraphics.lineTo(p1.x, p1.y - wallHeight + 6);
+                wallGraphics.strokePath();
+            }
         }
 
         // 后方右墙
@@ -193,7 +252,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             const p1 = this.cartToIso(gridSize * tileSize, y * tileSize);
             const p2 = this.cartToIso(gridSize * tileSize, (y + 1) * tileSize);
 
-            wallGraphics.fillStyle(0x243345, 1);
+            // 主墙面
+            wallGraphics.fillStyle(wallColorRight, 1);
             wallGraphics.beginPath();
             wallGraphics.moveTo(p1.x, p1.y);
             wallGraphics.lineTo(p2.x, p2.y);
@@ -202,8 +262,25 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             wallGraphics.closePath();
             wallGraphics.fillPath();
 
-            wallGraphics.lineStyle(1, 0x4a90d9, 0.2);
-            wallGraphics.strokePath();
+            // 踢脚线
+            wallGraphics.fillStyle(baseboardColor, 0.5);
+            wallGraphics.beginPath();
+            wallGraphics.moveTo(p1.x, p1.y);
+            wallGraphics.lineTo(p2.x, p2.y);
+            wallGraphics.lineTo(p2.x, p2.y - 12);
+            wallGraphics.lineTo(p1.x, p1.y - 12);
+            wallGraphics.closePath();
+            wallGraphics.fillPath();
+
+            // 顶部装饰
+            wallGraphics.fillStyle(trimColor, 1);
+            wallGraphics.beginPath();
+            wallGraphics.moveTo(p1.x, p1.y - wallHeight);
+            wallGraphics.lineTo(p2.x, p2.y - wallHeight);
+            wallGraphics.lineTo(p2.x, p2.y - wallHeight + 6);
+            wallGraphics.lineTo(p1.x, p1.y - wallHeight + 6);
+            wallGraphics.closePath();
+            wallGraphics.fillPath();
         }
 
         this.worldContainer.add(wallGraphics);
@@ -233,45 +310,56 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     /**
      * 绘制更像人的像素角色 (带细节)
      */
+    /**
+     * 绘制更像人的角色 (矢量风格 - 高清重绘)
+     */
     private drawPixelMan(g: Phaser.GameObjects.Graphics, color: number): void {
         g.clear();
 
         // 影子
         g.fillStyle(0x000000, 0.2);
-        g.fillEllipse(0, 0, 30, 12);
+        g.fillEllipse(0, 0, 30, 10);
 
-        // 腿部
-        g.fillStyle(0x333333, 1);
-        g.fillRect(-8, -10, 6, 10);
-        g.fillRect(2, -10, 6, 10);
-
-        // 身体 (西装)
+        // 身体 (西装) - 使用圆角矩形代替方块
         g.fillStyle(color, 1);
-        g.fillRect(-12, -35, 24, 25);
+        g.fillRoundedRect(-12, -38, 24, 28, 4);
 
-        // 衬衫领带
+        // 衬衫
         g.fillStyle(0xffffff, 1);
-        g.fillRect(-3, -35, 6, 12);
-        g.fillStyle(0xff4444, 1);
-        g.fillRect(-1, -30, 2, 8);
+        g.fillRoundedRect(-4, -38, 8, 12, 2);
 
-        // 头部
+        // 领带
+        g.fillStyle(0xff4444, 1);
+        g.beginPath();
+        g.moveTo(0, -36);
+        g.lineTo(2, -28);
+        g.lineTo(0, -24);
+        g.lineTo(-2, -28);
+        g.closePath();
+        g.fillPath();
+
+        // 头部 - 圆形
         g.fillStyle(0xffdbac, 1);
-        g.fillRect(-12, -55, 24, 20);
+        g.fillCircle(0, -48, 10);
 
         // 眼睛
         g.fillStyle(0xffffff, 1);
-        g.fillRect(-7, -48, 5, 5);
-        g.fillRect(3, -48, 5, 5);
+        g.fillCircle(-4, -48, 3);
+        g.fillCircle(4, -48, 3);
         g.fillStyle(0x000000, 1);
-        g.fillRect(-5, -46, 3, 3);
-        g.fillRect(5, -46, 3, 3);
+        g.fillCircle(-4, -48, 1.5);
+        g.fillCircle(4, -48, 1.5);
 
-        // 头发
-        g.fillStyle(0x222222, 1);
-        g.fillRect(-14, -58, 28, 8);
-        g.fillRect(-14, -50, 4, 12);
-        g.fillRect(10, -50, 4, 12);
+        // 头发 (简单的刘海)
+        g.fillStyle(0x2d3436, 1);
+        g.beginPath();
+        g.arc(0, -48, 10.5, Phaser.Math.DegToRad(180), Phaser.Math.DegToRad(360), false);
+        g.fillPath();
+
+        // 腿 - 圆角
+        g.fillStyle(0x2d3436, 1);
+        g.fillRoundedRect(-8, -12, 6, 12, 2);
+        g.fillRoundedRect(2, -12, 6, 12, 2);
     }
 
     update(time: number): void {
@@ -354,47 +442,107 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         const spacingX = 180;
         const spacingY = 150;
 
-        // 第一排工位
-        this.createWorkStation(-spacingX, -spacingY, 'YOUR DESK');
-        this.createWorkStation(0, -spacingY, 'TEAM A-1');
-        this.createWorkStation(spacingX, -spacingY, 'TEAM A-2');
+        // 第一排工位 - 玩家工位高亮
+        this.createWorkStation(-spacingX, -spacingY, '我的工位', true); // 玩家工位，高亮
+        this.createWorkStation(0, -spacingY, '李同事的工位', false);
+        this.createWorkStation(spacingX, -spacingY, '王测试的工位', false);
 
         // 第二排工位 (距离更近)
-        this.createWorkStation(-spacingX, 0, 'TEAM B-1');
-        this.createWorkStation(0, 0, 'TEAM B-2');
-        this.createWorkStation(spacingX, 0, 'TEAM B-3');
+        this.createWorkStation(-spacingX, 0, '张经理的工位', false);
+        this.createWorkStation(0, 0, '空工位A', false);
+        this.createWorkStation(spacingX, 0, '空工位B', false);
 
         // 第三排工位
-        this.createWorkStation(-spacingX, spacingY, 'TEAM C-1');
-        this.createWorkStation(0, spacingY, 'TEAM C-2');
-        this.createWorkStation(spacingX, spacingY, 'TEAM C-3');
+        this.createWorkStation(-spacingX, spacingY, '赵行政的工位', false);
+        this.createWorkStation(0, spacingY, '空工位C', false);
+        this.createWorkStation(spacingX, spacingY, '休息区', false);
 
         // 老板办公室/高级工位 (位于前方中心)
-        this.createWorkStation(0, -350, 'BOSS OFFICE');
-        this.createIsoObject(0, -420, '🚩', 'boss_flag', '公司旗帜', '代表公司的荣誉');
+        this.createWorkStation(0, -350, '王老板的办公室', false);
+        this.createIsoObject(0, -420, 'flag', '公司旗帜', '代表公司的荣誉');
 
-        // 公共设施 (移到更靠近中心的位置)
-        this.createIsoObject(-350, -350, '🥤', 'water', '饮水机', '办公室的八卦中心');
-        this.createIsoObject(350, -350, '🪴', 'plant1', '大绿植', '净化空气的龟背竹');
-        this.createIsoObject(350, 350, '🖨️', 'printer', '打印机', '经常卡纸的老古董');
-        this.createIsoObject(-350, 350, '🛋️', 'sofa', '休息区', '短暂逃离工作的避风港');
+        // 公共设施 - 使用唯一中文名称
+        this.createIsoObject(-350, -350, 'water', '饮水机', '办公室的八卦中心');
+        this.createIsoObject(350, -350, 'plant', '大绿植', '净化空气的龟背竹');
+        this.createIsoObject(350, 350, 'printer', '打印机', '经常卡纸的老古董');
+        this.createIsoObject(-350, 350, 'sofa', '休息沙发', '短暂逃离工作的避风港');
+
+        // 桌上物品 - 唯一命名
+        this.createIsoObject(-spacingX - 30, -spacingY - 20, 'cup', '我的咖啡杯', '你的咖啡杯，还有半杯');
+        this.createIsoObject(0 - 30, -spacingY - 20, 'cup', '李同事的咖啡杯', '李同事的咖啡杯');
+        this.createIsoObject(-spacingX + 40, 0 - 20, 'cup', '张经理的水杯', '张经理专用保温杯');
     }
 
     /**
-     * 创建一个工位组合
+     * 创建一个工位组合 (高清重绘)
      */
-    private createWorkStation(x: number, y: number, label: string): void {
-        // 绘制工位隔断
+    private createWorkStation(x: number, y: number, label: string, isPlayerDesk: boolean = false): void {
         const deskGraphics = this.add.graphics();
         const iso = this.cartToIso(x, y);
 
-        // 桌面
+        // 桌面参数
+        const deskW = 120;
+        const deskH = 80;
+        const thickness = 6;
+
+        // 玩家工位高亮光环
+        if (isPlayerDesk) {
+            deskGraphics.fillStyle(0x00ff88, 0.15);
+            deskGraphics.fillEllipse(0, 30, deskW * 1.5, deskH * 1.2);
+            // 脉动动画效果
+            const pulseGlow = this.add.graphics();
+            pulseGlow.fillStyle(0x00ff88, 0.1);
+            pulseGlow.fillEllipse(0, 30, deskW * 1.3, deskH);
+            pulseGlow.x = iso.x;
+            pulseGlow.y = iso.y;
+            this.worldContainer.add(pulseGlow);
+            pulseGlow.setDepth(iso.y + 899);
+            this.tweens.add({
+                targets: pulseGlow,
+                alpha: { from: 0.3, to: 0.1 },
+                scale: { from: 1, to: 1.2 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        // 投影
+        deskGraphics.fillStyle(0x000000, 0.2);
+        const shadowIso = this.cartToIso(x, y);
+        deskGraphics.fillEllipse(0, 50, deskW * 1.2, deskH * 0.8);
+
+        // 桌面 (木纹)
+        // 顶面 - 需要手动计算等距投影的四个点，或者使用简化的绘制
+        // 这里使用路径绘制等距矩形
         const p1 = this.cartToIso(x - 60, y - 40);
         const p2 = this.cartToIso(x + 60, y - 40);
         const p3 = this.cartToIso(x + 60, y + 40);
         const p4 = this.cartToIso(x - 60, y + 40);
 
-        deskGraphics.fillStyle(0x444444, 1);
+        // 桌面侧边 (厚度)
+        deskGraphics.fillStyle(0x2d3436, 1); // 深色底座/阴影
+        deskGraphics.beginPath();
+        deskGraphics.moveTo(p4.x, p4.y);
+        deskGraphics.lineTo(p3.x, p3.y);
+        deskGraphics.lineTo(p3.x, p3.y + thickness + 30); // 腿的高度
+        deskGraphics.lineTo(p4.x, p4.y + thickness + 30);
+        deskGraphics.closePath();
+        deskGraphics.fillPath();
+
+        // 桌面厚度
+        deskGraphics.fillStyle(isPlayerDesk ? 0x2d6a4f : 0x636e72, 1); // 玩家工位用绿色边
+        deskGraphics.beginPath();
+        deskGraphics.moveTo(p4.x, p4.y);
+        deskGraphics.lineTo(p3.x, p3.y);
+        deskGraphics.lineTo(p3.x, p3.y + thickness);
+        deskGraphics.lineTo(p2.x, p2.y + thickness); // 修正：透视逻辑
+        deskGraphics.lineTo(p4.x, p4.y + thickness);
+        deskGraphics.closePath();
+        deskGraphics.fillPath();
+
+        // 桌面顶面 (圆角效果难做，用颜色区分)
+        deskGraphics.fillStyle(isPlayerDesk ? 0x1b4332 : 0x444444, 1); // 玩家工位用深绿色
         deskGraphics.beginPath();
         deskGraphics.moveTo(p1.x, p1.y);
         deskGraphics.lineTo(p2.x, p2.y);
@@ -402,7 +550,9 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         deskGraphics.lineTo(p4.x, p4.y);
         deskGraphics.closePath();
         deskGraphics.fillPath();
-        deskGraphics.lineStyle(2, 0x666666);
+
+        // 桌面高光边缘
+        deskGraphics.lineStyle(isPlayerDesk ? 2 : 1, isPlayerDesk ? 0x00ff88 : 0x666666, isPlayerDesk ? 0.8 : 0.5);
         deskGraphics.strokePath();
 
         this.worldContainer.add(deskGraphics);
@@ -413,58 +563,92 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         this.createIsoObject(x + 20, y + 10, '☕', `cup_${x}_${y}`, '咖啡杯', '熬夜必备');
     }
 
-    private createIsoObject(worldX: number, worldY: number, icon: string, id: string, name: string, description: string): void {
+    private createIsoObject(worldX: number, worldY: number, type: string, id: string, name: string, description: string): void {
         const iso = this.cartToIso(worldX, worldY);
-
         const container = this.add.container(iso.x, iso.y);
 
         // 影子
         const shadow = this.add.graphics();
         shadow.fillStyle(0x000000, 0.2);
-        shadow.fillEllipse(0, 0, 20, 10);
+        shadow.fillEllipse(0, 0, 30, 15);
         container.add(shadow);
 
-        const text = this.add.text(0, 0, icon, {
-            fontSize: '32px'
-        }).setOrigin(0.5, 0.9);
-        container.add(text);
+        // 根据类型绘制不同的矢量图形
+        const g = this.add.graphics();
+        container.add(g);
+
+        switch (type) {
+            case 'water': // 饮水机
+                this.drawWaterCooler(g);
+                break;
+            case 'plant1': // 绿植
+            case 'plant':
+                this.drawPlant(g);
+                break;
+            case 'printer': // 打印机
+                this.drawPrinter(g);
+                break;
+            case 'sofa': // 沙发
+                this.drawSofa(g);
+                break;
+            case 'boss_flag': // 旗帜
+                this.drawFlag(g);
+                break;
+            case 'comp': // 电脑 (作为独立物品时)
+                this.drawComputer(g);
+                break;
+            case 'cup': // 杯子
+                this.drawCup(g);
+                break;
+            default:
+                // 默认使用原来的 Emoji (如果没有对应的绘图函数)
+                if (type.length < 5) { // 假设短字符串是 Emoji
+                    const text = this.add.text(0, 0, type, { fontSize: '32px' }).setOrigin(0.5, 0.9);
+                    container.add(text);
+                } else {
+                    // 默认方块
+                    g.fillStyle(0xffffff, 1);
+                    g.fillRoundedRect(-15, -30, 30, 30, 4);
+                }
+                break;
+        }
 
         container.setDepth(iso.y + 1000);
-        container.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 40), Phaser.Geom.Rectangle.Contains);
+        container.setInteractive(new Phaser.Geom.Rectangle(-20, -60, 40, 60), Phaser.Geom.Rectangle.Contains);
         container.input!.cursor = 'pointer';
 
         this.worldContainer.add(container);
 
         // 悬停显示名称
         container.on('pointerover', () => {
-            text.setScale(1.2);
-            const tooltip = this.add.text(0, -60, name, {
-                fontSize: '12px',
+            container.setScale(1.1);
+            const tooltip = this.add.text(0, -70, name, {
+                fontSize: '14px',
                 color: '#ffffff',
                 backgroundColor: '#000000aa',
-                padding: { x: 8, y: 4 }
+                padding: { x: 8, y: 4 },
+                fontFamily: 'Inter, sans-serif'
             }).setOrigin(0.5);
-            tooltip.setDepth(20000);
-            container.setData('tooltip', tooltip);
+            tooltip.setDepth(9999);
             container.add(tooltip);
+            container.setData('tooltip', tooltip);
         });
 
         container.on('pointerout', () => {
-            text.setScale(1);
+            container.setScale(1);
             const tooltip = container.getData('tooltip');
             if (tooltip) tooltip.destroy();
         });
 
-        container.on('pointerdown', () => {
-            this.showObjectDetail(name, description);
-        });
-
-        this.sceneObjects.set(id, {
-            sprite: container as any,
-            name,
-            description,
-            canInteract: true
-        });
+        // 保存引用 - 使用中文名称作为 key，方便命令匹配
+        if (!this.sceneObjects.has(name)) {
+            this.sceneObjects.set(name, {
+                sprite: container as any,
+                name,
+                description,
+                canInteract: true
+            });
+        }
     }
 
     /**
@@ -534,9 +718,10 @@ export class ImprovedOfficeScene extends Phaser.Scene {
      * 创建状态栏
      */
     private createStatusPanel(): void {
-        this.statusPanel = this.add.container(100, 500);
+        // Move to Bottom Left (Fixed 2K coordinates: x=40, y=1440 - 240 - 40 = 1160)
+        this.statusPanel = this.add.container(40, 1160);
 
-        const bg = this.add.rectangle(0, 0, 300, 180, COLORS.panel, 0.8);
+        const bg = this.add.rectangle(0, 0, 300, 240, COLORS.panel, 0.8);
         bg.setStrokeStyle(1, COLORS.primary, 0.3);
         bg.setOrigin(0, 0);
         applyGlassEffect(bg, 0.8);
@@ -550,17 +735,46 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         });
         this.statusPanel.add(title);
 
+        // 手机按钮
+        const phoneBtn = this.add.rectangle(250, 200, 80, 35, 0x00aa55, 1);
+        phoneBtn.setStrokeStyle(2, 0x00ff88, 1);
+        phoneBtn.setInteractive({ useHandCursor: true });
+        this.statusPanel.add(phoneBtn);
+
+        const phoneBtnText = this.add.text(250, 200, '📱手机', {
+            fontSize: '14px',
+            color: '#ffffff',
+            fontFamily: FONTS.primary
+        }).setOrigin(0.5);
+        this.statusPanel.add(phoneBtnText);
+
+        phoneBtn.on('pointerover', () => phoneBtn.setFillStyle(0x00cc66));
+        phoneBtn.on('pointerout', () => phoneBtn.setFillStyle(0x00aa55));
+        phoneBtn.on('pointerdown', () => this.openPhone());
+
         this.statusPanel.setDepth(1000);
         this.updateStatusDisplay();
+    }
+
+    /**
+     * 打开手机界面
+     */
+    private openPhone(): void {
+        console.log('[Office] Opening phone scene');
+        this.scene.launch('PhoneScene');
+        this.scene.pause();
     }
 
     /**
      * 更新状态显示
      */
     private updateStatusDisplay(): void {
-        // 清除旧文本
+        // 清除旧文本（但保留按钮相关元素）
         this.statusPanel.iterate((child: Phaser.GameObjects.GameObject) => {
-            if (child instanceof Phaser.GameObjects.Text && child.y > 10) {
+            if (child instanceof Phaser.GameObjects.Text && child.y > 35 && child.y < 180) {
+                child.destroy();
+            }
+            if (child instanceof Phaser.GameObjects.Rectangle && child.y > 35 && child.y < 180) {
                 child.destroy();
             }
         });
@@ -568,36 +782,47 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         const moodColor = this.playerMood >= 60 ? '#00ff88' : this.playerMood >= 30 ? '#ffaa00' : '#ff4444';
         const stressColor = this.stressLevel >= 70 ? '#ff4444' : this.stressLevel >= 40 ? '#ffaa00' : '#00ff88';
 
+        // 获取现金余额
+        const account = gameState.getAccount();
+        const cashColor = account.cash > 0 ? '#00ff88' : '#ff4444';
+
         const stats = [
-            { label: '心情', value: this.playerMood, color: moodColor },
-            { label: '压力', value: this.stressLevel, color: stressColor },
-            { label: '工作进度', value: this.workProgress, color: '#4a90d9' }
+            { label: '💰 现金', value: Math.floor(account.cash), unit: '¥', color: cashColor, max: 100000 },
+            { label: '😊 心情', value: this.playerMood, unit: '', color: moodColor, max: 100 },
+            { label: '😰 压力', value: this.stressLevel, unit: '', color: stressColor, max: 100 },
+            { label: '📊 工作', value: this.workProgress, unit: '%', color: '#4a90d9', max: 100 }
         ];
 
         stats.forEach((stat, index) => {
-            const y = 40 + index * 40;
+            const y = 40 + index * 35;
 
-            const label = this.add.text(10, y, `${stat.label}:`, {
-                fontSize: '14px',
+            const label = this.add.text(10, y, stat.label, {
+                fontSize: '13px',
                 color: '#cccccc'
             });
             this.statusPanel.add(label);
 
-            const value = this.add.text(100, y, `${stat.value}`, {
-                fontSize: '14px',
+            const valueText = stat.unit === '¥'
+                ? `${stat.unit}${stat.value.toLocaleString()}`
+                : `${stat.value}${stat.unit}`;
+            const value = this.add.text(90, y, valueText, {
+                fontSize: '13px',
                 color: stat.color,
                 fontStyle: 'bold'
             });
             this.statusPanel.add(value);
 
-            // 进度条
-            const barBg = this.add.rectangle(150, y + 8, 130, 12, 0x333333);
-            barBg.setOrigin(0, 0.5);
-            this.statusPanel.add(barBg);
+            // 进度条（现金不显示进度条）
+            if (stat.unit !== '¥') {
+                const barBg = this.add.rectangle(160, y + 6, 110, 10, 0x333333);
+                barBg.setOrigin(0, 0.5);
+                this.statusPanel.add(barBg);
 
-            const bar = this.add.rectangle(150, y + 8, stat.value * 1.3, 12, parseInt(stat.color.replace('#', '0x')));
-            bar.setOrigin(0, 0.5);
-            this.statusPanel.add(bar);
+                const barWidth = Math.min(stat.value / stat.max * 110, 110);
+                const bar = this.add.rectangle(160, y + 6, barWidth, 10, parseInt(stat.color.replace('#', '0x')));
+                bar.setOrigin(0, 0.5);
+                this.statusPanel.add(bar);
+            }
         });
     }
 
@@ -608,56 +833,81 @@ export class ImprovedOfficeScene extends Phaser.Scene {
      * 创建指令输入框（永久显示 - Fixed Overlay）
      */
     private createCommandInput(): void {
-        // 使用 CSS Fixed 定位确保在全屏模式下也能永远置底居中
-        const inputHTML = `
-            <div style="width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; pointer-events: none; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 40px; z-index: 9999;">
-                <div style="pointer-events: auto; display: flex; gap: 10px; align-items: center; background: rgba(26, 26, 32, 0.9); padding: 15px; border-radius: 12px; border: 1px solid rgba(74, 144, 217, 0.5); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                    <div style="color: #4a90d9; font-weight: bold; font-family: monospace; margin-right: 5px;">>_</div>
-                    <input type="text" id="commandInput" 
-                           placeholder="输入指令: '拿水杯砸向同事', '努力工作'..."
-                           style="width: 500px; 
-                                  padding: 10px; 
-                                  font-size: 16px; 
-                                  background: rgba(0,0,0,0.3); 
-                                  color: #ffffff; 
-                                  border: 1px solid rgba(255,255,255,0.1); 
-                                  border-radius: 6px;
-                                  outline: none;
-                                  font-family: 'Inter', sans-serif;" />
-                    <button id="commandSubmit"
-                            style="padding: 10px 24px;
-                                   font-size: 14px;
-                                   background: #4a90d9;
-                                   color: #ffffff;
-                                   border: none;
-                                   border-radius: 6px;
-                                   cursor: pointer;
-                                   font-weight: bold;
-                                   font-family: 'Inter', sans-serif;
-                                   transition: all 0.2s;">
-                        执行
-                    </button>
-                </div>
-            </div>
+        // Create a dedicated container for the command input attached to document.body
+        // This ensures it bypasses any Phaser canvas transformations and stays fixed to the viewport
+        const container = document.createElement('div');
+        container.id = 'command-input-container';
+
+        // Responsive CSS using VW/VH units
+        const styles = `
+            position: fixed;
+            bottom: 5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1vw;
+            align-items: center;
+            background: rgba(26, 26, 32, 0.9);
+            padding: 1.5vw;
+            border-radius: 1.2vw;
+            border: 2px solid rgba(74, 144, 217, 0.5);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 1vh 3vh rgba(0,0,0,0.5);
+            z-index: 20000;
+            pointer-events: auto;
+        `;
+        container.style.cssText = styles;
+
+        container.innerHTML = `
+            <div style="color: #4a90d9; font-weight: bold; font-family: monospace; margin-right: 0.5vw; font-size: 1.5vw;">>_</div>
+            <input type="text" id="commandInput" 
+                   placeholder="输入指令: '拿水杯砸向同事', '努力工作'..."
+                   style="width: 40vw; 
+                          padding: 1vw; 
+                          font-size: 1.2vw; 
+                          background: rgba(0,0,0,0.3); 
+                          color: #ffffff; 
+                          border: 1px solid rgba(255,255,255,0.1); 
+                          border-radius: 0.6vw;
+                          outline: none;
+                          font-family: 'Inter', sans-serif;" />
+            <button id="commandSubmit"
+                    style="padding: 1vw 2.5vw;
+                           font-size: 1.2vw;
+                           background: #4a90d9;
+                           color: #ffffff;
+                           border: none;
+                           border-radius: 0.6vw;
+                           cursor: pointer;
+                           font-weight: bold;
+                           font-family: 'Inter', sans-serif;
+                           transition: all 0.2s;">
+                执行
+            </button>
         `;
 
-        // 放置在 (0,0) 并覆盖全屏
-        const dom = this.add.dom(0, 0).createFromHTML(inputHTML);
-        dom.setOrigin(0, 0);
-        dom.setDepth(10000);
+        document.body.appendChild(container);
+
+        // Cleanup on scene shutdown/restart to prevent duplicates
+        this.events.once('shutdown', () => {
+            if (document.body.contains(container)) {
+                document.body.removeChild(container);
+            }
+        });
 
         // 延迟绑定事件
         this.time.delayedCall(100, () => {
-            // ... existing binding logic ...
             const inputElement = document.getElementById('commandInput') as HTMLInputElement;
             const submitBtn = document.getElementById('commandSubmit') as HTMLButtonElement;
 
             // 键盘锁定逻辑
             inputElement?.addEventListener('focus', () => {
                 this.input.keyboard!.enabled = false;
+                console.log('[Input] Keyboard disabled (input focused)');
             });
             inputElement?.addEventListener('blur', () => {
                 this.input.keyboard!.enabled = true;
+                console.log('[Input] Keyboard enabled (input blurred)');
             });
 
             const handleSubmit = () => {
@@ -666,15 +916,30 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                     if (command) {
                         this.processCommand(command);
                         inputElement.value = '';
+                        // 关键：提交后失去焦点，恢复键盘控制
+                        inputElement.blur();
                     }
                 }
             };
 
             // 事件绑定
             inputElement?.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') handleSubmit();
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit();
+                }
             });
             submitBtn?.addEventListener('click', handleSubmit);
+
+            // Hover effects for button (manual JS since inline CSS hover is limited)
+            submitBtn?.addEventListener('mouseenter', () => {
+                submitBtn.style.background = '#5aa0e9';
+                submitBtn.style.transform = 'translateY(-2px)';
+            });
+            submitBtn?.addEventListener('mouseleave', () => {
+                submitBtn.style.background = '#4a90d9';
+                submitBtn.style.transform = 'translateY(0)';
+            });
         });
     }
 
@@ -682,47 +947,625 @@ export class ImprovedOfficeScene extends Phaser.Scene {
      * 创建行为日志
      */
     private createActionLog(): void {
-        const logBg = this.add.rectangle(1130, 500, 280, 180, COLORS.panel, 0.6);
+        // Bottom Right for 2K (2560x1440)
+        // Anchor Top-Right of the box at (2520, 1160)
+        // Height 240 to match Status Panel
+        const logBg = this.add.rectangle(2520, 1160, 320, 240, COLORS.panel, 0.6);
         logBg.setStrokeStyle(1, 0xffffff, 0.1);
-        logBg.setOrigin(1, 0);
+        logBg.setOrigin(1, 0); // Anchor Top-Right
         applyGlassEffect(logBg, 0.6);
 
-        const logTitle = this.add.text(865, 515, 'ACTION LOG / 行为日志', {
-            fontSize: '10px',
+        // Text Position: Left edge = 2520 - 320 = 2200. Padding 15.
+        const textX = 2215;
+        const textY = 1175;
+
+        const logTitle = this.add.text(textX, textY, 'ACTION LOG / 行为日志', {
+            fontSize: '14px', // Slightly larger
             fontFamily: FONTS.mono,
             color: '#666666'
         });
 
-        this.logDisplay = this.add.text(865, 545, '', {
-            fontSize: '12px',
+        this.logDisplay = this.add.text(textX, textY + 30, '', {
+            fontSize: '14px', // Larger font
             fontFamily: FONTS.main,
             color: '#cccccc',
-            wordWrap: { width: 250 },
-            lineSpacing: 6
+            wordWrap: { width: 290 }, // Adjusted width
+            lineSpacing: 8
         });
     }
 
     /**
-     * 处理玩家指令（AI驱动）
+     * 处理玩家指令（本地优先，即时响应）
      */
     private async processCommand(command: string): Promise<void> {
         this.addLog(`你: ${command}`);
 
-        // 显示“思考中”
-        const thinkingText = this.add.text(640, 360, '判断后果中...', {
-            fontSize: '18px',
-            color: '#ffaa00',
+        // 获取布局信息
+        const { centerX, centerY } = this.getLayoutInfo();
+
+        // 收集场景信息
+        const visibleObjects = Array.from(this.sceneObjects.keys());
+        const visibleNpcs = Array.from(this.colleagues.keys());
+
+        // 本地处理行动（即时响应）
+        const result = this.processActionLocally(command, visibleObjects, visibleNpcs);
+
+        // 显示行动描述
+        this.addLog(`结果: ${result.description}`);
+
+        if (!result.feasible) {
+            this.addLog('系统: 这个行为无法执行！');
+            notificationManager.warning('行动失败', result.description, 3000);
+            return;
+        }
+
+        // 播放动画序列
+        await this.playAnimationSequence(result.animations);
+
+        // 播放 NPC 反应
+        await this.playNPCReactions(result.npc_reactions);
+
+        // 显示 NPC 台词
+        if (result.dialogue) {
+            this.showDialogue(result.dialogue);
+        }
+
+        // 应用状态变化
+        this.applyStateChanges(result.state_changes);
+
+        // 更新 UI
+        this.updateStatusDisplay();
+
+        // 检查触发条件
+        this.checkTriggers();
+    }
+
+    /**
+     * 本地处理行动（即时响应，无需等待 AI）
+     */
+    private processActionLocally(command: string, visibleObjects: string[], visibleNpcs: string[]): any {
+        const lower = command.toLowerCase();
+
+        let animations: any[] = [];
+        let npc_reactions: { [key: string]: string } = {};
+        let state_changes: any = { mood: 0, stress: 0, work_progress: 0, relationships: {} };
+        let feasible = true;
+        let description = '';
+        let dialogue: string | null = null;
+
+        // 智能目标匹配 - 支持部分匹配
+        const findNpcTarget = (cmd: string): string | null => {
+            // 精确匹配
+            for (const npc of visibleNpcs) {
+                if (cmd.includes(npc)) return npc;
+            }
+            // 部分匹配（如"王" 匹配 "王老板"、"王测试"）
+            for (const npc of visibleNpcs) {
+                const lastName = npc.charAt(0); // 姓氏
+                if (cmd.includes(lastName) && cmd.includes('老板') && npc.includes('老板')) return npc;
+                if (cmd.includes(lastName) && cmd.includes('经理') && npc.includes('经理')) return npc;
+                if (cmd.includes(lastName) && cmd.includes('同事') && npc.includes('同事')) return npc;
+            }
+            // 单字匹配（如"王"）
+            for (const npc of visibleNpcs) {
+                if (cmd.includes(npc.charAt(0))) return npc;
+            }
+            return null;
+        };
+
+        // 投掷类行动
+        if (['砸', '扔', '投', '丢'].some(w => lower.includes(w))) {
+            // 解析目标 NPC
+            const targetNpc = findNpcTarget(command);
+            let thrownObject = visibleObjects.find(obj => command.includes(obj)) || '水杯';
+
+            if (!targetNpc) {
+                // 没有找到目标 - 显示可用目标
+                feasible = false;
+                description = `找不到这个人！场景中的人物有: ${visibleNpcs.join(', ')}`;
+            } else {
+                description = `你拿起${thrownObject}狠狠地砸向了${targetNpc}！`;
+                animations = [
+                    { type: 'throw', object: thrownObject, target: targetNpc, duration: 500 },
+                    { type: 'hit', target: targetNpc, delay: 500 },
+                    { type: 'debris', object: thrownObject, target: targetNpc, delay: 600 },
+                    { type: 'hurt', target: targetNpc, delay: 700 }
+                ];
+
+                // 隐藏被扔的物品
+                const objData = this.sceneObjects.get(thrownObject);
+                if (objData) {
+                    objData.sprite.setVisible(false);
+                }
+
+                // 其他 NPC 反应
+                visibleNpcs.forEach(npc => {
+                    if (npc !== targetNpc) {
+                        npc_reactions[npc] = ['gather', 'flee', 'shock'][Math.floor(Math.random() * 3)];
+                    }
+                });
+                npc_reactions[targetNpc] = 'hurt';
+
+                state_changes = {
+                    mood: -30,
+                    stress: 50,
+                    work_progress: -20,
+                    relationships: { [targetNpc]: -50 }
+                };
+                dialogue = `${targetNpc}捂着头大喊：你疯了吗！`;
+
+                // 屏幕震动
+                this.cameras.main.shake(300, 0.04);
+            }
+        }
+        // 攻击类行动
+        else if (['打', '揍', '踢', '攻击'].some(w => lower.includes(w))) {
+            const targetNpc = findNpcTarget(command);
+
+            if (!targetNpc) {
+                feasible = false;
+                description = `找不到攻击目标！场景中的人物有: ${visibleNpcs.join(', ')}`;
+            } else {
+                description = `你冲向${targetNpc}挥出了拳头！`;
+                animations = [
+                    { type: 'charge', target: targetNpc, duration: 300 },
+                    { type: 'hurt', target: targetNpc, delay: 300 }
+                ];
+                visibleNpcs.forEach(npc => {
+                    if (npc !== targetNpc) npc_reactions[npc] = 'gather';
+                });
+                npc_reactions[targetNpc] = 'hurt';
+                state_changes = { mood: -40, stress: 60, relationships: { [targetNpc]: -80 } };
+                dialogue = `${targetNpc}倒退几步，震惊地看着你。`;
+                this.cameras.main.shake(200, 0.03);
+            }
+        }
+        // 工作类行动
+        else if (['工作', '代码', '写', '做', '完成', '敲'].some(w => lower.includes(w))) {
+            description = '你专注地开始工作...';
+            animations = [{ type: 'work', duration: 1500 }];
+            state_changes = { mood: -5, stress: 10, work_progress: 15 };
+        }
+        // 摸鱼类行动
+        else if (['摸鱼', '休息', '偷懒', '刷手机', '玩'].some(w => lower.includes(w))) {
+            description = '你偷偷摸起了鱼...';
+            animations = [{ type: 'idle', variant: 'phone', duration: 1500 }];
+            state_changes = { mood: 10, stress: -10, work_progress: -5 };
+
+            // 可能被发现
+            if (Math.random() < 0.3 && visibleNpcs.length > 0) {
+                const npc = visibleNpcs[Math.floor(Math.random() * visibleNpcs.length)];
+                npc_reactions[npc] = 'notice';
+                dialogue = `${npc}似乎注意到了你在摸鱼...`;
+            }
+        }
+        // 对话类行动
+        else if (['说', '问', '聊', '告诉', '交谈'].some(w => lower.includes(w))) {
+            const targetNpc = findNpcTarget(command);
+            if (targetNpc) {
+                description = `你走向${targetNpc}开始交谈。`;
+                animations = [{ type: 'walk', target: targetNpc, duration: 500 }];
+                npc_reactions[targetNpc] = 'talk';
+            } else {
+                description = '你自言自语了几句。';
+            }
+        }
+        // 喝水/喝咖啡
+        else if (['喝', '咖啡', '水'].some(w => lower.includes(w))) {
+            description = '你喝了一口饮料，感觉精神了一些。';
+            state_changes = { mood: 5, stress: -5 };
+        }
+        // 默认行动
+        else {
+            description = `你尝试${command}...结果不太明确。`;
+            animations = [{ type: 'generic', duration: 800 }];
+        }
+
+        return {
+            feasible,
+            description,
+            animations,
+            npc_reactions,
+            state_changes,
+            dialogue
+        };
+    }
+
+    /**
+     * 播放动画序列
+     */
+    private async playAnimationSequence(animations: any[]): Promise<void> {
+        for (const anim of animations) {
+            const delay = anim.delay || 0;
+            if (delay > 0) {
+                await this.wait(delay);
+            }
+
+            switch (anim.type) {
+                case 'throw':
+                    await this.playThrowAnimation(anim.object, anim.target, anim.duration || 500);
+                    break;
+                case 'hit':
+                    await this.playHitEffect(anim.target);
+                    break;
+                case 'debris':
+                    await this.playDebrisEffect(anim.target, anim.object);
+                    break;
+                case 'hurt':
+                    await this.playHurtAnimation(anim.target);
+                    break;
+                case 'charge':
+                    await this.playChargeAnimation(anim.target, anim.duration || 300);
+                    break;
+                case 'work':
+                    await this.playWorkAnimation(anim.duration || 2000);
+                    break;
+                default:
+                    await this.wait(anim.duration || 500);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * 获取 NPC 的全局屏幕位置（考虑 worldContainer 偏移）
+     */
+    private getNpcGlobalPosition(npcName: string): { x: number; y: number } | null {
+        const npc = this.colleagues.get(npcName);
+        if (!npc || !npc.sprite) return null;
+
+        // NPC sprite 是在 worldContainer 内的，需要加上容器偏移
+        return {
+            x: this.worldContainer.x + npc.sprite.x,
+            y: this.worldContainer.y + npc.sprite.y
+        };
+    }
+
+    /**
+     * 投掷动画
+     */
+    private async playThrowAnimation(objectName: string, targetName: string, duration: number): Promise<void> {
+        const { centerX, centerY } = this.getLayoutInfo();
+        const startX = centerX;
+        const startY = centerY + 50;
+
+        // 获取目标全局位置
+        const targetPos = this.getNpcGlobalPosition(targetName);
+        let endX = startX + 200;
+        let endY = startY - 100;
+
+        if (targetPos) {
+            endX = targetPos.x;
+            endY = targetPos.y - 30;
+        }
+
+        console.log(`[Animation] Throw from (${startX}, ${startY}) to (${endX}, ${endY}) target: ${targetName}`);
+
+        // 创建投掷物
+        const projectile = this.add.graphics();
+        projectile.x = startX;
+        projectile.y = startY;
+        projectile.setDepth(9000);
+
+        // 绘制水杯
+        projectile.fillStyle(0xffffff, 1);
+        projectile.fillRoundedRect(-10, -15, 20, 20, 4);
+        projectile.fillStyle(0x3498db, 0.7);
+        projectile.fillEllipse(0, -10, 14, 6);
+        // 把手
+        projectile.lineStyle(3, 0xffffff, 1);
+        projectile.beginPath();
+        projectile.arc(10, -5, 5, -Math.PI / 2, Math.PI / 2, false);
+        projectile.strokePath();
+
+        // 投掷动画
+        this.tweens.add({
+            targets: projectile,
+            x: endX,
+            y: endY,
+            duration: duration,
+            ease: 'Quad.out',
+            onComplete: () => projectile.destroy()
+        });
+
+        // 旋转
+        this.tweens.add({
+            targets: projectile,
+            angle: 720,
+            duration: duration,
+            ease: 'Linear'
+        });
+
+        await this.wait(duration);
+    }
+
+    /**
+     * 撞击效果
+     */
+    private async playHitEffect(targetName: string): Promise<void> {
+        const pos = this.getNpcGlobalPosition(targetName);
+        if (!pos) return;
+
+        const x = pos.x;
+        const y = pos.y - 30;
+
+        // 撞击星星
+        const flash = this.add.graphics();
+        flash.x = x;
+        flash.y = y;
+        flash.setDepth(9001);
+        flash.fillStyle(0xffff00, 1);
+        this.drawStar(flash, 0, 0, 5, 25, 12);
+
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            scale: 1.5,
+            duration: 200,
+            onComplete: () => flash.destroy()
+        });
+
+        // 屏幕震动
+        this.cameras.main.shake(200, 0.03);
+
+        await this.wait(200);
+    }
+
+    /**
+     * 绘制星形
+     */
+    private drawStar(g: Phaser.GameObjects.Graphics, cx: number, cy: number, spikes: number, outerR: number, innerR: number): void {
+        let rot = Math.PI / 2 * 3;
+        const step = Math.PI / spikes;
+        g.beginPath();
+        g.moveTo(cx, cy - outerR);
+        for (let i = 0; i < spikes; i++) {
+            g.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+            rot += step;
+            g.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+            rot += step;
+        }
+        g.closePath();
+        g.fillPath();
+    }
+
+    /**
+     * 碎片效果
+     */
+    private async playDebrisEffect(targetName: string, objectName: string): Promise<void> {
+        const pos = this.getNpcGlobalPosition(targetName);
+        const { centerX, centerY } = this.getLayoutInfo();
+        let x = centerX;
+        let y = centerY;
+
+        if (pos) {
+            x = pos.x;
+            y = pos.y + 30;
+        }
+
+        // 生成碎片
+        for (let i = 0; i < 8; i++) {
+            const shard = this.add.graphics();
+            shard.x = x;
+            shard.y = y;
+            shard.setDepth(8999);
+
+            const size = Phaser.Math.Between(3, 8);
+            const color = Phaser.Math.RND.pick([0xffffff, 0x3498db, 0xbdc3c7]);
+            shard.fillStyle(color, 0.9);
+            shard.fillTriangle(-size, size, size, size / 2, 0, -size);
+
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = Phaser.Math.Between(30, 80);
+
+            this.tweens.add({
+                targets: shard,
+                x: x + Math.cos(angle) * dist,
+                y: y + Math.sin(angle) * dist + 20,
+                alpha: 0,
+                angle: Phaser.Math.Between(-360, 360),
+                duration: 600,
+                ease: 'Quad.out',
+                onComplete: () => shard.destroy()
+            });
+        }
+
+        await this.wait(100);
+    }
+
+    /**
+     * NPC 受伤动画
+     */
+    private async playHurtAnimation(targetName: string): Promise<void> {
+        const target = this.colleagues.get(targetName);
+        const pos = this.getNpcGlobalPosition(targetName);
+        if (!target || !pos) return;
+
+        const originalX = target.sprite.x;
+
+        // 红色闪烁 - 使用全局位置
+        const flash = this.add.graphics();
+        flash.x = pos.x;
+        flash.y = pos.y;
+        flash.setDepth(9001);
+        flash.fillStyle(0xff0000, 0.5);
+        flash.fillEllipse(0, -20, 60, 80);
+
+        // 震动 NPC sprite (局部坐标)
+        this.tweens.add({
+            targets: target.sprite,
+            x: originalX + 8,
+            duration: 50,
+            yoyo: true,
+            repeat: 6,
+            onComplete: () => { target.sprite.x = originalX; }
+        });
+
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => flash.destroy()
+        });
+
+        await this.wait(400);
+    }
+
+    /**
+     * 冲锋动画
+     */
+    private async playChargeAnimation(targetName: string, duration: number): Promise<void> {
+        // 玩家冲向目标的效果 - 简单屏幕模糊效果
+        this.cameras.main.flash(duration, 0xffffff, 0.2);
+        await this.wait(duration);
+    }
+
+    /**
+     * 工作动画
+     */
+    private async playWorkAnimation(duration: number): Promise<void> {
+        const { centerX, centerY } = this.getLayoutInfo();
+
+        const progressBar = this.add.graphics();
+        progressBar.x = centerX;
+        progressBar.y = centerY - 100;
+        progressBar.setDepth(9000);
+
+        const progress = { value: 0 };
+        this.tweens.add({
+            targets: progress,
+            value: 1,
+            duration: duration,
+            onUpdate: () => {
+                progressBar.clear();
+                progressBar.fillStyle(0x333333, 0.8);
+                progressBar.fillRoundedRect(-100, -10, 200, 20, 5);
+                progressBar.fillStyle(0x27ae60, 1);
+                progressBar.fillRoundedRect(-98, -8, 196 * progress.value, 16, 4);
+            },
+            onComplete: () => {
+                this.tweens.add({
+                    targets: progressBar,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: () => progressBar.destroy()
+                });
+            }
+        });
+
+        await this.wait(duration);
+    }
+
+    /**
+     * 播放 NPC 反应
+     */
+    private async playNPCReactions(reactions: { [npcName: string]: string }): Promise<void> {
+        for (const [npcName, reactionType] of Object.entries(reactions)) {
+            const npc = this.colleagues.get(npcName);
+            if (!npc) continue;
+
+            switch (reactionType) {
+                case 'gather':
+                    // 围观 - 显示惊叹号
+                    this.showEmoji(npc.sprite.x, npc.sprite.y - 60, '!');
+                    break;
+                case 'flee':
+                    // 逃跑
+                    this.tweens.add({
+                        targets: npc.sprite,
+                        x: npc.sprite.x + 80,
+                        duration: 400,
+                        ease: 'Quad.out'
+                    });
+                    break;
+                case 'shock':
+                    this.showEmoji(npc.sprite.x, npc.sprite.y - 60, '!?');
+                    this.tweens.add({
+                        targets: npc.sprite,
+                        y: npc.sprite.y - 10,
+                        duration: 100,
+                        yoyo: true
+                    });
+                    break;
+                case 'notice':
+                    this.showEmoji(npc.sprite.x, npc.sprite.y - 60, '?');
+                    break;
+            }
+        }
+        await this.wait(300);
+    }
+
+    /**
+     * 显示表情符号
+     */
+    private showEmoji(x: number, y: number, emoji: string): void {
+        const text = this.add.text(x, y, emoji, {
+            fontSize: '32px',
             backgroundColor: '#000000aa',
-            padding: { x: 20, y: 10 }
-        }).setOrigin(0.5).setDepth(10000);
+            padding: { x: 8, y: 4 }
+        }).setOrigin(0.5).setDepth(9002);
 
-        // 延迟模拟思考时间
-        await new Promise(resolve => setTimeout(resolve, 500));
+        this.tweens.add({
+            targets: text,
+            y: y - 20,
+            alpha: 0,
+            duration: 1500,
+            delay: 500,
+            onComplete: () => text.destroy()
+        });
+    }
 
-        thinkingText.destroy();
+    /**
+     * 显示对话
+     */
+    private showDialogue(dialogue: string): void {
+        const { centerX, centerY } = this.getLayoutInfo();
 
-        // 使用简单规则处理（等AI接口完善后再替换）
-        this.processWithSimpleRules(command);
+        const dialogueBox = this.add.text(centerX, centerY + 150, dialogue, {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#000000cc',
+            padding: { x: 20, y: 15 },
+            wordWrap: { width: 400 }
+        }).setOrigin(0.5).setDepth(9003);
+
+        this.tweens.add({
+            targets: dialogueBox,
+            alpha: 0,
+            duration: 500,
+            delay: 3000,
+            onComplete: () => dialogueBox.destroy()
+        });
+    }
+
+    /**
+     * 应用状态变化
+     */
+    private applyStateChanges(changes: any): void {
+        if (changes.mood !== undefined) {
+            this.playerMood = Math.max(0, Math.min(100, this.playerMood + changes.mood));
+        }
+        if (changes.stress !== undefined) {
+            this.stressLevel = Math.max(0, Math.min(100, this.stressLevel + changes.stress));
+        }
+        if (changes.work_progress !== undefined) {
+            this.workProgress = Math.max(0, Math.min(100, this.workProgress + changes.work_progress));
+        }
+        if (changes.relationships) {
+            Object.entries(changes.relationships).forEach(([name, change]: [string, any]) => {
+                const colleague = this.colleagues.get(name);
+                if (colleague) {
+                    colleague.relationship = Math.max(-100, Math.min(100, colleague.relationship + change));
+                }
+            });
+        }
+    }
+
+    /**
+     * 等待指定时间
+     */
+    private wait(ms: number): Promise<void> {
+        return new Promise(resolve => this.time.delayedCall(ms, resolve));
     }
 
     /**
@@ -737,115 +1580,6 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         context += `\n可见物品: `;
         context += Array.from(this.sceneObjects.keys()).join(', ');
         return context;
-    }
-
-    /**
-     * 解析AI响应
-     */
-    private parseAIResponse(response: string): any {
-        try {
-            // 尝试从响应中提取JSON
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
-            }
-        } catch (e) {
-            console.error('JSON解析失败:', e);
-        }
-
-        // 默认返回
-        return {
-            feasible: true,
-            description: response.substring(0, 100),
-            consequences: '这个行为产生了一些影响...',
-            changes: { mood: 0, stress: 0, workProgress: 0, relationships: {} },
-            severity: 'normal'
-        };
-    }
-
-    /**
-     * 应用后果
-     */
-    private applyConsequences(result: any): void {
-        // 显示行为描述
-        this.addLog(`结果: ${result.description}`);
-
-        if (!result.feasible) {
-            this.addLog('系统: 这个行为无法执行！');
-            return;
-        }
-
-        // 应用数值变化
-        if (result.changes) {
-            if (result.changes.mood) {
-                this.playerMood = Math.max(0, Math.min(100, this.playerMood + result.changes.mood));
-            }
-            if (result.changes.stress) {
-                this.stressLevel = Math.max(0, Math.min(100, this.stressLevel + result.changes.stress));
-            }
-            if (result.changes.workProgress) {
-                this.workProgress = Math.max(0, Math.min(100, this.workProgress + result.changes.workProgress));
-            }
-
-            // 更新同事关系
-            if (result.changes.relationships) {
-                Object.entries(result.changes.relationships).forEach(([name, change]: [string, any]) => {
-                    const colleague = this.colleagues.get(name);
-                    if (colleague) {
-                        colleague.relationship = Math.max(-100, Math.min(100, colleague.relationship + change));
-                    }
-                });
-            }
-        }
-
-        // 显示后果
-        this.addLog(`后果: ${result.consequences}`);
-
-        // 根据严重性显示通知
-        if (result.severity === 'critical') {
-            notificationManager.error('严重后果', result.consequences, 8000);
-        } else if (result.severity === 'warning') {
-            notificationManager.warning('警告', result.consequences, 6000);
-        }
-
-        // 更新UI
-        this.updateStatusDisplay();
-
-        // 检查触发条件
-        this.checkTriggers();
-    }
-
-    /**
-     * 简单规则处理（替代AI）
-     */
-    private processWithSimpleRules(command: string): void {
-        const lower = command.toLowerCase();
-
-        if (lower.includes('工作') || lower.includes('代码') || lower.includes('电脑')) {
-            this.playerMood -= 5;
-            this.stressLevel += 5;
-            this.workProgress += 10;
-            this.addLog('你努力工作了一会儿...');
-        } else if (lower.includes('摸鱼') || lower.includes('刷手机') || lower.includes('休息')) {
-            this.playerMood += 10;
-            this.stressLevel -= 5;
-            this.workProgress -= 5;
-            this.addLog('你偷偷摸鱼放松了一下...');
-        } else if (lower.includes('砸') || lower.includes('攻击') || lower.includes('打')) {
-            this.playerMood -= 20;
-            this.stressLevel += 30;
-
-            // 视觉反馈：强烈的屏幕震动 + 红闪
-            this.cameras.main.shake(500, 0.05);
-            this.cameras.main.flash(500, 0xff0000, 0.5);
-
-            this.addLog('你做出了极端行为！！！(Visual Feedback Triggered)');
-            notificationManager.error('严重警告', '暴力行为可能导致被开除！', 10000);
-        } else {
-            this.addLog('你尝试了一些事情...');
-        }
-
-        this.updateStatusDisplay();
     }
 
     /**
@@ -1063,5 +1797,135 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         this.addLog('你可以在下方输入任何想做的事...');
         this.addLog('点击物品查看详情');
         this.addLog('系统: AI会判断你行为的后果');
+    }
+    // ================= 矢量绘图辅助函数 =================
+
+    private drawWaterCooler(g: Phaser.GameObjects.Graphics): void {
+        // 机身
+        g.fillStyle(0xbdc3c7, 1);
+        g.fillRoundedRect(-15, -60, 30, 60, 4);
+
+        // 出水口区域
+        g.fillStyle(0x2c3e50, 1);
+        g.fillRoundedRect(-12, -40, 24, 15, 2);
+
+        // 水桶
+        g.fillStyle(0x3498db, 0.6); // 半透明蓝
+        g.fillRoundedRect(-14, -85, 28, 30, 6);
+        g.lineStyle(2, 0x2980b9, 0.8);
+        g.strokeRoundedRect(-14, -85, 28, 30, 6);
+
+        // 水位线
+        g.fillStyle(0xffffff, 0.3);
+        g.fillRect(-12, -75, 24, 2);
+    }
+
+    private drawPlant(g: Phaser.GameObjects.Graphics): void {
+        // 花盆
+        g.fillStyle(0xd35400, 1);
+        g.beginPath();
+        g.moveTo(-10, 0);
+        g.lineTo(10, 0);
+        g.lineTo(15, -20);
+        g.lineTo(-15, -20);
+        g.closePath();
+        g.fillPath();
+
+        // 叶子 (更自然)
+        g.fillStyle(0x27ae60, 1);
+        g.fillEllipse(0, -35, 12, 25);
+        g.fillEllipse(-15, -25, 20, 12);
+        g.fillEllipse(15, -25, 20, 12);
+
+        // 叶脉
+        g.lineStyle(1, 0x2ecc71, 0.5);
+        g.beginPath();
+        g.moveTo(0, -20);
+        g.lineTo(0, -45);
+        g.strokePath();
+    }
+
+    private drawPrinter(g: Phaser.GameObjects.Graphics): void {
+        // 主体
+        g.fillStyle(0x95a5a6, 1);
+        g.fillRoundedRect(-20, -25, 40, 25, 4);
+
+        // 顶部盖板
+        g.fillStyle(0x7f8c8d, 1);
+        g.fillRect(-20, -28, 40, 5);
+
+        // 纸张
+        g.fillStyle(0xffffff, 1);
+        g.fillRect(-15, -35, 30, 10);
+
+        // 按钮
+        g.fillStyle(0x2ecc71, 1);
+        g.fillCircle(12, -20, 2);
+    }
+
+    private drawSofa(g: Phaser.GameObjects.Graphics): void {
+        // 沙发座
+        g.fillStyle(0xe74c3c, 1);
+        g.fillRoundedRect(-30, -15, 60, 15, 4);
+
+        // 靠背
+        g.fillStyle(0xc0392b, 1);
+        g.fillRoundedRect(-30, -35, 60, 20, 4);
+
+        // 扶手
+        g.fillStyle(0xc0392b, 1);
+        g.fillRoundedRect(-35, -20, 8, 20, 2);
+        g.fillRoundedRect(27, -20, 8, 20, 2);
+    }
+
+    private drawFlag(g: Phaser.GameObjects.Graphics): void {
+        // 旗杆
+        g.fillStyle(0x7f8c8d, 1);
+        g.fillRect(-2, -80, 4, 80);
+
+        // 底座
+        g.fillStyle(0x2c3e50, 1);
+        g.fillCircle(0, 0, 8);
+
+        // 旗面
+        g.fillStyle(0xe74c3c, 1);
+        g.beginPath();
+        g.moveTo(0, -78);
+        g.lineTo(40, -60);
+        g.lineTo(0, -42);
+        g.closePath();
+        g.fillPath();
+
+        // 公司Logo (金星)
+        g.fillStyle(0xf1c40f, 1);
+        g.fillCircle(12, -60, 4);
+    }
+
+    private drawComputer(g: Phaser.GameObjects.Graphics): void {
+        // 屏幕
+        g.fillStyle(0x2d3436, 1);
+        g.fillRoundedRect(-12, -22, 24, 16, 2);
+        g.fillStyle(0x0984e3, 1);
+        g.fillRect(-10, -20, 20, 12);
+        // 支架
+        g.fillStyle(0x636e72, 1);
+        g.fillRect(-3, -6, 6, 6);
+        // 底座
+        g.fillStyle(0x2d3436, 1);
+        g.fillRect(-8, 0, 16, 3);
+    }
+
+    private drawCup(g: Phaser.GameObjects.Graphics): void {
+        // 杯身
+        g.fillStyle(0xffffff, 1);
+        g.fillRoundedRect(-6, -12, 12, 12, 2);
+        // 咖啡
+        g.fillStyle(0x6d4c41, 1);
+        g.fillEllipse(0, -10, 8, 3);
+        // 把手
+        g.lineStyle(2, 0xffffff, 1);
+        g.beginPath();
+        g.arc(6, -8, 3, -Math.PI / 2, Math.PI / 2, false);
+        g.strokePath();
     }
 }

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>职场人生 | Career Life Simulation - Poster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+SC:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        /* RESET & BASICS */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px;
+            font-family: 'Noto Sans SC', 'Inter', sans-serif;
+            /* Prioritize Chinese Font */
+            color: #fff;
+        }
+
+        /* A3 Container */
+        .poster-container {
+            width: 1754px;
+            height: 2480px;
+            background: #080808;
+            position: relative;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        /* 1. NEW TOP HEADER */
+        .header-hero {
+            padding: 100px 80px 60px 80px;
+            background: #050505;
+            border-bottom: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+
+            /* Tech Background */
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        .header-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .logo-mark {
+            width: 100px;
+            height: 100px;
+            background: #6366f1;
+            color: #000;
+            font-size: 4rem;
+            font-weight: 900;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header-meta {
+            text-align: right;
+            font-family: 'Noto Sans SC', monospace;
+            color: #888;
+            font-size: 1.4rem;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .header-meta strong {
+            color: #fff;
+            font-size: 1.6rem;
+        }
+
+        .massive-title {
+            font-size: 14rem;
+            font-weight: 900;
+            line-height: 0.85;
+            letter-spacing: -0.02em;
+            /* Tighter for Chinese if needed, but okay for block characters */
+            color: #fff;
+            margin: 0;
+        }
+
+        .title-sub {
+            font-size: 3rem;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            color: #6366f1;
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .title-sub::before {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: #6366f1;
+        }
+
+        /* 2. PROMO STRIP */
+        .promo-strip {
+            background: #6366f1;
+            color: #000;
+            padding: 25px 0;
+            overflow: hidden;
+            border-bottom: 1px solid #4338ca;
+        }
+
+        .promo-text {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            white-space: nowrap;
+            display: flex;
+            justify-content: space-around;
+            letter-spacing: 0.05em;
+        }
+
+        /* 3. EXPANDED CONTENT GRID */
+        .content-area {
+            flex-grow: 1;
+            padding: 80px;
+            /* Switch to Flex Column for better vertical distribution */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 60px;
+        }
+
+        /* Intro Block */
+        .intro-block {
+            width: 100%;
+            border-bottom: 1px solid #222;
+            padding-bottom: 40px;
+        }
+
+        .headline {
+            font-size: 4.8rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 40px;
+            width: 100%;
+            background: linear-gradient(to bottom, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .body-large {
+            font-size: 2rem;
+            line-height: 1.8;
+            color: #ccc;
+            columns: 2;
+            column-gap: 80px;
+            /* CAUTION: Justify causes whitespace gaps in print. Using left/default. */
+            text-align: left;
+        }
+
+        .body-large p {
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        .body-large strong {
+            color: #fff;
+            border-bottom: 1px solid #6366f1;
+        }
+
+        /* Feature Quadrants */
+        .feature-grid-inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 60px;
+        }
+
+        .feature-item {
+            border-top: 2px solid #333;
+            padding-top: 25px;
+        }
+
+        .feature-head {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feature-body {
+            font-size: 1.6rem;
+            color: #999;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        /* Tech Specs Strip */
+        .tech-specs {
+            display: flex;
+            justify-content: space-between;
+            background: #111;
+            padding: 50px 60px;
+            border: 1px solid #333;
+            /* Removed margin-top: auto to let flex-space-between handle gaps */
+        }
+
+        .spec-item {
+            text-align: center;
+        }
+
+        .spec-val {
+            font-size: 4.5rem;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .spec-key {
+            font-family: 'Noto Sans SC';
+            color: #6366f1;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+
+        /* FOOTER */
+        footer {
+            padding: 40px 80px;
+            background: #000;
+            border-top: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            color: #555;
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="poster-container">
+        <!-- 1. HEADER HERO -->
+        <header class="header-hero">
+            <div class="header-top-row">
+                <div class="logo-mark">C</div>
+                <div class="header-meta">
+                    <strong>GLOBE STUDIOS</strong><br>
+                    未来交互实验室 (Gen-AI Labs)<br>
+                    立项于 2026
+                </div>
+            </div>
+
+            <h1 class="massive-title">职场人生</h1>
+            <div class="title-sub">CAREER LIFE SIMULATION // 全拟真职场模拟器</div>
+        </header>
+
+        <!-- 2. PROMO STRIP (Chinese) -->
+        <div class="promo-strip">
+            <div class="promo-text">
+                <span>/// 深度社会模拟</span>
+                <span>/// 真实人性博弈</span>
+                <span>/// AI 驱动叙事</span>
+                <span>/// 你的选择决定命运</span>
+                <span>/// 抢先体验开启</span>
+            </div>
+        </div>
+
+        <!-- 3. MAIN CONTENT -->
+        <section class="content-area">
+            <!-- Full Width Intro -->
+            <div class="intro-block">
+                <div class="headline">在混乱中寻找秩序，<br>在博弈中重塑命运。</div>
+                <div class="body-large">
+                    <p>
+                        <strong>这不仅仅是一个游戏，更是一场社会实验。</strong><br>
+                        《职场人生》打破了传统模拟游戏的脚本限制，首次利用<strong>生成式人工智能 (GenAI)</strong> 赋予每一个 NPC
+                        独立的灵魂。他们拥有完整的记忆链条、性格缺陷和隐藏的个人野心。
+                    </p>
+                    <p>
+                        在这个微缩的职场生态中，没有所谓的"正确选项"。你可以选择成为一名兢兢业业的技术骨干，也可以选择成为玩弄权术的办公室政客。请记住：<strong>蝴蝶效应是由于你的每一个微小决策触发的。</strong>
+                        一次午餐时的闲聊，可能会导致公司高层的动荡；一次加班的拒绝，可能会成为你日后晋升的阻碍。
+                    </p>
+                    <p style="margin-bottom:0">
+                        在这里，甚至系统本身也是不可预测的。准备好了吗？在这个由数据构建的钢铁丛林中，书写属于你的生存法则。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3-Col Features (Chinese) -->
+            <div class="feature-grid-inner">
+                <div class="feature-item">
+                    <div class="feature-head">01 // 全息智能 NPC <span style="color:#6366f1">🧠</span></div>
+                    <div class="feature-body">
+                        基于大语言模型 (LLM) 构建的角色核心。他们会根据你的言行产生喜爱、憎恶或恐惧，甚至会在你背后八卦、结盟或背叛。
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-head">02 // 沉浸式物理交互 <span style="color:#6366f1">⚡</span></div>
+                    <div class="feature-body">
+                        基于 Phaser 3 物理引擎打造的 UI 系统。每一次点击、拖拽和交互都伴随着真实的动态反馈和屏幕震颤，拒绝枯燥的操作体验。
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-head">03 // 多维职场博弈 <span style="color:#6366f1">♟️</span></div>
+                    <div class="feature-body">
+                        需要时刻平衡你的工作绩效、精神压力与人际关系。不仅要应对繁重的工作，还要在复杂的派系斗争中寻找生路。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tech Specs Box (Chinese - Revised) -->
+            <div class="tech-specs">
+                <div class="spec-item">
+                    <div class="spec-val">∞</div>
+                    <div class="spec-key">无限剧本</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-val">100+</div>
+                    <div class="spec-key">开放式结局</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-val">Core</div>
+                    <div class="spec-key">深度博弈核心</div>
+                </div>
+                <div class="spec-item">
+                    <div class="spec-val">2026</div>
+                    <div class="spec-key">抢先体验 NOW</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer>
+            <div>SYSTEM_READY...</div>
+            <div>VER: 3.2.0-ALPHA</div>
+            <div>© 2026 GLOBE Studios. All Rights Reserved.</div>
+        </footer>
+    </div>
+
+    <!-- PRINT HELPERS -->
+    <div id="print-btn" onclick="window.print()"
+        style="position: fixed; bottom: 30px; right: 30px; padding: 15px 30px; background: #6366f1; color: #fff; font-weight: 900; cursor: pointer; border: 1px solid #fff; z-index: 9999; font-family: sans-serif; text-transform: uppercase; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        🖨️ Save as PDF
+    </div>
+
+    <style>
+        /* CSS RESET FOR PRINT */
+        @media print {
+            @page {
+                size: A3 portrait;
+                margin: 0;
+                /* Try to force 0 margins */
+            }
+
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: #000 !important;
+                color: #fff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            #print-btn,
+            #dl-btn {
+                display: none !important;
+            }
+
+            /* MAIN CONTAINER */
+            .poster-container {
+                width: 100% !important;
+                min-height: 100vh !important;
+                /* Stretch to fill viewport/page */
+                height: auto !important;
+                /* Allow expansion */
+
+                margin: 0 !important;
+                border: none !important;
+                background: #000 !important;
+
+                /* Layout */
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+
+                /* THE BOX-SHADOW BLEED HACK */
+                /* Forces black color to extend infinitely outside the box, covering any margin gaps */
+                box-shadow: 0 0 0 500mm #000 !important;
+                clip-path: none !important;
+
+                zoom: 1 !important;
+                transform: none !important;
+            }
+
+            /* DISTRIBUTE CONTENT */
+            .content-area {
+                flex-grow: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                gap: 50px !important;
+            }
+
+            footer {
+                padding-bottom: 40px !important;
+            }
+        }
+    </style>
+</body>

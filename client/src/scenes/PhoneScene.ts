@@ -16,12 +16,14 @@ export class PhoneScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 半透明遮罩
-        this.overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.6);
+        // 半透明遮罩 - 高层级确保覆盖底层场景
+        this.overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7);
         this.overlay.setInteractive();
+        this.overlay.setDepth(50000); // 高于办公室场景的所有元素
 
         // 装饰性网格 (在遮罩层之上，但在手机之下)
         const deco = this.add.graphics();
+        deco.setDepth(50001);
         deco.lineStyle(2, COLORS.primary, 0.1);
         for (let i = 0; i < 1280; i += 40) {
             deco.moveTo(i, 0);
@@ -33,8 +35,9 @@ export class PhoneScene extends Phaser.Scene {
         }
         deco.strokePath();
 
-        // 手机容器
+        // 手机容器 - 最高层级
         this.phoneContainer = this.add.container(640, 360);
+        this.phoneContainer.setDepth(50100);
 
         // 绘制手机外壳
         this.drawPhone();
