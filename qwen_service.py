@@ -140,6 +140,83 @@ class QwenService:
             print(f"Qwen API 错误: {e}")
             return self._mock_npc_response(npc_name, player_info, workplace_status)
 
+    async def generate_interview_question(
+        self,
+        player_info: dict,
+        company_info: dict,
+        job_info: dict,
+        round_info: dict,
+        conversation_history: List[dict] = None
+    ) -> dict:
+        """
+        生成面试问题及示例回答
+        """
+        system_prompt = f"""你是一个职场模拟游戏的 AI 面试官。
+        
+【面试背景】
+- 公司: {company_info.get('name', '某公司')} ({company_info.get('type', '中型企业')})
+- 职位: {job_info.get('title', '应聘岗位')}
+- 面试轮次: 第 {round_info.get('round', 1)} 轮
+- 面试官身份: {round_info.get('interviewerRole', '面试官')}
+- 压力面试模式: {"是" if round_info.get('isPressure', False) else "否"}
+
+【候选人背景】
+- 姓名: {player_info.get('name', '求职者')}
+- 学历: {player_info.get('education', '本科')}
+- 经验: {player_info.get('experience', 0)}年
+- 技能: {', '.join(player_info.get('skills', []))}
+
+【生成要求】
+1. 根据当前背景和历史对话，生成一个专业的面试问题。
+2. 问题要真实、有针对性。如果是压力面，问题要犀利、挑剔。
+3. 同时生成一个【示例回答】。
+   - 注意：【示例回答】必须是候选人（玩家）的回答，而不是面试官的问题！
+   - 回答应该是高质量的、逻辑清晰的，能充分展示候选人的背景优势。
+   - 不要重复面试官的问题，直接给出回答内容。
+4. 返回格式必须为 JSON。
+
+【返回格式】
+{{
+    "question": "面试官的问题内容",
+    "sample_answer": "给玩家参考的示例回答",
+    "type": "technical|behavioral|personal|stress",
+    "display_type": "问题分类名(如: 技术理解)"
+}}
+
+不要输出思考过程，直接输出 JSON。"""
+
+        messages = [{"role": "system", "content": system_prompt}]
+        if conversation_history:
+            for msg in conversation_history[-4:]:
+                role = "user" if msg.get("role") == "player" else "assistant"
+                messages.append({"role": role, "content": msg.get("content", "")})
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                max_tokens=800,
+                temperature=0.8,
+                stream=False
+            )
+
+            response_text = response.choices[0].message.content
+            response_text = re.sub(r'<think>.*?</think>', '', response_text, flags=re.DOTALL)
+            
+            json_match = re.search(r'\{[\s\S]+\}', response_text)
+            if json_match:
+                return json.loads(json_match.group())
+                
+        except Exception as e:
+            print(f"Qwen API 错误 (generate_interview_question): {e}")
+            
+        return {
+            "question": "请简单介绍一下你自己。",
+            "sample_answer": f"您好，我叫{player_info.get('name', '求职者')}，有{player_info.get('experience', 0)}年工作经验，毕业于{player_info.get('school', '某大学')}，{player_info.get('major', '计算机')}专业。我的技术栈包括{', '.join(player_info.get('skills', ['相关技术'])[:3])}。在之前的工作中，我主要负责核心业务模块的开发，具备较强的解决问题能力和团队合作精神。",
+            "type": "personal",
+            "display_type": "自我介绍"
+        }
+
     async def generate_job_listings(self, player_info: dict, count: int = 15) -> List[dict]:
         """
         生成求职列表

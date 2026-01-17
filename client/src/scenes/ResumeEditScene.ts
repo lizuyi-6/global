@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
 import { jobHuntSystem, type PlayerResume } from '../JobHuntSystem';
-import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
+import { COLORS, FONTS, createStyledButton } from '../UIConfig';
 
 /**
- * 简历编辑场景
- * 让玩家自定义简历信息
+ * 简历编辑场景 - 现代风格
+ * 与 HTML 模板一致的设计语言
  */
 export class ResumeEditScene extends Phaser.Scene {
     private formData: Partial<PlayerResume>;
@@ -20,173 +20,184 @@ export class ResumeEditScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 背景
+        // 创建渐变背景
+        this.createBackground();
+
+        // 创建浮动装饰
+        this.createFloatingOrbs();
+
+        // 页面标题
+        this.createHeader();
+
+        // 主内容区
+        this.createFormContent();
+
+        // 入场动画
+        this.playEntranceAnimations();
+    }
+
+    private createBackground(): void {
+        // 纯色背景 - 与模板一致
         this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
 
-        // 背景装饰
-        const deco = this.add.graphics();
-        deco.lineStyle(2, COLORS.primary, 0.1);
-        for (let i = 0; i < 1280; i += 40) {
-            deco.moveTo(i, 0);
-            deco.lineTo(i, 720);
-        }
-        for (let i = 0; i < 720; i += 40) {
-            deco.moveTo(0, i);
-            deco.lineTo(1280, i);
-        }
-        deco.strokePath();
+        // 网格背景
+        this.createGridBackground();
 
-        // 标题容器
-        const header = this.add.container(640, 60);
-        const title = this.add.text(0, -15, '📝 个人简历配置', {
+        // 渐变光晕 - 更柔和
+        const topGlow = this.add.graphics();
+        topGlow.fillStyle(COLORS.primary, 0.06);
+        topGlow.fillCircle(350, -80, 350);
+        topGlow.fillStyle(COLORS.secondary, 0.04);
+        topGlow.fillCircle(950, 80, 280);
+
+        const bottomGlow = this.add.graphics();
+        bottomGlow.fillStyle(COLORS.accent, 0.04);
+        bottomGlow.fillCircle(180, 750, 300);
+
+        // 呼吸动画
+        this.tweens.add({
+            targets: [topGlow, bottomGlow],
+            alpha: { from: 1, to: 0.6 },
+            duration: 4000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    private createGridBackground(): void {
+        const graphics = this.add.graphics();
+        graphics.setAlpha(0.25);
+        const gridSize = 40;
+        graphics.lineStyle(1, 0xffffff, 0.02);
+
+        for (let x = 0; x <= 1280; x += gridSize) {
+            graphics.moveTo(x, 0);
+            graphics.lineTo(x, 720);
+        }
+        for (let y = 0; y <= 720; y += gridSize) {
+            graphics.moveTo(0, y);
+            graphics.lineTo(1280, y);
+        }
+        graphics.strokePath();
+    }
+
+    private createFloatingOrbs(): void {
+        const orbs = [
+            { x: 80, y: 180, size: 50, color: COLORS.primary, alpha: 0.03 },
+            { x: 1200, y: 130, size: 70, color: COLORS.secondary, alpha: 0.025 },
+            { x: 120, y: 520, size: 45, color: COLORS.accent, alpha: 0.035 },
+            { x: 1150, y: 480, size: 60, color: COLORS.primary, alpha: 0.025 }
+        ];
+
+        orbs.forEach((orb, i) => {
+            const circle = this.add.circle(orb.x, orb.y, orb.size, orb.color, orb.alpha);
+            this.tweens.add({
+                targets: circle,
+                x: orb.x + Phaser.Math.Between(-20, 20),
+                y: orb.y + Phaser.Math.Between(-15, 15),
+                duration: 4000 + i * 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        });
+    }
+
+    private createHeader(): void {
+        const header = this.add.container(640, 55);
+        header.setAlpha(0);
+        header.setData('entrance', true);
+
+        // 小标签
+        const tagBg = this.add.graphics();
+        tagBg.fillStyle(0xffffff, 0.06);
+        tagBg.fillRoundedRect(-60, -25, 120, 24, 12);
+
+        const tagText = this.add.text(0, -13, '个人档案', {
+            fontSize: '11px',
+            fontFamily: FONTS.main,
+            color: '#a1a1aa'
+        }).setOrigin(0.5);
+
+        // 主标题
+        const title = this.add.text(0, 20, '简历配置', {
             fontSize: '36px',
             fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        const subTitle = this.add.text(0, 25, 'CUSTOMIZE YOUR PROFESSIONAL PROFILE', {
-            fontSize: '12px',
-            fontFamily: FONTS.mono,
-            color: '#4a90d9',
-            letterSpacing: 2
-        }).setOrigin(0.5);
-        header.add([title, subTitle]);
 
-        // 主面板
-        const mainPanel = this.add.rectangle(640, 380, 1100, 540, COLORS.panel, 0.7);
-        applyGlassEffect(mainPanel);
+        header.add([tagBg, tagText, title]);
+    }
 
-        // 左列起始位置
-        const leftX = 140;
-        const rightX = 700;
+    private createFormContent(): void {
+        // 左右两列布局 - Move apart to avoid overlapping center modal
+        const leftX = 280; // Moved left (was 350)
+        const rightX = 1000; // Moved right (was 930)
         let leftY = 140;
         let rightY = 140;
 
         // ========== 左列 ==========
         // 姓名
-        this.createLabel(leftX, leftY, '姓名 / NAME');
-        this.createTextInput(leftX, leftY + 25, 240, '求职者', (text) => {
+        this.createFormField(leftX, leftY, '姓名', '求职者', 220, (text) => {
             this.formData.name = text;
         });
         this.formData.name = '求职者';
 
         // 年龄
-        this.createLabel(leftX + 280, leftY, '年龄 / AGE');
-        this.createTextInput(leftX + 280, leftY + 25, 100, '25', (text) => {
+        this.createFormField(leftX + 260, leftY, '年龄', '25', 80, (text) => {
             this.formData.age = parseInt(text) || 25;
         });
         this.formData.age = 25;
-
-        // 工作年限
-        this.createLabel(leftX + 410, leftY, '经验 / EXP');
-        this.createTextInput(leftX + 410, leftY + 25, 100, '2', (text) => {
-            this.formData.experience = parseInt(text) || 0;
-        });
-        this.formData.experience = 2;
-        leftY += 90;
+        leftY += 85;
 
         // 学历选择
-        this.createLabel(leftX, leftY, '最高学历 / EDUCATION');
-        this.createEducationButtons(leftX, leftY + 25);
+        this.createLabel(leftX - 130, leftY, '最高学历');
+        this.createEducationButtons(leftX - 130, leftY + 30);
         this.formData.education = 'bachelor';
-        leftY += 90;
+        leftY += 95;
 
         // 学校
-        this.createLabel(leftX, leftY, '毕业院校 / SCHOOL');
-        this.createTextInput(leftX, leftY + 25, 240, '某某大学', (text) => {
+        this.createFormField(leftX, leftY, '毕业院校', '某某大学', 220, (text) => {
             this.formData.school = text;
         });
         this.formData.school = '某某大学';
 
         // 专业
-        this.createLabel(leftX + 280, leftY, '所学专业 / MAJOR');
-        this.createTextInput(leftX + 280, leftY + 25, 230, '计算机科学', (text) => {
+        this.createFormField(leftX + 260, leftY, '专业', '计算机科学', 180, (text) => {
             this.formData.major = text;
         });
         this.formData.major = '计算机科学';
-        leftY += 90;
+        leftY += 85;
+
+        // 工作年限
+        this.createFormField(leftX, leftY, '工作经验', '2 年', 100, (text) => {
+            this.formData.experience = parseInt(text) || 0;
+        });
+        this.formData.experience = 2;
+        leftY += 85;
 
         // 技能
-        this.createLabel(leftX, leftY, '核心技能 / SKILLS (COMMA SEPARATED)');
-        this.createTextInput(leftX, leftY + 25, 510, 'JavaScript, React, TypeScript, Node.js', (text) => {
+        this.createFormField(leftX, leftY, '核心技能', 'JavaScript, React, TypeScript, Node.js', 440, (text) => {
             this.formData.skills = text.split(',').map(s => s.trim()).filter(s => s);
         });
         this.formData.skills = ['JavaScript', 'React', 'TypeScript', 'Node.js'];
-        leftY += 90;
+        leftY += 85;
 
         // 项目经验
-        this.createLabel(leftX, leftY, '项目经验 / PROJECTS');
-        this.createTextInput(leftX, leftY + 25, 510, '电商平台, 后台管理系统, 小程序', (text) => {
+        this.createFormField(leftX, leftY, '项目经验', '电商平台, 后台管理系统, 小程序', 440, (text) => {
             this.formData.projects = text.split(',').map(s => s.trim()).filter(s => s);
         });
         this.formData.projects = ['电商平台', '后台管理系统', '小程序'];
 
         // ========== 右列 ==========
-        // 期望薪资
-        this.createLabel(rightX, rightY, '期望月薪 / EXPECTED SALARY');
-        rightY += 35;
+        // 期望薪资面板
+        this.createSalaryPanel(rightX, rightY);
+        rightY += 200;
 
-        // 最低薪资
-        this.createLabel(rightX, rightY, '最低 / MIN');
-        this.createNumberButtons(rightX + 80, rightY - 15, () => this.currentSalaryMin, (v) => {
-            this.currentSalaryMin = v;
-            if (this.currentSalaryMin > this.currentSalaryMax) {
-                this.currentSalaryMax = this.currentSalaryMin;
-            }
-            this.updateSalaryDisplay();
-        });
-        rightY += 60;
-
-        // 最高薪资
-        this.createLabel(rightX, rightY, '最高 / MAX');
-        this.createNumberButtons(rightX + 80, rightY - 15, () => this.currentSalaryMax, (v) => {
-            this.currentSalaryMax = v;
-            if (this.currentSalaryMax < this.currentSalaryMin) {
-                this.currentSalaryMin = this.currentSalaryMax;
-            }
-            this.updateSalaryDisplay();
-        });
-        rightY += 60;
-
-        // 薪资显示
-        const salaryBg = this.add.rectangle(rightX + 250, 200, 400, 80, 0x00ff88, 0.05);
-        salaryBg.setStrokeStyle(1, 0x00ff88, 0.3);
-
-        this.salaryDisplay = this.add.text(rightX + 250, 200, '', {
-            fontSize: '28px',
-            fontFamily: FONTS.mono,
-            color: '#00ff88',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.updateSalaryDisplay();
-        this.formData.expectedSalary = [this.currentSalaryMin, this.currentSalaryMax];
-
-        rightY += 80;
-
-        // 提示面板
-        const tipPanel = this.add.rectangle(rightX + 250, 420, 450, 180, 0xffffff, 0.03);
-        tipPanel.setStrokeStyle(1, 0xffffff, 0.1);
-
-        this.add.text(rightX + 50, 350, '💡 简历提示 / CAREER TIPS', {
-            fontSize: '14px',
-            fontFamily: FONTS.main,
-            color: '#4a90d9',
-            fontStyle: 'bold'
-        });
-
-        const tips = [
-            '• 学历越高，大型企业的面试机会越多',
-            '• 技能点与职位要求的匹配度是筛选的关键',
-            '• 期望薪资应参考行业平均水平，过高会降低入面率',
-            '• 丰富的项目经验在谈薪环节更具竞争力'
-        ];
-        tips.forEach((tip, i) => {
-            this.add.text(rightX + 50, 385 + i * 30, tip, {
-                fontSize: '13px',
-                fontFamily: FONTS.main,
-                color: '#888888'
-            });
-        });
+        // 提示卡片
+        this.createTipsCard(rightX, rightY);
 
         // 保存按钮
         this.createSaveButton();
@@ -194,159 +205,157 @@ export class ResumeEditScene extends Phaser.Scene {
 
     private createLabel(x: number, y: number, text: string): void {
         this.add.text(x, y, text, {
-            fontSize: '12px',
-            fontFamily: FONTS.mono,
-            color: '#4a90d9'
+            fontSize: '13px',
+            fontFamily: FONTS.main,
+            color: '#71717a'
         });
     }
 
-    private createTextInput(x: number, y: number, width: number, defaultValue: string, onChange: (text: string) => void): void {
-        const height = 40;
+    private createFormField(x: number, y: number, label: string, defaultValue: string, width: number, onChange: (text: string) => void): void {
+        const container = this.add.container(x, y);
+        container.setAlpha(0);
+        container.setData('entrance', true);
+        container.setData('delay', 100);
 
-        const bg = this.add.rectangle(x + width / 2, y + height / 2, width, height, 0xffffff, 0.05);
-        bg.setStrokeStyle(1, 0xffffff, 0.2);
+        // 标签
+        const labelText = this.add.text(-width / 2, 0, label, {
+            fontSize: '13px',
+            fontFamily: FONTS.main,
+            color: '#71717a'
+        });
 
-        const text = this.add.text(x + 15, y + height / 2, defaultValue, {
+        // 输入框背景 - 更深的背景
+        const inputBg = this.add.graphics();
+        inputBg.fillStyle(COLORS.bgPanel, 0.9);
+        inputBg.fillRoundedRect(-width / 2, 10, width, 44, 8);
+        inputBg.lineStyle(1, 0xffffff, 0.05);
+        inputBg.strokeRoundedRect(-width / 2, 10, width, 44, 8);
+
+        // 交互区域
+        const hitArea = this.add.rectangle(0, 32, width, 44, 0x000000, 0);
+
+        // 输入值
+        const valueText = this.add.text(-width / 2 + 15, 32, defaultValue, {
             fontSize: '15px',
             fontFamily: FONTS.main,
             color: '#ffffff'
         }).setOrigin(0, 0.5);
 
-        bg.setInteractive({ useHandCursor: true });
+        container.add([labelText, inputBg, valueText, hitArea]);
 
-        bg.on('pointerover', () => {
-            bg.setStrokeStyle(1, COLORS.primary, 0.8);
-            bg.setFillStyle(0xffffff, 0.1);
+        // 交互
+        hitArea.setInteractive({ useHandCursor: true });
+        hitArea.on('pointerover', () => {
+            inputBg.clear();
+            inputBg.fillStyle(COLORS.bgPanel, 1);
+            inputBg.fillRoundedRect(-width / 2, 10, width, 44, 8);
+            inputBg.lineStyle(1, COLORS.primary, 0.4);
+            inputBg.strokeRoundedRect(-width / 2, 10, width, 44, 8);
         });
-        bg.on('pointerout', () => {
-            bg.setStrokeStyle(1, 0xffffff, 0.2);
-            bg.setFillStyle(0xffffff, 0.05);
+        hitArea.on('pointerout', () => {
+            inputBg.clear();
+            inputBg.fillStyle(COLORS.bgPanel, 0.9);
+            inputBg.fillRoundedRect(-width / 2, 10, width, 44, 8);
+            inputBg.lineStyle(1, 0xffffff, 0.05);
+            inputBg.strokeRoundedRect(-width / 2, 10, width, 44, 8);
         });
-
-        bg.on('pointerdown', () => {
-            // 禁用点击防止重复弹窗
-            bg.disableInteractive();
-
-            // 创建内嵌输入框
-            const inputContainer = this.add.container(640, 360);
-            inputContainer.setDepth(10000);
-
-            const overlay = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.7);
-            overlay.setOrigin(0.5);
-            overlay.setInteractive();  // 阻止点击穿透
-            inputContainer.add(overlay);
-
-            const inputBg = this.add.rectangle(0, 0, 500, 180, 0x1a1a2e);
-            inputBg.setStrokeStyle(2, 0x4a90d9);
-            inputBg.setOrigin(0.5);
-            inputContainer.add(inputBg);
-
-            const title = this.add.text(0, -50, '请输入:', {
-                fontSize: '16px',
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-            inputContainer.add(title);
-
-            const inputHTML = `
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <input type="text" id="textInput" value="${text.text}"
-                           style="width: 400px;
-                                  padding: 10px;
-                                  font-size: 14px;
-                                  background: #2a2a3a;
-                                  color: #ffffff;
-                                  border: 2px solid #4a90d9;
-                                  border-radius: 4px;
-                                  outline: none;
-                                  box-sizing: border-box;" />
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="textSubmit"
-                                style="padding: 8px 30px;
-                                       font-size: 14px;
-                                       background: #4a90d9;
-                                       color: #ffffff;
-                                       border: none;
-                                       border-radius: 4px;
-                                       cursor: pointer;
-                                       font-weight: bold;">
-                            ✅ 确定
-                        </button>
-                        <button id="textCancel"
-                                style="padding: 8px 30px;
-                                       font-size: 14px;
-                                       background: #666666;
-                                       color: #ffffff;
-                                       border: none;
-                                       border-radius: 4px;
-                                       cursor: pointer;">
-                            ❌ 取消
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            const domElement = this.add.dom(640, 360 + 10, 'div').createFromHTML(inputHTML);
-            // 不放入 container
-            // inputContainer.add(domElement);
-            domElement.setDepth(10001);
-
-            this.time.delayedCall(100, () => {
-                const input = document.getElementById('textInput') as HTMLInputElement;
-                const submitBtn = document.getElementById('textSubmit') as HTMLButtonElement;
-                const cancelBtn = document.getElementById('textCancel') as HTMLButtonElement;
-
-                if (input) {
-                    input.focus();
-                    input.select();
-                    input.addEventListener('focus', () => {
-                        this.input.keyboard!.enabled = false;
-                    });
-                    input.addEventListener('blur', () => {
-                        this.input.keyboard!.enabled = true;
-                    });
-                }
-
-                const handleSubmit = () => {
-                    if (input) {
-                        const newValue = input.value.trim();
-                        if (newValue !== '') {
-                            text.setText(newValue);
-                            onChange(newValue);
-                        }
-                    }
-                    inputContainer.destroy();
-                    domElement.destroy(); // 销毁 DOM
-                    bg.setInteractive({ useHandCursor: true });  // 恢复交互
-                };
-
-                const handleCancel = () => {
-                    inputContainer.destroy();
-                    domElement.destroy(); // 销毁 DOM
-                    bg.setInteractive({ useHandCursor: true });  // 恢复交互
-                };
-
-                if (submitBtn) {
-                    submitBtn.addEventListener('click', handleSubmit);
-                }
-
-                if (cancelBtn) {
-                    cancelBtn.addEventListener('click', handleCancel);
-                }
-
-                if (input) {
-                    input.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter') {
-                            handleSubmit();
-                        } else if (e.key === 'Escape') {
-                            handleCancel();
-                        }
-                    });
-                }
+        hitArea.on('pointerdown', () => {
+            this.showInputDialog(label, valueText.text, (newValue) => {
+                valueText.setText(newValue);
+                onChange(newValue);
             });
         });
 
         onChange(defaultValue);
+    }
+
+    private showInputDialog(title: string, currentValue: string, onSubmit: (value: string) => void): void {
+        // Darker overlay to clearly separate modal
+        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.85);
+        overlay.setDepth(1000);
+        overlay.setInteractive();
+
+        const dialog = this.add.container(640, 360);
+        dialog.setDepth(1001);
+
+        const dialogBg = this.add.graphics();
+        dialogBg.fillStyle(COLORS.bgPanel, 0.98);
+        dialogBg.fillRoundedRect(-210, -90, 420, 180, 12);
+        dialogBg.lineStyle(1, 0xffffff, 0.08);
+        dialogBg.strokeRoundedRect(-210, -90, 420, 180, 12);
+
+        const dialogTitle = this.add.text(0, -55, `编辑${title}`, {
+            fontSize: '18px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        dialog.add([dialogBg, dialogTitle]);
+
+        // HTML 输入框 - 使用 Flexbox 全屏居中，避免 Canvas 坐标偏移
+        const inputHTML = `
+            <div style="width: 1280px; height: 720px; display: flex; justify-content: center; align-items: center; pointer-events: none;">
+                <div style="pointer-events: auto; display: flex; flex-direction: column; gap: 12px; margin-top: 50px;">
+                    <input type="text" id="dialogInput" value="${currentValue}"
+                           style="width: 340px; padding: 12px 16px; font-size: 15px;
+                                  background: #0d0d12; color: #ffffff;
+                                  border: 1px solid rgba(255,255,255,0.15);
+                                  border-radius: 8px; outline: none;
+                                  font-family: -apple-system, sans-serif;" />
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button id="dialogSubmit" style="padding: 10px 32px; font-size: 15px;
+                                background: #6366f1; color: #ffffff;
+                                border: none; border-radius: 8px; cursor: pointer;
+                                font-weight: 500;">确定</button>
+                        <button id="dialogCancel" style="padding: 10px 32px; font-size: 15px;
+                                background: #27272a; color: #a1a1aa;
+                                border: 1px solid rgba(255,255,255,0.1);
+                                border-radius: 8px; cursor: pointer;">取消</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Place DOM at 0,0 with origin 0,0 to cover entire screen, letting CSS handle centering
+        const domElement = this.add.dom(0, 0).createFromHTML(inputHTML);
+        domElement.setOrigin(0, 0);
+        domElement.setDepth(1002);
+
+        const cleanup = () => {
+            overlay.destroy();
+            dialog.destroy();
+            domElement.destroy();
+        };
+
+        this.time.delayedCall(50, () => {
+            const input = document.getElementById('dialogInput') as HTMLInputElement;
+            const submitBtn = document.getElementById('dialogSubmit');
+            const cancelBtn = document.getElementById('dialogCancel');
+
+            if (input) {
+                input.focus();
+                input.select();
+            }
+
+            submitBtn?.addEventListener('click', () => {
+                if (input && input.value.trim()) {
+                    onSubmit(input.value.trim());
+                }
+                cleanup();
+            });
+
+            cancelBtn?.addEventListener('click', cleanup);
+
+            input?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    if (input.value.trim()) onSubmit(input.value.trim());
+                    cleanup();
+                } else if (e.key === 'Escape') {
+                    cleanup();
+                }
+            });
+        });
     }
 
     private createEducationButtons(x: number, y: number): void {
@@ -363,24 +372,35 @@ export class ResumeEditScene extends Phaser.Scene {
 
         educations.forEach((edu) => {
             const isActive = this.currentEducation === edu.value;
-            const container = this.add.container(btnX, y);
+            const container = this.add.container(btnX + 40, y);
+            container.setAlpha(0);
+            container.setData('entrance', true);
 
-            const bg = this.add.rectangle(45, 20, 85, 40, isActive ? COLORS.primary : 0xffffff, isActive ? 0.3 : 0.05);
-            bg.setStrokeStyle(1, isActive ? COLORS.primary : 0xffffff, isActive ? 1 : 0.2);
+            const bg = this.add.graphics();
+            if (isActive) {
+                bg.fillStyle(COLORS.primary, 1);
+            } else {
+                bg.fillStyle(COLORS.bgPanel, 0.8);
+            }
+            bg.fillRoundedRect(-37.5, -18, 75, 36, 8);
+            bg.lineStyle(1, isActive ? COLORS.primary : 0xffffff, isActive ? 0.3 : 0.05);
+            bg.strokeRoundedRect(-37.5, -18, 75, 36, 8);
 
-            const label = this.add.text(45, 20, edu.label, {
-                fontSize: '14px',
+            const hitAreaEdu = this.add.rectangle(0, 0, 75, 36, 0x000000, 0);
+
+            const label = this.add.text(0, 0, edu.label, {
+                fontSize: '13px',
                 fontFamily: FONTS.main,
-                color: isActive ? '#ffffff' : '#888888'
+                color: isActive ? '#ffffff' : '#71717a'
             }).setOrigin(0.5);
 
-            container.add([bg, label]);
+            container.add([bg, label, hitAreaEdu]);
             container.setData('value', edu.value);
             container.setData('bg', bg);
             container.setData('label', label);
 
-            bg.setInteractive({ useHandCursor: true });
-            bg.on('pointerdown', () => {
+            hitAreaEdu.setInteractive({ useHandCursor: true });
+            hitAreaEdu.on('pointerdown', () => {
                 this.currentEducation = edu.value;
                 this.formData.education = edu.value;
                 this.updateEducationButtons();
@@ -394,101 +414,217 @@ export class ResumeEditScene extends Phaser.Scene {
     private updateEducationButtons(): void {
         this.educationButtons.forEach(container => {
             const value = container.getData('value');
-            const bg = container.getData('bg') as Phaser.GameObjects.Rectangle;
+            const bg = container.getData('bg') as Phaser.GameObjects.Graphics;
             const label = container.getData('label') as Phaser.GameObjects.Text;
             const isActive = value === this.currentEducation;
 
-            bg.setFillStyle(isActive ? COLORS.primary : 0xffffff, isActive ? 0.3 : 0.05);
-            bg.setStrokeStyle(1, isActive ? COLORS.primary : 0xffffff, isActive ? 1 : 0.2);
-            label.setColor(isActive ? '#ffffff' : '#888888');
+            bg.clear();
+            if (isActive) {
+                bg.fillStyle(COLORS.primary, 1);
+            } else {
+                bg.fillStyle(COLORS.bgPanel, 0.8);
+            }
+            bg.fillRoundedRect(-37.5, -18, 75, 36, 8);
+            bg.lineStyle(1, isActive ? COLORS.primary : 0xffffff, isActive ? 0.3 : 0.05);
+            bg.strokeRoundedRect(-37.5, -18, 75, 36, 8);
+            label.setColor(isActive ? '#ffffff' : '#71717a');
         });
     }
 
-    private createNumberButtons(x: number, y: number, getValue: () => number, setValue: (v: number) => void): void {
-        const minusBtn = this.add.text(x, y + 20, '−', {
-            fontSize: '24px',
-            fontFamily: FONTS.mono,
+    private createSalaryPanel(x: number, y: number): void {
+        const panel = this.add.container(x, y);
+        panel.setAlpha(0);
+        panel.setData('entrance', true);
+
+        // 面板背景 - 现代卡片风格
+        const bg = this.add.graphics();
+        bg.fillStyle(COLORS.bgCard, 0.7);
+        bg.fillRoundedRect(-140, -20, 280, 180, 12);
+        bg.lineStyle(1, 0xffffff, 0.05);
+        bg.strokeRoundedRect(-140, -20, 280, 180, 12);
+
+        // 标题
+        const title = this.add.text(0, 0, '期望薪资', {
+            fontSize: '16px',
+            fontFamily: FONTS.main,
             color: '#ffffff',
-            backgroundColor: '#ffffff11',
-            padding: { x: 12, y: 4 }
+            fontStyle: 'bold'
         }).setOrigin(0.5);
-        minusBtn.setInteractive({ useHandCursor: true });
-        minusBtn.on('pointerdown', () => {
-            const newVal = Math.max(5000, getValue() - 1000);
-            setValue(newVal);
-        });
 
-        const valueText = this.add.text(x + 100, y + 20, '', {
-            fontSize: '18px',
+        // 薪资显示
+        this.salaryDisplay = this.add.text(0, 55, '', {
+            fontSize: '28px',
             fontFamily: FONTS.mono,
-            color: '#ffffff'
+            color: '#10b981',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.updateSalaryDisplay();
+
+        // 最低薪资调节
+        this.createSalaryControl(panel, -80, 100, '最低', () => this.currentSalaryMin, (v) => {
+            this.currentSalaryMin = v;
+            if (this.currentSalaryMin > this.currentSalaryMax) {
+                this.currentSalaryMax = this.currentSalaryMin;
+            }
+            this.updateSalaryDisplay();
+        });
+
+        // 最高薪资调节
+        this.createSalaryControl(panel, 80, 100, '最高', () => this.currentSalaryMax, (v) => {
+            this.currentSalaryMax = v;
+            if (this.currentSalaryMax < this.currentSalaryMin) {
+                this.currentSalaryMin = this.currentSalaryMax;
+            }
+            this.updateSalaryDisplay();
+        });
+
+        panel.add([bg, title, this.salaryDisplay]);
+        this.formData.expectedSalary = [this.currentSalaryMin, this.currentSalaryMax];
+    }
+
+    private createSalaryControl(parent: Phaser.GameObjects.Container, x: number, y: number, label: string, getValue: () => number, setValue: (v: number) => void): void {
+        const labelText = this.add.text(x, y - 15, label, {
+            fontSize: '11px',
+            fontFamily: FONTS.main,
+            color: '#52525b'
         }).setOrigin(0.5);
 
-        const plusBtn = this.add.text(x + 200, y + 20, '+', {
-            fontSize: '24px',
+        const minusBtn = this.add.text(x - 35, y + 10, '−', {
+            fontSize: '20px',
             fontFamily: FONTS.mono,
-            color: '#ffffff',
-            backgroundColor: '#ffffff11',
-            padding: { x: 12, y: 4 }
-        }).setOrigin(0.5);
-        plusBtn.setInteractive({ useHandCursor: true });
-        plusBtn.on('pointerdown', () => {
-            const newVal = Math.min(100000, getValue() + 1000);
-            setValue(newVal);
-        });
+            color: '#a1a1aa',
+            backgroundColor: '#27272a',
+            padding: { x: 10, y: 2 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        // 更新显示的函数
-        const updateDisplay = () => {
-            valueText.setText(`¥${getValue().toLocaleString()}`);
-        };
+        const plusBtn = this.add.text(x + 35, y + 10, '+', {
+            fontSize: '20px',
+            fontFamily: FONTS.mono,
+            color: '#a1a1aa',
+            backgroundColor: '#27272a',
+            padding: { x: 10, y: 2 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        // 初始显示
-        this.time.addEvent({
-            delay: 10,
-            callback: updateDisplay,
-            loop: true
-        });
+        minusBtn.on('pointerdown', () => setValue(Math.max(5000, getValue() - 1000)));
+        plusBtn.on('pointerdown', () => setValue(Math.min(100000, getValue() + 1000)));
+
+        parent.add([labelText, minusBtn, plusBtn]);
     }
 
     private updateSalaryDisplay(): void {
         this.formData.expectedSalary = [this.currentSalaryMin, this.currentSalaryMax];
         if (this.salaryDisplay) {
-            this.salaryDisplay.setText(`¥${this.currentSalaryMin.toLocaleString()} - ¥${this.currentSalaryMax.toLocaleString()}`);
+            this.salaryDisplay.setText(`¥${this.currentSalaryMin.toLocaleString()} - ${this.currentSalaryMax.toLocaleString()}`);
         }
     }
 
-    private createSaveButton(): void {
-        const btn = createStyledButton(this, 640, 680, 280, 50, '保存并开始求职', () => {
-            this.saveResume();
+    private createTipsCard(x: number, y: number): void {
+        const card = this.add.container(x, y);
+        card.setAlpha(0);
+        card.setData('entrance', true);
+        card.setData('delay', 200);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(COLORS.bgCard, 0.5);
+        bg.fillRoundedRect(-140, -10, 280, 200, 12);
+        bg.lineStyle(1, 0xffffff, 0.04);
+        bg.strokeRoundedRect(-140, -10, 280, 200, 12);
+
+        const icon = this.add.text(-120, 10, '💡', { fontSize: '18px' });
+
+        const title = this.add.text(-95, 10, '简历提示', {
+            fontSize: '14px',
+            fontFamily: FONTS.main,
+            color: '#a1a1aa',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+
+        const tips = [
+            '学历越高，大型企业面试机会越多',
+            '技能与职位要求匹配是筛选关键',
+            '期望薪资过高会降低入面率',
+            '丰富项目经验在谈薪时更有优势'
+        ];
+
+        tips.forEach((tip, i) => {
+            this.add.text(x - 120, y + 45 + i * 32, `• ${tip}`, {
+                fontSize: '12px',
+                fontFamily: FONTS.main,
+                color: '#52525b'
+            });
         });
+
+        card.add([bg, icon, title]);
+    }
+
+    private createSaveButton(): void {
+        const btn = createStyledButton(this, 640, 670, 200, 48, '开始求职 →', () => {
+            this.saveResume();
+        }, 'primary');
+        btn.setAlpha(0);
+        btn.setData('entrance', true);
+        btn.setData('delay', 300);
     }
 
     private saveResume(): void {
-        // 更新求职系统的简历
         jobHuntSystem.updateResume(this.formData);
 
-        // 显示成功提示
-        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7);
+        // 成功提示
+        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.8);
         overlay.setDepth(100);
 
-        const successBox = this.add.rectangle(640, 360, 400, 180, 0x2a3a2a);
-        successBox.setStrokeStyle(2, 0x00ff88);
+        const successBox = this.add.container(640, 360);
         successBox.setDepth(101);
+        successBox.setScale(0.8);
+        successBox.setAlpha(0);
 
-        const successText = this.add.text(640, 330, '✅ 简历已保存！', {
-            fontSize: '24px',
-            color: '#00ff88',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(102);
+        const boxBg = this.add.graphics();
+        boxBg.fillStyle(COLORS.bgPanel, 0.98);
+        boxBg.fillRoundedRect(-160, -70, 320, 140, 12);
+        boxBg.lineStyle(1, COLORS.success, 0.3);
+        boxBg.strokeRoundedRect(-160, -70, 320, 140, 12);
 
-        const tipText = this.add.text(640, 380, '即将开始你的求职之旅...', {
-            fontSize: '16px',
-            color: '#ffffff'
-        }).setOrigin(0.5).setDepth(102);
+        const icon = this.add.text(0, -30, '✓', {
+            fontSize: '36px',
+            color: '#10b981'
+        }).setOrigin(0.5);
 
-        // 延迟跳转到求职场景
+        const text = this.add.text(0, 25, '简历已保存！即将开始求职...', {
+            fontSize: '15px',
+            fontFamily: FONTS.main,
+            color: '#a1a1aa'
+        }).setOrigin(0.5);
+
+        successBox.add([boxBg, icon, text]);
+
+        this.tweens.add({
+            targets: successBox,
+            scale: 1,
+            alpha: 1,
+            duration: 200,
+            ease: 'Back.out'
+        });
+
         this.time.delayedCall(1500, () => {
             this.scene.start('JobHuntScene');
+        });
+    }
+
+    private playEntranceAnimations(): void {
+        let delay = 0;
+        this.children.each((child: any) => {
+            if (child.getData && child.getData('entrance')) {
+                const customDelay = child.getData('delay') || 0;
+                this.tweens.add({
+                    targets: child,
+                    alpha: 1,
+                    y: child.y - 10,
+                    duration: 400,
+                    delay: delay + customDelay,
+                    ease: 'Cubic.out'
+                });
+                delay += 30;
+            }
         });
     }
 }

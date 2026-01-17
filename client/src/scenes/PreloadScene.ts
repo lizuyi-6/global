@@ -146,18 +146,35 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 资源加载完成，检查是否需要创建简历
-        const hasSaveData = gameState.hasSaveData();
+        // 资源加载完成
+        console.log('Resource loading complete');
 
-        // 检查求职系统是否有自定义简历（通过检查简历名称是否为默认值）
+        // 通知 DOM 层游戏已准备就绪
+        window.dispatchEvent(new Event('GAME_LOADED'));
+
+        // 监听来自 DOM 的开始游戏事件
+        window.addEventListener('START_GAME', () => {
+            this.startGame();
+        });
+
+        // 如果在加载完成前用户已经点击了开始（极少见，但为了健壮性），可以检查一个全局标志
+        if ((window as any).GAME_START_REQUESTED) {
+            this.startGame();
+        }
+    }
+
+    private startGame(): void {
+        // 动态导入以避免循环依赖（如果需要），或者直接使用已导入的模块
+        // 这里还需要引入 GameState 和 JobHuntSystem，我们需要在文件头部添加导入
+
+        // 检查存档状态
+        const hasSave = gameState.hasSaveData();
         const resume = jobHuntSystem.getResume();
-        const hasCustomResume = resume.name !== '求职者' || hasSaveData;
+        const hasCustomResume = resume.name !== '求职者' || hasSave;
 
         if (hasCustomResume) {
-            // 已有自定义简历或存档，直接进入求职场景
             this.scene.start('JobHuntScene');
         } else {
-            // 首次游戏，进入简历编辑场景
             this.scene.start('ResumeEditScene');
         }
     }

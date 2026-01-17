@@ -160,6 +160,47 @@ class APIService {
     }
 
     /**
+     * 生成面试问题
+     */
+    async generateInterviewQuestion(
+        playerInfo: any,
+        companyInfo: any,
+        jobInfo: any,
+        roundInfo: any,
+        history: any[] = []
+    ): Promise<any> {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/interview/question`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    player_info: playerInfo,
+                    company_info: companyInfo,
+                    job_info: jobInfo,
+                    round_info: roundInfo,
+                    conversation_history: history
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`API 请求失败: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('面试问题生成失败:', error);
+            return {
+                question: "能介绍一下你自己吗？",
+                sample_answer: "您好，我叫求职者，很荣幸参加面试...",
+                type: "personal",
+                display_type: "自我介绍"
+            };
+        }
+    }
+
+    /**
      * 清除对话历史
      */
     clearHistory(npcName?: string): void {

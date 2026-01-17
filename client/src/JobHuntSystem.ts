@@ -101,7 +101,17 @@ export interface PlayerResume {
     major: string;
     experience: number;           // 工作年限
     skills: string[];
-    projects: string[];
+    projects: string[];           // 项目经历
+    
+    // 新增字段：竞赛、证书、荣誉、自我描述
+    competitions?: string[];      // 竞赛经历 (如: "ACM铜牌", "Kaggle Top 10%")
+    certificates?: string[];      // 证书 (如: "AWS认证", "PMP", "CPA")
+    awards?: string[];            // 荣誉奖项 (如: "优秀毕业生", "奖学金")
+    languages?: string[];         // 语言能力 (如: "英语流利", "日语N1")
+    selfDescription?: string;     // 自我描述/个人亮点
+    internships?: string[];       // 实习经历 (如: "字节跳动实习")
+    publications?: string[];      // 发表论文/专利
+    
     expectedSalary: [number, number];
     jobPreferences: {
         industries: string[];
@@ -417,6 +427,14 @@ class JobHuntSystem {
             experience: 2,
             skills: ['JavaScript', 'React', 'Node.js'],
             projects: ['个人博客', '电商小程序'],
+            // 新增字段默认值
+            competitions: [],           // 竞赛经历
+            certificates: [],           // 证书
+            awards: [],                  // 荣誉
+            languages: ['英语CET-4'],   // 语言能力
+            selfDescription: '',        // 自我描述
+            internships: [],            // 实习经历
+            publications: [],           // 发表论文/专利
             expectedSalary: [15000, 25000],
             jobPreferences: {
                 industries: ['互联网', '软件'],
@@ -618,6 +636,12 @@ class JobHuntSystem {
             events.push({ type: 'timeout', data: { message: '求职时间太长，心态崩溃' } });
         }
 
+        // 偶尔生成新职位 (每 3 天或职位池较小时)
+        const jobs = this.getJobPositions();
+        if (this.status.currentDay % 3 === 0 || jobs.length < 15) {
+            this.fetchMoreJobs();
+        }
+
         return { events };
     }
 
@@ -633,7 +657,22 @@ class JobHuntSystem {
         const responseDays = Math.floor(baseResponseDays * urgencyModifier);
 
         if (daysSinceApply >= responseDays) {
-            // 决定是否被查看
+            // 1. 系统直接拒绝的概率 (简历初筛失败)
+            const directRejectChance = 0.2; 
+            if (Math.random() < directRejectChance) {
+                app.status = 'rejected';
+                app.rejectionReason = REJECTION_REASONS[Math.floor(Math.random() * 3)]; // 前三种标准理由
+                app.lastUpdateDay = this.status.currentDay;
+                this.status.totalRejections++;
+                this.status.confidence = Math.max(0, this.status.confidence - 2);
+                events.push({
+                    type: 'application_rejected',
+                    data: { application: app, company, job, reason: app.rejectionReason }
+                });
+                return;
+            }
+
+            // 2. 决定是否被查看
             const viewChance = this.calculateViewChance(job, company);
 
             if (Math.random() < viewChance) {
@@ -644,9 +683,9 @@ class JobHuntSystem {
                     type: 'application_viewed',
                     data: { application: app, company, job }
                 });
-            } else if (daysSinceApply > responseDays + 7) {
-                // 超过一周没查看，大概率石沉大海
-                if (Math.random() < 0.7) {
+            } else if (daysSinceApply > responseDays + 5) {
+                // 超过5天没查看，大概率石沉大海 (已读不回)
+                if (Math.random() < 0.6) {
                     app.status = 'rejected';
                     app.rejectionReason = REJECTION_REASONS[9]; // 无回复
                     app.lastUpdateDay = this.status.currentDay;
@@ -667,7 +706,7 @@ class JobHuntSystem {
         const company = this.getCompany(app.companyId);
         if (!job || !company) return;
 
-        if (daysSinceView >= 2) {
+        if (daysSinceView >= 1) {
             // 决定是否邀请面试
             const interviewChance = this.calculateInterviewChance(job, company);
 
@@ -694,9 +733,10 @@ class JobHuntSystem {
                     type: 'interview_invited',
                     data: { application: app, company, job, interview: firstRound }
                 });
-            } else if (daysSinceView > 5) {
-                // 查看后没消息
-                if (Math.random() < 0.5) {
+            } else if (daysSinceView > 3) {
+                // 查看后拒绝的概率增加，模拟“简历筛选后的淘汰”
+                const rejectionChance = 0.4;
+                if (Math.random() < rejectionChance) {
                     const reasonIndex = Math.floor(Math.random() * (REJECTION_REASONS.length - 1));
                     app.status = 'rejected';
                     app.rejectionReason = REJECTION_REASONS[reasonIndex];
@@ -737,18 +777,196 @@ class JobHuntSystem {
     }
 
     private calculateInterviewChance(job: JobPosition, company: Company): number {
-        let chance = 0.4;
+        // 使用综合简历评分系统
+        const resumeScore = this.calculateResumeScore(job, company);
+        
+        // 基础概率：根据简历评分计算 (0-100 分 -> 5%-60% 概率)
+        let chance = 0.05 + (resumeScore / 100) * 0.55;
 
-        // 技能匹配度
+        // 公司难度修正（大厂竞争更激烈）
+        chance -= (company.interviewDifficulty - 3) * 0.05;
+
+        // 公司口碑修正（口碑好的公司更多人竞争）
+        chance -= (company.reputation - 3) * 0.03;
+
+        // 限制范围: 5% - 60%
+        return Math.max(0.05, Math.min(0.60, chance));
+    }
+
+    /**
+     * 综合简历评分系统
+     * 评估简历各方面价值，返回 0-100 分
+     */
+    private calculateResumeScore(job: JobPosition, company: Company): number {
+        let score = 0;
+        const resume = this.resume;
+
+        // ========== 1. 学历评分 (0-25分) ==========
+        const eduScores: { [key: string]: number } = {
+            'high_school': 5,    // 高中
+            'college': 10,       // 大专
+            'bachelor': 18,      // 本科
+            'master': 23,        // 硕士
+            'phd': 25            // 博士
+        };
+        score += eduScores[resume.education] || 10;
+
+        // 学历要求匹配检查
+        const eduLevel: { [key: string]: number } = { 'high_school': 1, 'college': 2, 'bachelor': 3, 'master': 4, 'phd': 5 };
+        const requiredEdu = job.education.includes('硕士') ? 4 : job.education.includes('本科') ? 3 : 2;
+        if (eduLevel[resume.education] < requiredEdu) {
+            // 学历不达标，扣减学历分的50%
+            score *= 0.5;
+        }
+
+        // ========== 2. 学校声誉 (0-10分) ==========
+        const schoolLower = resume.school.toLowerCase();
+        if (schoolLower.includes('985') || schoolLower.includes('清华') || schoolLower.includes('北大') ||
+            schoolLower.includes('浙大') || schoolLower.includes('复旦') || schoolLower.includes('上交')) {
+            score += 10;
+        } else if (schoolLower.includes('211') || schoolLower.includes('重点')) {
+            score += 7;
+        } else if (schoolLower.includes('一本')) {
+            score += 5;
+        } else if (!schoolLower.includes('普通') && !schoolLower.includes('三本')) {
+            score += 3;
+        }
+
+        // ========== 3. 工作经验 (0-15分) ==========
+        const reqExpStr = job.experience.split('-')[0];
+        const requiredExp = parseInt(reqExpStr) || 0;
+        if (resume.experience >= requiredExp + 2) {
+            score += 15; // 经验超出要求
+        } else if (resume.experience >= requiredExp) {
+            score += 12; // 经验符合要求
+        } else if (resume.experience >= requiredExp - 1) {
+            score += 7;  // 经验略欠缺
+        } else {
+            score += 2;  // 经验严重不足
+        }
+
+        // ========== 4. 技能匹配 (0-15分) ==========
         const skillMatch = job.requirements.filter(req =>
-            this.resume.skills.some(skill => req.toLowerCase().includes(skill.toLowerCase()))
-        ).length / job.requirements.length;
-        chance += skillMatch * 0.3;
+            resume.skills.some(skill => req.toLowerCase().includes(skill.toLowerCase()))
+        ).length / Math.max(job.requirements.length, 1);
+        score += Math.floor(skillMatch * 15);
 
-        // 公司难度
-        chance -= (company.interviewDifficulty - 3) * 0.1;
+        // ========== 5. 项目经历 (0-10分) ==========
+        const projectCount = resume.projects?.length || 0;
+        score += Math.min(projectCount * 3, 10);
 
-        return Math.max(0.1, Math.min(0.8, chance));
+        // ========== 6. 竞赛经历 (0-10分) - 重要加分项 ==========
+        if (resume.competitions && resume.competitions.length > 0) {
+            let compScore = 0;
+            resume.competitions.forEach(comp => {
+                const compLower = comp.toLowerCase();
+                // 顶级竞赛
+                if (compLower.includes('acm') || compLower.includes('金牌') || compLower.includes('冠军') ||
+                    compLower.includes('top 1') || compLower.includes('第一名') || compLower.includes('kaggle')) {
+                    compScore += 5;
+                }
+                // 优秀名次
+                else if (compLower.includes('银牌') || compLower.includes('亚军') || compLower.includes('top 10') ||
+                    compLower.includes('二等奖') || compLower.includes('省级')) {
+                    compScore += 3;
+                }
+                // 参与竞赛
+                else {
+                    compScore += 1.5;
+                }
+            });
+            score += Math.min(compScore, 10);
+        }
+
+        // ========== 7. 证书资质 (0-8分) ==========
+        if (resume.certificates && resume.certificates.length > 0) {
+            let certScore = 0;
+            resume.certificates.forEach(cert => {
+                const certLower = cert.toLowerCase();
+                // 高含金量证书
+                if (certLower.includes('cpa') || certLower.includes('注册会计') ||
+                    certLower.includes('aws') || certLower.includes('gcp') || certLower.includes('azure') ||
+                    certLower.includes('pmp') || certLower.includes('系统架构师')) {
+                    certScore += 3;
+                }
+                // 普通证书
+                else {
+                    certScore += 1;
+                }
+            });
+            score += Math.min(certScore, 8);
+        }
+
+        // ========== 8. 实习经历 (0-8分) ==========
+        if (resume.internships && resume.internships.length > 0) {
+            let internScore = 0;
+            resume.internships.forEach(intern => {
+                const internLower = intern.toLowerCase();
+                // 大厂实习
+                if (internLower.includes('字节') || internLower.includes('腾讯') || internLower.includes('阿里') ||
+                    internLower.includes('百度') || internLower.includes('华为') || internLower.includes('美团') ||
+                    internLower.includes('google') || internLower.includes('microsoft') || internLower.includes('amazon')) {
+                    internScore += 4;
+                } else {
+                    internScore += 2;
+                }
+            });
+            score += Math.min(internScore, 8);
+        }
+
+        // ========== 9. 语言能力 (0-5分) ==========
+        if (resume.languages && resume.languages.length > 0) {
+            let langScore = 0;
+            resume.languages.forEach(lang => {
+                const langLower = lang.toLowerCase();
+                if (langLower.includes('流利') || langLower.includes('fluent') || langLower.includes('n1') ||
+                    langLower.includes('雅思7') || langLower.includes('雅思8') || langLower.includes('托福100')) {
+                    langScore += 3;
+                } else {
+                    langScore += 1;
+                }
+            });
+            score += Math.min(langScore, 5);
+        }
+
+        // ========== 10. 荣誉奖项 (0-5分) ==========
+        if (resume.awards && resume.awards.length > 0) {
+            let awardScore = 0;
+            resume.awards.forEach(award => {
+                const awardLower = award.toLowerCase();
+                if (awardLower.includes('国家') || awardLower.includes('一等') || awardLower.includes('特等')) {
+                    awardScore += 3;
+                } else if (awardLower.includes('奖学金') || awardLower.includes('优秀')) {
+                    awardScore += 2;
+                } else {
+                    awardScore += 1;
+                }
+            });
+            score += Math.min(awardScore, 5);
+        }
+
+        // ========== 11. 发表论文/专利 (0-5分) ==========
+        if (resume.publications && resume.publications.length > 0) {
+            const pubCount = resume.publications.length;
+            // 论文对研究岗位特别重要
+            const isResearchJob = job.title.toLowerCase().includes('算法') ||
+                job.title.toLowerCase().includes('研究') ||
+                job.requirements.some(r => r.includes('论文'));
+            score += Math.min(pubCount * (isResearchJob ? 3 : 1.5), 5);
+        }
+
+        // ========== 12. 自我描述质量 (0-4分) ==========
+        if (resume.selfDescription) {
+            const desc = resume.selfDescription;
+            // 检查自我描述的质量
+            const positiveKeywords = ['主导', '负责', '优化', '提升', '解决', '创新', '团队', '管理', '成果', '数据'];
+            const matchCount = positiveKeywords.filter(kw => desc.includes(kw)).length;
+            const lengthBonus = desc.length > 50 ? 1 : 0;
+            score += Math.min(matchCount + lengthBonus, 4);
+        }
+
+        // 确保分数在 0-100 范围内
+        return Math.max(0, Math.min(100, score));
     }
 
     private generateInterviewerName(): string {

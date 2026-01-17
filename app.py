@@ -73,13 +73,23 @@ class JobGenerateRequest(BaseModel):
     player_resume: dict
     count: Optional[int] = 15
 
+class InterviewQuestionRequest(BaseModel):
+    player_info: dict
+    company_info: dict
+    job_info: dict
+    round_info: dict
+    conversation_history: List[dict] = []
+
 # ========== FastAPI 端点 ==========
 
 @fastapi_app.post("/api/jobs/generate")
 async def generate_jobs(request: JobGenerateRequest):
     """AI 生成招聘职位列表"""
     if not qwen_service:
-        return qwen_service._mock_job_listings(request.count)
+        # 使用本地模拟数据
+        from qwen_service import QwenService
+        temp_service = QwenService()
+        return temp_service._mock_job_listings(request.count)
     
     try:
         jobs = await qwen_service.generate_job_listings(
@@ -89,7 +99,38 @@ async def generate_jobs(request: JobGenerateRequest):
         return jobs
     except Exception as e:
         print(f"生成职位列表失败: {e}")
-        return qwen_service._mock_job_listings(request.count)
+        from qwen_service import QwenService
+        temp_service = QwenService()
+        return temp_service._mock_job_listings(request.count)
+
+@fastapi_app.post("/api/interview/question")
+async def generate_interview_question(request: InterviewQuestionRequest):
+    """AI 生成面试问题及示例回答"""
+    if not qwen_service:
+        return {
+            "question": "请简单介绍一下你自己。",
+            "sample_answer": "面试官您好，我叫求职者，很荣幸参加面试...",
+            "type": "personal",
+            "display_type": "自我介绍"
+        }
+    
+    try:
+        result = await qwen_service.generate_interview_question(
+            player_info=request.player_info,
+            company_info=request.company_info,
+            job_info=request.job_info,
+            round_info=request.round_info,
+            conversation_history=request.conversation_history
+        )
+        return result
+    except Exception as e:
+        print(f"生成面试问题失败: {e}")
+        return {
+            "question": "能聊聊你对这个职位的理解吗？",
+            "sample_answer": "我认为这个职位需要扎实的技术功底和良好的沟通能力...",
+            "type": "behavioral",
+            "display_type": "职位理解"
+        }
 
 @fastapi_app.get("/api/status")
 async def root():

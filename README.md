@@ -17,16 +17,27 @@ license: Apache License 2.0
 
 # Global - ModelScope 竞赛项目
 
-## 项目概述
+## 1、产品名称
+**职场人生 (Career Life Simulation)** —— AI驱动的高沉浸式职场RPG
 
-这是一个基于 ModelScope Studio 的 AI 竞赛项目，使用 Gradio 框架构建 Web 应用。
+## 2、产品理念/亮点/功能
+*   **核心理念**：拒绝脚本，AI驱动真实职场生态。每一次对话都在重塑人际关系，每一次选择都决定职业命运。
+*   **功能亮点**：
+    *   **AI 社交引擎**：基于 LLM 的 NPC 拥有独立记忆与性格，办公室政治不再是预设剧情。
+    *   **真实经济模拟**：从求职面试到股市博弈，体验最真实的财富积累与阶层跨越。
+    *   **沉浸式视觉**：Deep Slate 深色美学 + 动态 Bento Grid 布局，打造电影级交互体验。
 
-## 技术栈
+## 3、产品展示页面
+*   **落地页**：高对比度视觉冲击，不对称网格布局呈现核心卖点，光影质感拉满。
+    
+    ![Landing Hero](docs/assets/landing_hero.png)
+    
+    *核心特性展示 (Bento Grid)*
+    ![Features](docs/assets/landing_features.png)
 
-- **框架**: Gradio
-- **Python 版本**: 3.10
-- **容器**: Docker
-- **平台**: ModelScope Studio
+*   **游戏UI**：1080p+ 高清重制，可视化求职看板与沉浸式数据中心，清晰、专业、高级。
+    
+    ![Game UI](docs/assets/game_ui.png)
 
 ## 本地开发
 

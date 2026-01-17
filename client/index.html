@@ -1,57 +1,1190 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark scroll-smooth">
 
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>职场沙盒 - Office Sandbox</title>
+  <meta name="description" content="职场人生 - A Web-based Career Simulation Game powered by Phaser 3 and Generative AI.">
+  <title>职场人生 | Career Life Simulation</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Newsreader', 'serif'],
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.6s ease-out forwards',
+            'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'slide-up-delayed': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 6s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
+            }
+          },
+          colors: {
+            game: {
+              bg: '#050505',
+              panel: '#0A0A0A',
+              border: '#1F1F1F',
+              accent: '#6366f1', // Indigo
+            }
+          }
+        },
+      },
+    };
+  </script>
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,wght@0,300;0,400;1,300&display=swap"
     rel="stylesheet">
+
   <style>
+    /* CSS Variables - Modern Color Palette */
     :root {
-      --bg-color: #0a0a0f;
-      --accent-blue: #4a90d9;
-      --accent-green: #00ff88;
-      --accent-red: #ff4444;
+      --bg-primary: #050505;
+      --bg-secondary: #0A0A0A;
+      --bg-panel: #0C0C0E;
+      --bg-card: #111113;
+      --border-subtle: rgba(255, 255, 255, 0.05);
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.12);
+      --accent-indigo: #6366f1;
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --text-primary: #ffffff;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --text-dim: #52525b;
+      --mouse-x: 50vw;
+      --mouse-y: 50vh;
     }
 
-    * {
+    /* Reset & Base */
+    *,
+    *::before,
+    *::after {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
-      background-color: var(--bg-color);
-      margin: 0;
-      padding: 0;
+      background-color: #0f0f14;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      color: var(--text-secondary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       overflow: hidden;
       width: 100vw;
       height: 100vh;
+      cursor: default;
     }
 
+    /* Vignette to focus center */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 0%, #0f0f14 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Custom Selection */
+    ::selection {
+      background-color: rgba(99, 102, 241, 0.25);
+      color: #fff;
+    }
+
+    /* Spotlight Effect Layer - Subtle */
+    .spotlight-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y),
+          rgba(99, 102, 241, 0.08),
+          transparent 40%);
+    }
+
+    @keyframes grid-float {
+      0% {
+        transform: perspective(500px) rotateX(20deg) scale(1.5) translateY(0);
+      }
+
+      50% {
+        transform: perspective(500px) rotateX(20deg) scale(1.5) translateY(-20px);
+      }
+
+      100% {
+        transform: perspective(500px) rotateX(20deg) scale(1.5) translateY(0);
+      }
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      /* Behind everything */
+      pointer-events: none;
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      /* Behind everything */
+      pointer-events: none;
+    }
+
+    /* App Container (Phaser) */
     #app {
       width: 100vw;
       height: 100vh;
-      position: relative;
-      background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: var(--bg-primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      z-index: 1;
+      /* Lowest play layer */
     }
 
+    /* Landing Page Overlay */
+    #landing-page-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 100;
+      /* Above everything */
+      background-color: #050505;
+      overflow-y: auto;
+      /* Allow scrolling content */
+      overflow-x: hidden;
+      transition: opacity 0.8s ease-in-out, visibility 0.8s;
+    }
+
+    #landing-page-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Phaser Canvas */
     canvas {
-      border: 1px solid rgba(74, 144, 217, 0.3);
-      border-radius: 8px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .glass-card {
+      background: rgba(20, 20, 25, 0.7);
+      /* Darker, higher opacity */
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      /* Stronger border */
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+      /* Deep shadow */
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Text Glow Utility */
+    .text-glow {
+      text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* 3D Dashboard/Game View Container */
+    .perspective-container {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+
+    .game-ui-card {
+      transform: rotateX(15deg) scale(0.95);
+      transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.6s ease;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 50px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Button Glow */
+    .btn-primary {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.5s ease;
+    }
+
+    .btn-primary:hover::after {
+      transform: translateX(100%);
+    }
+
+    /* Typewriter Cursor */
+    .cursor-blink {
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* Animations (Merged) */
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes pulse-slow {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.6;
+      }
     }
   </style>
 </head>
 
 <body>
+  <!-- Visual FX Layers (Global) -->
+  <canvas id="bg-canvas"></canvas>
+  <div class="grid-bg"></div>
+  <div class="spotlight-overlay"></div>
+
+  <!-- Game Container (Initially obscured) -->
   <div id="app"></div>
-  <script type="module" src="/src/main.ts"></script>
+
+  <!-- DOM Landing Page Overlay -->
+  <div id="landing-page-overlay">
+    <!-- Generated Page Content -->
+    <nav
+      class="fixed top-0 w-full z-50 border-b border-white/5 bg-[#050505]/70 backdrop-blur-xl transition-all duration-300">
+      <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+        <a href="#" class="flex items-center gap-2 group">
+          <div
+            class="w-6 h-6 rounded bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center group-hover:border-indigo-500/30 transition-colors">
+            <iconify-icon icon="lucide:briefcase" class="text-indigo-400" width="14" stroke-width="2"></iconify-icon>
+          </div>
+          <span class="text-xs font-semibold tracking-wide text-white">CAREER<span
+              class="text-white/40">LIFE</span></span>
+        </a>
+
+        <div class="hidden md:flex items-center gap-6">
+          <a href="#features" class="text-xs text-zinc-400 hover:text-white transition-colors"
+            data-i18n="nav.features">Features</a>
+          <a href="#tech" class="text-xs text-zinc-400 hover:text-white transition-colors"
+            data-i18n="nav.tech">Technology</a>
+          <a href="#roadmap" class="text-xs text-zinc-400 hover:text-white transition-colors"
+            data-i18n="nav.roadmap">Roadmap</a>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <a href="https://github.com" target="_blank" class="text-zinc-500 hover:text-white transition-colors">
+            <iconify-icon icon="lucide:github" width="16"></iconify-icon>
+          </a>
+          <!-- Language Switcher -->
+          <div class="relative">
+            <select id="language-selector"
+              class="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs rounded px-2 py-1 pr-6 hover:border-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer">
+              <option value="zh-CN">中文</option>
+              <option value="en">EN</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-zinc-500">
+              <iconify-icon icon="lucide:chevron-down" width="12"></iconify-icon>
+            </div>
+          </div>
+          <button id="nav-play-btn" data-i18n="nav.play"
+            class="btn-primary px-3 py-1.5 rounded text-xs font-medium bg-white text-black hover:bg-zinc-200 transition-colors">
+            Play Demo
+          </button>
+        </div>
+      </div>
+    </nav>
+
+
+
+
+    <!-- Hero Section -->
+    <main class="relative z-10 pt-32 pb-20 min-h-screen flex flex-col items-center justify-start overflow-hidden">
+
+      <!-- Hero Text -->
+      <div class="text-center max-w-3xl mx-auto px-6 mb-16 relative z-20">
+        <div
+          class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-[10px] font-medium text-indigo-300 mb-6 animate-fade-in backdrop-blur-md">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+          <span data-i18n="hero.version">Version 0.9.2 Beta Live</span>
+        </div>
+
+        <h1
+          class="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-white mb-6 leading-[1.1] animate-slide-up">
+          <span data-i18n="hero.title1">Simulate Reality.</span> <br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-zinc-400 text-glow"
+            data-i18n="hero.title2">
+            Master the Workplace.
+          </span>
+        </h1>
+
+        <p class="text-sm md:text-base text-zinc-400 font-light max-w-xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed opacity-0"
+          data-i18n="hero.subtitle">
+          职场人生 (Career Life) is a Phaser 3 simulation engine driven by Generative AI.
+          Navigate office politics, negotiate salaries, and build your empire in a
+          <span class="text-zinc-200">dynamic, non-linear environment</span>.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 animate-slide-up-delayed opacity-0"
+          style="animation-delay: 0.3s;">
+          <button id="hero-start-btn"
+            class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-all shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)] flex items-center justify-center gap-2 group">
+            <iconify-icon icon="lucide:play" width="14"></iconify-icon>
+            <span data-i18n="hero.start">Start Simulation</span>
+          </button>
+          <button
+            class="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900/50 text-zinc-300 hover:text-white text-xs font-medium transition-all backdrop-blur-sm"
+            data-i18n="hero.docs">
+            View Documentation
+          </button>
+        </div>
+      </div>
+
+      <!-- 3D Game Interface Mockup -->
+      <div class="perspective-container w-full max-w-5xl px-4 mx-auto relative z-10 animate-slide-up-delayed opacity-0"
+        style="animation-delay: 0.5s;">
+
+        <!-- The Card/Screen -->
+        <div
+          class="game-ui-card relative bg-[#0A0A0B] rounded-xl overflow-hidden border border-white/10 aspect-[16/10] md:aspect-[21/9] flex flex-col">
+
+          <!-- Window Bar -->
+          <div class="h-8 bg-[#0F0F11] border-b border-white/5 flex items-center px-3 gap-2">
+            <div class="flex gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
+            </div>
+            <div class="ml-auto flex items-center gap-2 text-[10px] font-mono text-zinc-500">
+              <span class="flex items-center gap-1"><iconify-icon icon="lucide:wifi" width="10"></iconify-icon>
+                <span data-i18n="ui.connected">CONNECTED</span></span>
+              <span class="text-indigo-500" data-i18n="ui.ai_active">AI_ENGINE: ACTIVE</span>
+            </div>
+          </div>
+
+          <!-- Game Content Area -->
+          <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar (Stats) -->
+            <div class="w-48 bg-[#0C0C0E] border-r border-white/5 p-4 hidden md:flex flex-col gap-6">
+              <!-- Profile -->
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <iconify-icon icon="lucide:user" width="18"></iconify-icon>
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs font-semibold text-white" data-i18n="ui.role">Intern</span>
+                  <span class="text-[10px] text-zinc-500" data-i18n="ui.level">Level 1</span>
+                </div>
+              </div>
+
+              <!-- Resources -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between p-2 rounded bg-white/5 border border-white/5">
+                  <span class="text-[10px] text-zinc-400">¥ Money</span>
+                  <span class="text-xs font-mono text-emerald-400">2,500</span>
+                </div>
+                <div class="flex items-center justify-between p-2 rounded bg-white/5 border border-white/5">
+                  <span class="text-[10px] text-zinc-400">Stress</span>
+                  <span class="text-xs font-mono text-rose-400">High</span>
+                </div>
+              </div>
+
+              <!-- Energy Bar -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] text-zinc-400 uppercase tracking-wider">
+                  <span data-i18n="ui.energy">Energy</span><span>85%</span>
+                </div>
+                <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-500 w-[85%]"></div>
+                </div>
+              </div>
+
+              <!-- Active Tasks -->
+              <div class="mt-auto">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Active Quest</p>
+                <div class="p-2 rounded border border-indigo-500/20 bg-indigo-500/5">
+                  <p class="text-[10px] text-indigo-300">Complete Sprint Report</p>
+                  <div class="flex items-center gap-1 mt-1">
+                    <iconify-icon icon="lucide:clock" width="10" class="text-indigo-400"></iconify-icon>
+                    <span class="text-[9px] text-indigo-400">2h remaining</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Main View -->
+            <div class="flex-1 bg-[#050505] relative flex flex-col">
+              <div class="absolute inset-0 grid-bg opacity-30"></div>
+
+              <!-- Top Bar -->
+              <div class="h-10 border-b border-white/5 flex items-center px-4 justify-between bg-white/2">
+                <div class="flex gap-4">
+                  <span
+                    class="text-[10px] text-zinc-400 hover:text-white cursor-pointer transition-colors">OFFICE</span>
+                  <span class="text-[10px] text-white border-b border-indigo-500 pb-0.5 cursor-pointer">MEETING</span>
+                  <span class="text-[10px] text-zinc-400 hover:text-white cursor-pointer transition-colors">EMAIL</span>
+                </div>
+                <div class="text-[10px] text-zinc-600 font-mono">Build v0.9.2</div>
+              </div>
+
+              <!-- Mock Dialogue -->
+              <div class="flex-1 flex flex-col items-center justify-center p-8 relative z-0">
+                <div class="w-16 h-16 rounded-full border-2 border-indigo-500/30 p-1 mb-4 animate-float">
+                  <div
+                    class="w-full h-full rounded-full bg-gradient-to-b from-zinc-700 to-zinc-900 flex items-center justify-center overflow-hidden">
+                    <iconify-icon icon="lucide:user-check" class="text-zinc-400" width="32"></iconify-icon>
+                  </div>
+                </div>
+                <div class="max-w-md w-full glass rounded-xl p-5 border-t border-white/10 shadow-2xl relative">
+                  <div
+                    class="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-[#1F1F22]">
+                  </div>
+                  <p class="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-wide" data-i18n="ui.manager">
+                    Manager David</p>
+                  <p class="text-sm text-zinc-200 leading-relaxed font-light" id="typewriter-text"></p>
+                  <span id="cursor" class="inline-block w-[2px] h-[1em] bg-indigo-500 align-middle ml-1"></span>
+
+                  <!-- Response Options -->
+                  <div class="mt-4 flex gap-2">
+                    <button
+                      class="flex-1 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] text-zinc-300 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white transition-all">Accept
+                      Offer</button>
+                    <button
+                      class="flex-1 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] text-zinc-300 hover:bg-rose-600 hover:border-rose-500 hover:text-white transition-all">Decline</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Horizon Glow -->
+        <div
+          class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[120%] h-[100px] bg-indigo-600/20 blur-[100px] rounded-full pointer-events-none z-[-1]">
+        </div>
+      </div>
+    </main>
+
+    <!-- Features Section (Bento Grid) -->
+    <section id="features" class="py-24 relative z-10">
+      <div class="max-w-7xl mx-auto px-6">
+        <h2 class="text-3xl font-bold text-white mb-16 text-center" data-i18n="nav.features">Key Features</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+          <!-- Feature 1: AI NPCs (Large Left) -->
+          <div
+            class="md:col-span-7 glass-card p-8 rounded-2xl relative overflow-hidden group min-h-[320px] flex flex-col justify-between">
+            <div
+              class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+            <div class="relative z-10">
+              <div
+                class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 transition-transform duration-300">
+                <iconify-icon icon="lucide:brain-circuit" width="24"></iconify-icon>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-3" data-i18n="feature1.title">AI-Powered NPCs</h3>
+              <p class="text-zinc-400 leading-relaxed max-w-md" data-i18n="feature1.desc">
+                Characters generated by LLMs. They have memories, personalities, and hidden agendas.
+              </p>
+            </div>
+            <!-- Decorative -->
+            <div
+              class="absolute -right-10 -bottom-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-colors">
+            </div>
+          </div>
+
+          <!-- Feature 2: Office Politics (Tall Right) -->
+          <div
+            class="md:col-span-5 glass-card p-8 rounded-2xl relative overflow-hidden group min-h-[320px] flex flex-col justify-between">
+            <div
+              class="absolute inset-0 bg-gradient-to-bl from-rose-500/5 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+            <div class="relative z-10">
+              <div
+                class="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400 mb-6 group-hover:scale-110 transition-transform duration-300">
+                <iconify-icon icon="lucide:users" width="24"></iconify-icon>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-3" data-i18n="feature2.title">Office Politics</h3>
+              <p class="text-zinc-400 leading-relaxed" data-i18n="feature2.desc">
+                Navigate complex social hierarchies. Your reputation matters more than your code.
+              </p>
+            </div>
+            <!-- Decorative -->
+            <div
+              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[200px] text-white/5 font-bold rotate-12 select-none pointer-events-none">
+              ?</div>
+          </div>
+
+          <!-- Feature 3: Dynamic Career (Wide Bottom) -->
+          <div
+            class="md:col-span-12 glass-card p-8 rounded-2xl relative overflow-hidden group flex flex-col md:flex-row items-center gap-8">
+            <div
+              class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+
+            <div class="relative z-10 flex-1">
+              <div class="flex items-center gap-4 mb-4">
+                <div
+                  class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform duration-300">
+                  <iconify-icon icon="lucide:trending-up" width="24"></iconify-icon>
+                </div>
+                <h3 class="text-2xl font-bold text-white" data-i18n="feature3.title">Dynamic Career</h3>
+              </div>
+              <p class="text-zinc-400 leading-relaxed max-w-2xl" data-i18n="feature3.desc">
+                From intern to CTO. Every decision impacts your salary, stress levels, and job security.
+              </p>
+            </div>
+
+            <!-- Visual Stats Mockup for Feature 3 -->
+            <div class="relative z-10 flex gap-4 opacity-60 group-hover:opacity-100 transition-opacity">
+              <div class="px-4 py-2 rounded-lg bg-black/40 border border-white/5 backdrop-blur-sm">
+                <span class="text-[10px] text-zinc-500 uppercase">Salary</span>
+                <div class="text-emerald-400 font-mono">¥ 25,000</div>
+              </div>
+              <div class="px-4 py-2 rounded-lg bg-black/40 border border-white/5 backdrop-blur-sm">
+                <span class="text-[10px] text-zinc-500 uppercase">Stress</span>
+                <div class="text-rose-400 font-mono">82%</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section id="roadmap" class="py-24 relative z-10 border-t border-white/5">
+      <div class="max-w-4xl mx-auto px-6">
+        <h2 class="text-3xl font-bold text-white mb-16 text-center" data-i18n="roadmap.title">Development Roadmap</h2>
+        <div
+          class="relative space-y-12 before:content-[''] before:absolute before:left-4 md:before:left-1/2 before:top-0 before:bottom-0 before:w-px before:bg-gradient-to-b before:from-indigo-500 before:via-zinc-800 before:to-transparent">
+
+          <!-- Item 1 -->
+          <div class="relative flex flex-col md:flex-row items-center justify-between gap-8 group">
+            <div class="md:w-[45%] md:text-right order-2 md:order-1">
+              <span
+                class="inline-block px-2 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded mb-2 border border-indigo-500/20">PHASE
+                1 - COMPLETED</span>
+              <h4 class="text-lg font-semibold text-white" data-i18n="roadmap.p1.title">Core Engine</h4>
+              <p class="text-zinc-500 text-sm mt-1" data-i18n="roadmap.p1.desc">Basic Phaser 3 Setup, Isometric
+                Rendering, and initial LLM integration.</p>
+            </div>
+            <div
+              class="absolute left-4 md:left-1/2 -translate-x-[5px] w-2.5 h-2.5 bg-indigo-500 rounded-full border-4 border-[#050505] shadow-[0_0_10px_rgba(99,102,241,0.5)] order-1 md:order-2">
+            </div>
+            <div class="md:w-[45%] order-3"></div>
+          </div>
+
+          <!-- Item 2 -->
+          <div class="relative flex flex-col md:flex-row items-center justify-between gap-8 group">
+            <div class="md:w-[45%] order-2 md:order-1"></div>
+            <div
+              class="absolute left-4 md:left-1/2 -translate-x-[5px] w-2.5 h-2.5 bg-zinc-600 rounded-full border-4 border-[#050505] order-1 md:order-2 z-10 bg-white animate-pulse">
+            </div>
+            <div class="md:w-[45%] order-3">
+              <span
+                class="inline-block px-2 py-1 bg-white/10 text-white text-[10px] font-bold rounded mb-2 border border-white/20">PHASE
+                2 - CURRENT</span>
+              <h4 class="text-lg font-semibold text-white" data-i18n="roadmap.p2.title">Alpha Testing</h4>
+              <p class="text-zinc-500 text-sm mt-1" data-i18n="roadmap.p2.desc">Web Deployment, Save System, and
+                enhanced NPC interactions.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Technical Architecture (Bento Grid) -->
+        <section id="tech" class="py-24 relative">
+          <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-white mb-16 text-center" data-i18n="nav.tech">Technical Architecture</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+              <!-- Hero 1: Phaser (Span 2) -->
+              <div
+                class="md:col-span-2 glass-card p-8 rounded-2xl group hover:bg-white/5 transition-colors relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full"></div>
+                <div class="flex items-center justify-between mb-6">
+                  <iconify-icon icon="ion:game-controller-outline" class="text-emerald-400 text-4xl"></iconify-icon>
+                  <span
+                    class="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-mono border border-emerald-500/20">CORE
+                    ENGINE</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Phaser 3</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed" data-i18n="tech.phaser">
+                  High-performance 2D rendering engine handling sprites, physics, and scene management.
+                </p>
+              </div>
+
+              <!-- Hero 2: GenAI (Span 2) -->
+              <div
+                class="md:col-span-2 glass-card p-8 rounded-2xl group hover:bg-white/5 transition-colors relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full"></div>
+                <div class="flex items-center justify-between mb-6">
+                  <iconify-icon icon="lucide:sparkles" class="text-indigo-400 text-4xl"></iconify-icon>
+                  <span
+                    class="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-mono border border-indigo-500/20">INTELLIGENCE</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Generative AI</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed" data-i18n="tech.genai">
+                  Dynamic dialogue and narrative branching powered by Large Language Models.
+                </p>
+              </div>
+
+              <!-- Small 1: WebGL -->
+              <div
+                class="md:col-span-1 glass-card p-5 rounded-xl group hover:bg-white/5 transition-colors flex flex-col justify-between h-40">
+                <iconify-icon icon="lucide:box" class="text-rose-400 text-2xl mb-2"></iconify-icon>
+                <div>
+                  <h3 class="text-sm font-bold text-white mb-1">WebGL</h3>
+                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.webgl">Hardware-accelerated
+                    graphics.</p>
+                </div>
+              </div>
+
+              <!-- Small 2: Tailwind -->
+              <div
+                class="md:col-span-1 glass-card p-5 rounded-xl group hover:bg-white/5 transition-colors flex flex-col justify-between h-40">
+                <iconify-icon icon="lucide:palette" class="text-cyan-400 text-2xl mb-2"></iconify-icon>
+                <div>
+                  <h3 class="text-sm font-bold text-white mb-1">Tailwind</h3>
+                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.tailwind">Utility-first modern
+                    styling.</p>
+                </div>
+              </div>
+
+              <!-- Small 3: TypeScript -->
+              <div
+                class="md:col-span-1 glass-card p-5 rounded-xl group hover:bg-white/5 transition-colors flex flex-col justify-between h-40">
+                <iconify-icon icon="lucide:code-2" class="text-blue-400 text-2xl mb-2"></iconify-icon>
+                <div>
+                  <h3 class="text-sm font-bold text-white mb-1">TypeScript</h3>
+                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.ts">Type-safe robust codebase.</p>
+                </div>
+              </div>
+
+              <!-- Small 4: Vite -->
+              <div
+                class="md:col-span-1 glass-card p-5 rounded-xl group hover:bg-white/5 transition-colors flex flex-col justify-between h-40">
+                <iconify-icon icon="lucide:zap" class="text-yellow-400 text-2xl mb-2"></iconify-icon>
+                <div>
+                  <h3 class="text-sm font-bold text-white mb-1">Vite</h3>
+                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.vite">Lightning-fast tooling.</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-white/5 bg-[#020202] py-12">
+          <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-zinc-300" data-i18n="footer.brand">职场人生</span>
+              <span class="text-[10px] text-zinc-600" data-i18n="footer.rights">© 2024</span>
+            </div>
+          </div>
+        </footer>
+      </div>
+
+      <!-- Spotlight Mouse Tracking -->
+      <script>
+        document.addEventListener('mousemove', (e) => {
+          document.body.style.setProperty('--mouse-x', `${e.clientX}px`);
+          document.body.style.setProperty('--mouse-y', `${e.clientY}px`);
+        });
+
+        // 3D Tilt Logic
+        const card = document.querySelector('.game-ui-card');
+        const container = document.querySelector('.perspective-container');
+        if (card && container && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.addEventListener('mousemove', (e) => {
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 45;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 45;
+            // Tilt
+            card.style.transform = `rotateY(${xAxis}deg) rotateX(${15 + yAxis}deg) scale(0.95)`;
+          });
+          document.addEventListener('mouseleave', () => {
+            card.style.transform = `rotateY(0deg) rotateX(15deg) scale(0.95)`;
+          });
+        }
+
+        // Typewriter
+        // Logic moved to updateContent to support switching
+
+        // Kept Observer for initial trigger if needed, but updated logic handles it
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              // Logic is now handled by initial updateContent or subsequent switches
+              // We can trigger a reset here if we want it to only start on scroll, 
+              // but for simplicity let's let updateContent handle the start.
+              // Or better: Re-enable the typewriter start on view if not already started?
+              // For now, let's just disconnect to avoid double-starts if language is switched.
+              observer.disconnect();
+            }
+          });
+        });
+        // Observer removed in favor of direct start in updateContent for simplicity with language switching
+
+
+        // Global Start Logic
+        function startGame() {
+          const overlay = document.getElementById('landing-page-overlay');
+          overlay.classList.add('hidden');
+
+          // Notify Phaser
+          window.dispatchEvent(new Event('START_GAME'));
+          window.GAME_START_REQUESTED = true;
+        }
+
+        document.getElementById('hero-start-btn').addEventListener('click', startGame);
+        document.getElementById('nav-play-btn').addEventListener('click', startGame);
+
+        // --- I18n Logic ---
+        const translations = {
+          "en": {
+            "nav.features": "Features",
+            "nav.tech": "Technology",
+            "nav.roadmap": "Roadmap",
+            "nav.play": "Play Demo",
+            "hero.version": "Version 0.9.2 Beta Live",
+            "hero.title1": "Simulate Reality.",
+            "hero.title2": "Master the Workplace.",
+            "hero.subtitle": "职场人生 (Career Life) is a Phaser 3 simulation engine driven by Generative AI. Navigate office politics, negotiate salaries, and build your empire in a <span class=\"text-zinc-200\">dynamic, non-linear environment</span>.",
+            "hero.start": "Start Simulation",
+            "hero.docs": "View Documentation",
+            "ui.connected": "CONNECTED",
+            "ui.ai_active": "AI_ENGINE: ACTIVE",
+            "ui.role": "Intern",
+            "ui.level": "Level 1",
+            "ui.energy": "Energy",
+            "ui.manager": "Manager David",
+            "tech.gen_ai": "Generative AI Dialogue",
+            "tech.gen_ai_desc": "Powered by Python FastAPI calling LLMs. NPCs remember your past choices.",
+            "tech.phaser": "Phaser 3 Engine",
+            "features.title": "Game Features",
+            "feature1.title": "AI-Driven NPCs",
+            "feature1.desc": "Engage with characters that have their own memories, personalities, and hidden agendas. Powered by LLMs.",
+            "feature2.title": "Office Politics",
+            "feature2.desc": "Navigate complex social hierarchies. Your reputation matters more than your code quality.",
+            "feature3.title": "Dynamic Career",
+            "feature3.desc": "From intern to CTO. Every decision impacts your salary, stress levels, and job security.",
+
+            // Tech Stack
+            "tech.phaser": "High-performance 2D rendering engine handling sprites, physics, and scene management.",
+            "tech.genai": "Dynamic dialogue and narrative branching powered by Large Language Models.",
+            "tech.webgl": "Hardware-accelerated graphics for smooth particle effects and lighting interactions.",
+            "tech.tailwind": "Utility-first CSS framework for rapid, responsive, and modern glassmorphism designs.",
+            "tech.ts": "Type-safe codebase ensuring reliability and easier maintenance of complex game logic.",
+            "tech.vite": "Next-generation frontend tooling for lightning-fast HMR and optimized production builds.",
+
+            "roadmap.title": "Development Roadmap",
+            "roadmap.p1.title": "Core Engine",
+            "roadmap.p1.desc": "Basic Phaser 3 Setup, Isometric Rendering, and initial LLM integration.",
+            "roadmap.p2.title": "Alpha Testing",
+            "roadmap.p2.desc": "Web Deployment, Save System, and enhanced NPC interactions.",
+            "footer.brand": "Career Life",
+            "footer.rights": "© 2024"
+          },
+          "zh-CN": {
+            "nav.features": "游戏特性",
+            "nav.tech": "技术架构",
+            "nav.roadmap": "开发路线",
+            "nav.play": "试玩演示",
+            "hero.version": "版本 0.9.2 测试版上线",
+            "hero.title1": "模拟真实职场",
+            "hero.title2": "掌控职业生涯",
+            "hero.subtitle": "《职场人生》是一款基于生成式 AI 的 Phaser 3 模拟引擎。在<span class=\"text-zinc-200\">动态的非线性环境</span>中应对职场政治、谈判薪资，建立你的商业帝国。",
+            "hero.start": "开始模拟",
+            "hero.docs": "查看文档",
+            "ui.connected": "已连接",
+            "ui.ai_active": "AI 引擎: 运行中",
+            "ui.role": "实习生",
+            "ui.level": "等级 1",
+            "ui.energy": "精力值",
+            "ui.manager": "经理 David",
+            "tech.gen_ai": "生成式 AI 对话",
+            "tech.gen_ai_desc": "由 Python FastAPI 和 LLM 驱动。NPC 拥有记忆，你的选择将改变一切。",
+            "tech.phaser": "Phaser 3 引擎",
+            "features.title": "游戏特性",
+            "feature1.title": "AI 驱动的 NPC",
+            "feature1.desc": "与拥有独立记忆、性格和隐藏动机的角色互动。由大语言模型强力驱动。",
+            "feature2.title": "职场政治",
+            "feature2.desc": "在复杂的社会等级中周旋。在这里，你的声望比代码质量更重要。",
+            "feature3.title": "动态职业生涯",
+            "feature3.desc": "从实习生到首席技术官。每一个决定都会影响你的薪资、压力水平和职业安全。",
+
+            // Tech Stack
+            "tech.phaser": "高性能 2D 渲染引擎，处理精灵、物理和场景管理。",
+            "tech.genai": "由大语言模型驱动的动态对话和叙事分支。",
+            "tech.webgl": "硬件加速图形，用于流畅的粒子效果和光照交互。",
+            "tech.tailwind": "实用优先的 CSS 框架，用于快速构建响应式现代玻璃拟态设计。",
+            "tech.ts": "类型安全的代码库，确保复杂游戏逻辑的可靠性和易维护性。",
+            "tech.vite": "下一代前端工具，提供闪电般的热重载和优化的生产构建。",
+
+            "roadmap.title": "开发路线图",
+            "roadmap.p1.title": "核心引擎",
+            "roadmap.p1.desc": "基础 Phaser 3 设置，等轴渲染，以及初步的 LLM 集成。",
+            "roadmap.p2.title": "Alpha 测试",
+            "roadmap.p2.desc": "Web 部署，存档系统，以及增强的 NPC 互动体验。",
+            "footer.brand": "职场人生",
+            "footer.rights": "© 2024"
+          }
+        };
+
+        const typeWriterTexts = {
+          "en": "We've noticed your performance in the last sprint was... exceptional. The board is considering you for the Senior Lead position...",
+          "zh-CN": "我们注意到你在上个冲刺中的表现……非常出色。董事会正在考虑提拔你为高级主管……"
+        };
+
+        const langSelector = document.getElementById('language-selector');
+        let currentLang = localStorage.getItem('preferred-lang') || 'zh-CN'; // Default to Chinese as requested
+
+        function updateContent(lang) {
+          currentLang = lang;
+          localStorage.setItem('preferred-lang', lang);
+          langSelector.value = lang;
+          document.documentElement.lang = lang;
+
+          // Update simple text/html elements
+          document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang] && translations[lang][key]) {
+              // Check if content has HTML (like the hero subtitle)
+              if (translations[lang][key].includes('<')) {
+                el.innerHTML = translations[lang][key];
+              } else {
+                el.textContent = translations[lang][key];
+              }
+            }
+          });
+
+          // Update Typewriter
+          resetTypewriter(lang);
+        }
+
+        // Modified Typewriter Logic
+        let typeWriterInterval;
+        function resetTypewriter(lang) {
+          const el = document.getElementById('typewriter-text');
+          if (!el) return;
+
+          // Stop existing
+          el.innerHTML = '';
+          if (typeWriterInterval) clearInterval(typeWriterInterval);
+
+          const textToType = typeWriterTexts[lang] || typeWriterTexts['en'];
+          let charIndex = 0;
+
+          // Simple interval based approach to allow easy resetting
+          typeWriterInterval = setInterval(() => {
+            if (charIndex < textToType.length) {
+              el.innerHTML += textToType.charAt(charIndex);
+              charIndex++;
+            } else {
+              clearInterval(typeWriterInterval);
+              document.getElementById('cursor')?.classList.add('cursor-blink');
+            }
+          }, 30);
+        }
+
+        // Initialize
+        langSelector.addEventListener('change', (e) => {
+          updateContent(e.target.value);
+        });
+
+        // Initial load
+        updateContent(currentLang);
+
+        // --- Particle Sphere Background (Interactive) ---
+        (function () {
+          const canvas = document.getElementById('bg-canvas');
+          const ctx = canvas.getContext('2d');
+
+          let width, height;
+          let particles = [];
+
+          // Configuration
+          const particleCount = 350; // Increased density
+          const sphereRadius = 400; // Larger sphere
+
+          // Mouse Interaction
+          let mouseX = 0;
+          let mouseY = 0;
+
+          // Connection threshold
+          const connectionDistance = 100;
+
+          function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+          }
+
+          class Particle {
+            constructor() {
+              // Uniform distribution on sphere surface
+              this.theta = Math.random() * Math.PI * 2;
+              this.phi = Math.acos((Math.random() * 2) - 1);
+
+              this.x = 0; this.y = 0; this.z = 0;
+              this.baseSize = Math.random() * 1.5 + 0.5;
+
+              // Self-rotation (drift)
+              this.driftSpeed = (Math.random() - 0.5) * 0.002;
+            }
+
+            update(rotationX, rotationY) {
+              this.theta += this.driftSpeed;
+
+              // Apply Global Rotation
+              // Rotate around Y axis (horizontal mouse movement)
+              let x = sphereRadius * Math.sin(this.phi) * Math.cos(this.theta + rotationY);
+              let z = sphereRadius * Math.sin(this.phi) * Math.sin(this.theta + rotationY);
+              let y = sphereRadius * Math.cos(this.phi);
+
+              // Rotate around X axis (vertical mouse movement) -- simpler implementation for tilted sphere
+              // A true 3D rotation matrix would be better but this suffices for the effect
+              let y_new = y * Math.cos(rotationX) - z * Math.sin(rotationX);
+              let z_new = y * Math.sin(rotationX) + z * Math.cos(rotationX);
+
+              this.x = x;
+              this.y = y_new;
+              this.z = z_new;
+
+              // 3D Projection
+              const scale = 400 / (400 + this.z + 500); // 500 = Camera distance
+              this.screenX = width / 2 + this.x * scale;
+              this.screenY = height / 2 + this.y * scale;
+              this.alpha = (this.z + sphereRadius) / (2 * sphereRadius); // Alpha fading by depth
+              this.currentScale = scale;
+            }
+
+            draw() {
+              const opacity = Math.max(0.05, Math.min(0.8, this.alpha));
+              ctx.globalAlpha = opacity;
+              ctx.fillStyle = this.pixelColor || '#818cf8'; // Indigo-400
+
+              ctx.beginPath();
+              ctx.arc(this.screenX, this.screenY, this.baseSize * this.currentScale, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+
+          function init() {
+            resize();
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+              particles.push(new Particle());
+            }
+            animate();
+          }
+
+          document.addEventListener('mousemove', (e) => {
+            // Normalize mouse position -1 to 1
+            mouseX = (e.clientX / width) * 2 - 1;
+            mouseY = (e.clientY / height) * 2 - 1;
+          });
+
+          let currentRotX = 0;
+          let currentRotY = 0;
+
+          function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Smooth rotation interpolation
+            // Target: Mouse controls the ANGLE of look, continuous rotation + interaction
+            const targetX = mouseY * 0.5; // Tilt up/down
+            const targetY = mouseX * 0.5; // Spin left/right
+
+            currentRotX += (targetX - currentRotX) * 0.05;
+            currentRotY += (targetY - currentRotY) * 0.05;
+
+            // Constant slow spin + interaction
+            const timeParams = Date.now() * 0.0001;
+
+            particles.forEach(p => {
+              p.update(currentRotX, currentRotY + timeParams);
+              // Optimization: Don't draw if too far back or off-screen?
+              // For chaos effect, we draw them all properly sorted would be better but expensive
+            });
+
+            // Draw Connections
+            // Naive O(N^2) check - limit to a subset or optimize if performance drops
+            // Only checking every 2nd particle against others for performance
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = 0.5;
+
+            for (let i = 0; i < particles.length; i += 2) {
+              const p1 = particles[i];
+              if (p1.z < -100) continue; // Don't connect far back particles
+
+              for (let j = i + 1; j < particles.length; j += 4) { // Sparsify connections
+                const p2 = particles[j];
+                if (p2.z < -100) continue;
+
+                const dx = p1.screenX - p2.screenX;
+                const dy = p1.screenY - p2.screenY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < connectionDistance) {
+                  // Opacity based on distance AND depth sharing
+                  const depthAlpha = (p1.alpha + p2.alpha) / 2;
+                  const distAlpha = 1 - (dist / connectionDistance);
+                  ctx.globalAlpha = depthAlpha * distAlpha * 0.15; // Low opacity lines
+
+                  ctx.beginPath();
+                  ctx.moveTo(p1.screenX, p1.screenY);
+                  ctx.lineTo(p2.screenX, p2.screenY);
+                  ctx.stroke();
+                }
+              }
+              // Draw particle after (on top of lines)
+              p1.draw();
+            }
+            // Draw remaining odd particles
+            particles.forEach((p, i) => { if (i % 2 !== 0) p.draw(); });
+
+            requestAnimationFrame(animate);
+          }
+
+          window.addEventListener('resize', resize);
+          init();
+        })();
+      </script>
+
+      <script type="module" src="/src/main.ts"></script>
 </body>
 
 </html>

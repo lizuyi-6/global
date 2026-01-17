@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark scroll-smooth" id="html-root"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="职场人生 - A Web-based Career Simulation Game powered by Phaser 3 and Generative AI.">
+<title>职场人生 | Career Life Simulation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+        serif: ['Newsreader', 'serif'],
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.6s ease-out forwards',
+        'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'slide-up-delayed': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 6s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        }
+      },
+      colors: {
+        game: {
+          bg: '#050505',
+          panel: '#0A0A0A',
+          border: '#1F1F1F',
+          accent: '#6366f1',
+        }
+      }
+    },
+  },
+};
+</script>
+<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Newsreader:ital,wght@0,300;0,400;1,300&amp;display=swap" rel="stylesheet">
+
+<style>
+  body {
+    background-color: #050505;
+    color: #a1a1aa;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    cursor: default;
+    --mouse-x: 50vw;
+    --mouse-y: 50vh;
+  }
+
+  ::selection {
+    background-color: rgba(99, 102, 241, 0.2);
+    color: #fff;
+  }
+
+  .spotlight-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(
+      600px circle at var(--mouse-x) var(--mouse-y),
+      rgba(99, 102, 241, 0.06),
+      transparent 40%
+    );
+  }
+
+  .grid-bg {
+    background-size: 40px 40px;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  }
+
+  .perspective-container {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+  }
+  
+  .game-ui-card {
+    transform: rotateX(15deg) scale(0.95);
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.6s ease;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 50px -10px rgba(0,0,0,0.5);
+  }
+
+  .btn-primary {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+  }
+  .btn-primary:hover::after {
+    transform: translateX(100%);
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #050505; }
+  ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+  .text-glow { text-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+  .border-glow { box-shadow: 0 0 0 1px rgba(255,255,255,0.08); }
+  
+  .cursor-blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+</style>
+</head>
+<body class="overflow-x-hidden bg-[#050505]">
+
+  <div class="fixed inset-0 z-0 pointer-events-none grid-bg opacity-40"></div>
+  <div class="spotlight-overlay"></div>
+  
+  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
+
+  <nav class="fixed top-0 w-full z-50 border-b border-white/5 bg-[#050505]/70 backdrop-blur-xl transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2 group">
+        <div class="w-6 h-6 rounded bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center group-hover:border-indigo-500/30 transition-colors">
+          <iconify-icon icon="lucide:briefcase" class="text-indigo-400" width="14" stroke-width="2"></iconify-icon>
+        </div>
+        <span class="text-xs font-semibold tracking-wide text-white">CAREER<span class="text-white/40">LIFE</span></span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-6">
+        <a href="#features" class="text-xs text-zinc-400 hover:text-white transition-colors">Features</a>
+        <a href="#tech" class="text-xs text-zinc-400 hover:text-white transition-colors">Technology</a>
+        <a href="#roadmap" class="text-xs text-zinc-400 hover:text-white transition-colors">Roadmap</a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="https://github.com" target="_blank" class="text-zinc-500 hover:text-white transition-colors">
+          <iconify-icon icon="lucide:github" width="16"></iconify-icon>
+        </a>
+        <a href="/" class="btn-primary px-3 py-1.5 rounded text-xs font-medium bg-white text-black hover:bg-zinc-200 transition-colors">
+          Play Demo
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="relative z-10 pt-32 pb-20 min-h-screen flex flex-col items-center justify-start overflow-hidden">
+    
+    <div class="text-center max-w-3xl mx-auto px-6 mb-16 relative z-20">
+      <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-[10px] font-medium text-indigo-300 mb-6 animate-fade-in backdrop-blur-md">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+        <span>Version 0.9.2 Beta Live</span>
+      </div>
+      
+      <h1 class="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-white mb-6 leading-[1.1] animate-slide-up">
+        Simulate Reality. <br>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-white to-zinc-400 text-glow">
+          Master the Workplace.
+        </span>
+      </h1>
+      
+      <p class="text-sm md:text-base text-zinc-400 font-light max-w-xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed opacity-0">
+        职场人生 (Career Life) is a Phaser 3 simulation engine driven by Generative AI. 
+        Navigate office politics, negotiate salaries, and build your empire in a 
+        <span class="text-zinc-200">dynamic, non-linear environment</span>.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 animate-slide-up-delayed opacity-0" style="animation-delay: 0.3s;">
+        <a href="/" class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-all shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)] flex items-center justify-center gap-2 group">
+          <iconify-icon icon="lucide:play" width="14"></iconify-icon>
+          Start Simulation
+        </a>
+        <button class="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900/50 text-zinc-300 hover:text-white text-xs font-medium transition-all backdrop-blur-sm">
+          View Documentation
+        </button>
+      </div>
+    </div>
+
+    <div class="perspective-container w-full max-w-5xl px-4 mx-auto relative z-10 animate-slide-up-delayed opacity-0" style="animation-delay: 0.5s;">
+      
+      <div class="game-ui-card relative bg-[#0A0A0B] rounded-xl overflow-hidden border border-white/10 aspect-[16/10] md:aspect-[21/9] flex flex-col">
+        
+        <div class="h-8 bg-[#0F0F11] border-b border-white/5 flex items-center px-3 gap-2">
+          <div class="flex gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
+          </div>
+          <div class="ml-auto flex items-center gap-2 text-[10px] font-mono text-zinc-500">
+            <span class="flex items-center gap-1"><iconify-icon icon="lucide:wifi" width="10"></iconify-icon> CONNECTED</span>
+            <span class="text-indigo-500">AI_ENGINE: ACTIVE</span>
+          </div>
+        </div>
+
+        <div class="flex-1 flex overflow-hidden">
+          
+          <div class="w-48 bg-[#0C0C0E] border-r border-white/5 p-4 hidden md:flex flex-col gap-6">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <iconify-icon icon="lucide:user" width="18"></iconify-icon>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-xs font-semibold text-white">Intern</span>
+                <span class="text-[10px] text-zinc-500">Level 1</span>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] text-zinc-400 uppercase tracking-wider">
+                  <span>Energy</span>
+                  <span>85%</span>
+                </div>
+                <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-500 w-[85%]"></div>
+                </div>
+              </div>
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] text-zinc-400 uppercase tracking-wider">
+                  <span>Stress</span>
+                  <span>42%</span>
+                </div>
+                <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div class="h-full bg-amber-500 w-[42%]"></div>
+                </div>
+              </div>
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] text-zinc-400 uppercase tracking-wider">
+                  <span>Funds</span>
+                  <span class="font-mono text-white">$2,400</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-auto space-y-2">
+              <div class="p-2 rounded border border-zinc-800 bg-zinc-900/50">
+                <p class="text-[9px] text-zinc-500 leading-relaxed font-mono">
+                  &gt; Task "Fix Bug #229" completed.<br>
+                  &gt; Reputation +5<br>
+                  &gt; Fatigue +10
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 bg-[#050505] relative flex flex-col">
+            <div class="absolute inset-0 grid-bg opacity-30"></div>
+
+            <div class="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
+              <div class="glass px-3 py-1.5 rounded-full flex items-center gap-2">
+                <iconify-icon icon="lucide:clock" class="text-zinc-400" width="12"></iconify-icon>
+                <span class="text-xs font-mono text-zinc-200">Day 14 - 09:30 AM</span>
+              </div>
+              <div class="glass px-3 py-1.5 rounded-full">
+                <span class="text-xs font-mono text-emerald-400">+$250.00 (Salary)</span>
+              </div>
+            </div>
+
+            <div class="flex-1 flex flex-col items-center justify-center p-8 relative z-0">
+              <div class="w-16 h-16 rounded-full border-2 border-indigo-500/30 p-1 mb-4 animate-float">
+                <div class="w-full h-full rounded-full bg-gradient-to-b from-zinc-700 to-zinc-900 flex items-center justify-center overflow-hidden">
+                  <iconify-icon icon="lucide:user-check" class="text-zinc-400" width="32"></iconify-icon>
+                </div>
+              </div>
+              
+              <div class="max-w-md w-full glass rounded-xl p-5 border-t border-white/10 shadow-2xl relative">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-[#1F1F22]"></div>
+                <p class="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-wide">Manager David</p>
+                <p class="text-sm text-zinc-200 leading-relaxed font-light" id="typewriter-text"></p>
+                <span id="cursor" class="inline-block w-[2px] h-[1em] bg-indigo-500 align-middle ml-1"></span>
+              </div>
+
+              <div class="flex gap-3 mt-6 w-full max-w-md">
+                <button class="flex-1 py-2 rounded border border-zinc-700 bg-zinc-800/50 hover:bg-indigo-600/20 hover:border-indigo-500/50 text-xs text-zinc-300 hover:text-white transition-all">
+                  Accept Task
+                </button>
+                <button class="flex-1 py-2 rounded border border-zinc-700 bg-zinc-800/50 hover:bg-red-900/20 hover:border-red-500/50 text-xs text-zinc-300 hover:text-white transition-all">
+                  Decline Politely
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="w-64 bg-[#0C0C0E] border-l border-white/5 hidden lg:flex flex-col">
+            <div class="p-3 border-b border-white/5">
+              <span class="text-[10px] font-semibold text-zinc-500 uppercase">Market Ticker</span>
+            </div>
+            <div class="flex-1 p-3 space-y-2 overflow-y-auto">
+              <div class="flex items-center justify-between p-2 rounded bg-zinc-900/50 border border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="w-1 h-8 bg-red-500 rounded-full"></div>
+                  <div>
+                    <div class="text-[10px] font-bold text-zinc-300">TECH</div>
+                    <div class="text-[9px] text-zinc-600">Sector</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-[10px] font-mono text-zinc-300">124.50</div>
+                  <div class="text-[9px] font-mono text-red-400">-2.4%</div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-zinc-900/50 border border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="w-1 h-8 bg-emerald-500 rounded-full"></div>
+                  <div>
+                    <div class="text-[10px] font-bold text-zinc-300">AI-X</div>
+                    <div class="text-[9px] text-zinc-600">Startup</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-[10px] font-mono text-zinc-300">45.20</div>
+                  <div class="text-[9px] font-mono text-emerald-400">+12.8%</div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 border-t border-white/5 bg-zinc-900">
+               <div class="flex gap-2">
+                 <input type="text" placeholder="Buy symbol..." class="w-full bg-black border border-white/10 rounded px-2 py-1 text-[10px] text-white focus:outline-none focus:border-indigo-500/50">
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[120%] h-[100px] bg-indigo-600/20 blur-[100px] rounded-full pointer-events-none z-[-1]"></div>
+    </div>
+  </main>
+
+  <section class="py-24 relative border-t border-white/5 bg-[#050505]" id="features">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="mb-16">
+        <h2 class="text-2xl font-semibold text-white mb-3">The Career Cycle</h2>
+        <p class="text-sm text-zinc-400 max-w-lg">From application to retirement. Every decision impacts your trajectory in the simulated economy.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="group relative p-6 rounded-2xl bg-zinc-900/20 border border-white/5 hover:bg-zinc-900/40 hover:border-white/10 transition-all duration-300">
+          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+            <iconify-icon icon="lucide:file-search" width="20"></iconify-icon>
+          </div>
+          <h3 class="text-sm font-semibold text-white mb-2">1. The Hunt</h3>
+          <p class="text-xs text-zinc-500 leading-relaxed">
+            Craft your resume, filter through hundreds of job listings, and face AI-driven interviewers. Salary negotiation happens in real-time.
+          </p>
+        </div>
+
+        <div class="group relative p-6 rounded-2xl bg-zinc-900/20 border border-white/5 hover:bg-zinc-900/40 hover:border-white/10 transition-all duration-300">
+          <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+            <iconify-icon icon="lucide:users" width="20"></iconify-icon>
+          </div>
+          <h3 class="text-sm font-semibold text-white mb-2">2. The Grind</h3>
+          <p class="text-xs text-zinc-500 leading-relaxed">
+            Handle tickets, attend meetings, and navigate office politics. Your choices in dialogue affect your relationship with colleagues and bosses.
+          </p>
+        </div>
+
+        <div class="group relative p-6 rounded-2xl bg-zinc-900/20 border border-white/5 hover:bg-zinc-900/40 hover:border-white/10 transition-all duration-300">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+            <iconify-icon icon="lucide:candlestick-chart" width="20"></iconify-icon>
+          </div>
+          <h3 class="text-sm font-semibold text-white mb-2">3. The Wealth</h3>
+          <p class="text-xs text-zinc-500 leading-relaxed">
+            Don't just work for money. Invest your savings in a simulated stock market influenced by in-game news events. Buy assets and retire early.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 relative border-t border-white/5" id="tech">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 h-auto md:h-[500px]">
+        
+        <div class="md:col-span-6 lg:col-span-8 md:row-span-2 rounded-2xl bg-[#080808] border border-white/5 p-6 relative overflow-hidden group">
+          <div class="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+            <iconify-icon icon="lucide:bot" width="32" class="text-indigo-500"></iconify-icon>
+          </div>
+          <div class="h-full flex flex-col z-10 relative">
+            <div class="mb-auto">
+              <h3 class="text-lg font-semibold text-white mb-2">Generative AI Dialogue</h3>
+              <p class="text-xs text-zinc-400 max-w-sm">
+                Powered by Python FastAPI calling LLMs (Claude/Qwen). No two interactions are identical. NPCs remember your past choices and react dynamically.
+              </p>
+            </div>
+            
+            <div class="mt-8 space-y-3 opacity-60 group-hover:opacity-100 transition-opacity duration-500">
+              <div class="flex gap-3">
+                <div class="w-6 h-6 rounded bg-zinc-800"></div>
+                <div class="bg-zinc-900 rounded-lg rounded-tl-none p-2 text-[10px] text-zinc-300 border border-white/5">
+                  The Q3 report is late. Explain yourself.
+                </div>
+              </div>
+              <div class="flex gap-3 flex-row-reverse">
+                <div class="w-6 h-6 rounded bg-indigo-900"></div>
+                <div class="bg-indigo-900/30 rounded-lg rounded-tr-none p-2 text-[10px] text-indigo-100 border border-indigo-500/20">
+                  I was prioritizing the critical server outage.
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <div class="w-6 h-6 rounded bg-zinc-800"></div>
+                <div class="bg-zinc-900 rounded-lg rounded-tl-none p-2 text-[10px] text-zinc-300 border border-white/5 flex items-center gap-2">
+                  <span class="w-1 h-1 bg-zinc-500 animate-pulse rounded-full"></span>
+                  <span class="w-1 h-1 bg-zinc-500 animate-pulse rounded-full" style="animation-delay:0.1s"></span>
+                  <span class="w-1 h-1 bg-zinc-500 animate-pulse rounded-full" style="animation-delay:0.2s"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="md:col-span-3 lg:col-span-4 md:row-span-2 rounded-2xl bg-[#080808] border border-white/5 p-6 relative overflow-hidden group hover:border-white/10 transition-colors">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.05),transparent_40%)]"></div>
+          <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <iconify-icon icon="lucide:gamepad-2" class="text-emerald-500"></iconify-icon>
+            Phaser 3 Engine
+          </h3>
+          <div class="space-y-4">
+            <div class="p-3 rounded-lg bg-zinc-900/50 border border-white/5">
+              <div class="text-[10px] text-zinc-500 mb-1">Rendering</div>
+              <div class="text-xs text-white font-mono">WebGL / Canvas</div>
+            </div>
+            <div class="p-3 rounded-lg bg-zinc-900/50 border border-white/5">
+              <div class="text-[10px] text-zinc-500 mb-1">Logic</div>
+              <div class="text-xs text-white font-mono">TypeScript</div>
+            </div>
+            <div class="p-3 rounded-lg bg-zinc-900/50 border border-white/5">
+              <div class="text-[10px] text-zinc-500 mb-1">Build Tool</div>
+              <div class="text-xs text-white font-mono">Vite</div>
+            </div>
+          </div>
+          <div class="absolute bottom-6 left-6 right-6">
+            <div class="text-[10px] text-zinc-600 font-mono text-center pt-4 border-t border-white/5">
+              60 FPS STABLE
+            </div>
+          </div>
+        </div>
+
+        <div class="md:col-span-3 lg:col-span-4 md:row-span-1 rounded-2xl bg-[#080808] border border-white/5 p-6 flex flex-col justify-between hover:border-white/10 transition-colors">
+           <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+            <iconify-icon icon="lucide:server" class="text-amber-500"></iconify-icon>
+            Backend
+          </h3>
+          <div class="flex items-center gap-4 mt-2">
+             <div class="text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded">FastAPI</div>
+             <div class="text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded">Python</div>
+          </div>
+        </div>
+
+        <div class="md:col-span-6 lg:col-span-8 md:row-span-1 rounded-2xl bg-[#080808] border border-white/5 p-6 flex items-center justify-between hover:border-white/10 transition-colors">
+          <div>
+            <h3 class="text-sm font-semibold text-white">Real-time Economics</h3>
+            <p class="text-xs text-zinc-500 mt-1">Simulated stock market data updates every second.</p>
+          </div>
+          <div class="h-8 w-24 flex items-end gap-1">
+             <div class="w-1/5 bg-zinc-800 h-[40%] rounded-t-sm"></div>
+             <div class="w-1/5 bg-zinc-800 h-[70%] rounded-t-sm"></div>
+             <div class="w-1/5 bg-zinc-800 h-[50%] rounded-t-sm"></div>
+             <div class="w-1/5 bg-indigo-500 h-[90%] rounded-t-sm animate-pulse"></div>
+             <div class="w-1/5 bg-zinc-800 h-[60%] rounded-t-sm"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 relative overflow-hidden">
+    <div class="absolute inset-0 bg-indigo-900/5"></div>
+    <div class="absolute inset-0 z-0">
+      <div class="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-indigo-500/20 to-transparent"></div>
+      <div class="absolute top-0 right-1/4 w-px h-full bg-gradient-to-b from-transparent via-indigo-500/20 to-transparent"></div>
+    </div>
+    
+    <div class="max-w-2xl mx-auto px-6 relative z-10 text-center">
+      <h2 class="text-3xl font-semibold text-white mb-6 tracking-tight">Ready to begin your career?</h2>
+      <p class="text-sm text-zinc-400 mb-8 font-light">
+        Experience the thrill of the offer letter and the despair of the rejection email. 
+        <br>Simulate the life you want, or the one you fear.
+      </p>
+      
+      <div class="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto mb-4 justify-center">
+        <a href="/" class="bg-white text-black text-xs font-semibold px-6 py-2.5 rounded-lg hover:bg-zinc-200 transition-colors">
+          Start Playing Now
+        </a>
+      </div>
+      <p class="text-[10px] text-zinc-600">No signup required. Jump right in.</p>
+    </div>
+  </section>
+
+  <footer class="border-t border-white/5 bg-[#020202] py-12">
+    <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold text-zinc-300">职场人生</span>
+        <span class="text-[10px] text-zinc-600">© 2024</span>
+      </div>
+      
+      <div class="flex gap-6">
+        <a href="#" class="text-[10px] text-zinc-500 hover:text-white transition-colors">Privacy Policy</a>
+        <a href="#" class="text-[10px] text-zinc-500 hover:text-white transition-colors">Terms of Service</a>
+        <a href="#" class="text-[10px] text-zinc-500 hover:text-white transition-colors">Twitter</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const card = document.querySelector('.game-ui-card');
+    const container = document.querySelector('.perspective-container');
+    
+    if (card && container && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.addEventListener('mousemove', (e) => {
+        const xAxis = (window.innerWidth / 2 - e.pageX) / 45;
+        const yAxis = (window.innerHeight / 2 - e.pageY) / 45;
+        
+        document.body.style.setProperty('--mouse-x', `${e.clientX}px`);
+        document.body.style.setProperty('--mouse-y', `${e.clientY}px`);
+        
+        card.style.transform = `rotateY(${xAxis}deg) rotateX(${15 + yAxis}deg) scale(0.95)`;
+      });
+
+      document.addEventListener('mouseleave', () => {
+         card.style.transform = `rotateY(0deg) rotateX(15deg) scale(0.95)`;
+      });
+    }
+
+    const text = "We've noticed your performance in the last sprint was... exceptional. The board is considering you for the Senior Lead position, but it requires a relocation to the Mars colony branch. What do you say?";
+    const typeWriterElement = document.getElementById('typewriter-text');
+    const cursorElement = document.getElementById('cursor');
+    let i = 0;
+
+    function typeWriter() {
+      if (i < text.length) {
+        typeWriterElement.innerHTML += text.charAt(i);
+        i++;
+        setTimeout(typeWriter, 30);
+      } else {
+        cursorElement.classList.add('cursor-blink');
+      }
+    }
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          typeWriter();
+          observer.disconnect();
+        }
+      });
+    });
+    
+    if(typeWriterElement) {
+        observer.observe(typeWriterElement);
+    }
+  </script>
+
+</body></html>

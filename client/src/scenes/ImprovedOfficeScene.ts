@@ -248,7 +248,7 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         // 身体 (西装)
         g.fillStyle(color, 1);
         g.fillRect(-12, -35, 24, 25);
-        
+
         // 衬衫领带
         g.fillStyle(0xffffff, 1);
         g.fillRect(-3, -35, 6, 12);
@@ -257,7 +257,7 @@ export class ImprovedOfficeScene extends Phaser.Scene {
 
         // 头部
         g.fillStyle(0xffdbac, 1);
-        g.fillRect(-12, -55, 24, 20); 
+        g.fillRect(-12, -55, 24, 20);
 
         // 眼睛
         g.fillStyle(0xffffff, 1);
@@ -604,62 +604,55 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     /**
      * 创建指令输入框（永久显示）
      */
+    /**
+     * 创建指令输入框（永久显示 - Fixed Overlay）
+     */
     private createCommandInput(): void {
-        this.commandPanel = this.add.container(440, 600);
-
-        const bg = this.add.rectangle(0, 0, 800, 100, COLORS.panel, 0.9);
-        bg.setStrokeStyle(1, COLORS.primary, 0.3);
-        bg.setOrigin(0, 0);
-        applyGlassEffect(bg, 0.9);
-        this.commandPanel.add(bg);
-
-        const title = this.add.text(15, 12, 'COMMAND INTERFACE / 执行指令', {
-            fontSize: '11px',
-            fontFamily: FONTS.mono,
-            color: '#888888'
-        });
-        this.commandPanel.add(title);
-
-        // 创建输入框+提交按钮（使用HTML）
+        // 使用 CSS Fixed 定位确保在全屏模式下也能永远置底居中
         const inputHTML = `
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="commandInput" 
-                       placeholder="TRY: '砸向同事' / '拿起水杯喝水' / '疯狂加班'..."
-                       style="width: 600px; 
-                              padding: 12px; 
-                              font-size: 14px; 
-                              background: rgba(0,0,0,0.3); 
-                              color: #ffffff; 
-                              border: 1px solid #4a90d9; 
-                              border-radius: 4px;
-                              outline: none;
-                              font-family: Inter, sans-serif;" />
-                <button id="commandSubmit"
-                        style="width: 100px;
-                               padding: 12px;
-                               font-size: 14px;
-                               background: #4a90d9;
-                               color: #ffffff;
-                               border: none;
-                               border-radius: 4px;
-                               cursor: pointer;
-                               font-weight: bold;
-                               font-family: Inter, sans-serif;">
-                    EXECUTE
-                </button>
+            <div style="width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; pointer-events: none; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 40px; z-index: 9999;">
+                <div style="pointer-events: auto; display: flex; gap: 10px; align-items: center; background: rgba(26, 26, 32, 0.9); padding: 15px; border-radius: 12px; border: 1px solid rgba(74, 144, 217, 0.5); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                    <div style="color: #4a90d9; font-weight: bold; font-family: monospace; margin-right: 5px;">>_</div>
+                    <input type="text" id="commandInput" 
+                           placeholder="输入指令: '拿水杯砸向同事', '努力工作'..."
+                           style="width: 500px; 
+                                  padding: 10px; 
+                                  font-size: 16px; 
+                                  background: rgba(0,0,0,0.3); 
+                                  color: #ffffff; 
+                                  border: 1px solid rgba(255,255,255,0.1); 
+                                  border-radius: 6px;
+                                  outline: none;
+                                  font-family: 'Inter', sans-serif;" />
+                    <button id="commandSubmit"
+                            style="padding: 10px 24px;
+                                   font-size: 14px;
+                                   background: #4a90d9;
+                                   color: #ffffff;
+                                   border: none;
+                                   border-radius: 6px;
+                                   cursor: pointer;
+                                   font-weight: bold;
+                                   font-family: 'Inter', sans-serif;
+                                   transition: all 0.2s;">
+                        执行
+                    </button>
+                </div>
             </div>
         `;
 
-        const input = this.add.dom(440 + 400, 600 + 60, 'div').createFromHTML(inputHTML);
-        // 不要把 DOM 元素放入 Container，这会导致缩放和坐标错位
-        // this.commandPanel.add(input);
-        input.setDepth(2000);
+        // 放置在 (0,0) 并覆盖全屏
+        const dom = this.add.dom(0, 0).createFromHTML(inputHTML);
+        dom.setOrigin(0, 0);
+        dom.setDepth(10000);
 
-        // 延迟绑定事件，确保DOM已渲染
+        // 延迟绑定事件
         this.time.delayedCall(100, () => {
+            // ... existing binding logic ...
             const inputElement = document.getElementById('commandInput') as HTMLInputElement;
             const submitBtn = document.getElementById('commandSubmit') as HTMLButtonElement;
 
+            // 键盘锁定逻辑
             inputElement?.addEventListener('focus', () => {
                 this.input.keyboard!.enabled = false;
             });
@@ -677,31 +670,12 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                 }
             };
 
-            // 回车键提交
-            if (inputElement) {
-                inputElement.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        handleSubmit();
-                    }
-                });
-            } else {
-                console.error('输入框元素未找到');
-            }
-
-            // 按钮点击提交
-            if (submitBtn) {
-                submitBtn.addEventListener('click', handleSubmit);
-                // 按钮悬停效果
-                submitBtn.addEventListener('mouseenter', () => {
-                    submitBtn.style.background = '#5aa0e9';
-                });
-                submitBtn.addEventListener('mouseleave', () => {
-                    submitBtn.style.background = '#4a90d9';
-                });
-            }
+            // 事件绑定
+            inputElement?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleSubmit();
+            });
+            submitBtn?.addEventListener('click', handleSubmit);
         });
-
-        this.commandPanel.setDepth(2000);
     }
 
     /**
@@ -860,7 +834,12 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         } else if (lower.includes('砸') || lower.includes('攻击') || lower.includes('打')) {
             this.playerMood -= 20;
             this.stressLevel += 30;
-            this.addLog('你做出了极端行为！！！');
+
+            // 视觉反馈：强烈的屏幕震动 + 红闪
+            this.cameras.main.shake(500, 0.05);
+            this.cameras.main.flash(500, 0xff0000, 0.5);
+
+            this.addLog('你做出了极端行为！！！(Visual Feedback Triggered)');
             notificationManager.error('严重警告', '暴力行为可能导致被开除！', 10000);
         } else {
             this.addLog('你尝试了一些事情...');

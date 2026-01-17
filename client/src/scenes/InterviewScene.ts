@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { Application, InterviewRound } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
 import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
+import { apiService } from '../APIService';
 
 /**
  * 面试场景 - 自由回答版
@@ -20,6 +21,8 @@ export class InterviewScene extends Phaser.Scene {
     private totalQuestions = 6;
     private askedQuestions: string[] = [];
     private currentQuestion = '';
+    private currentSampleAnswer = '';
+    private interviewHistory: { role: string; content: string }[] = [];
     private answerBtn!: Phaser.GameObjects.Text;
 
     constructor() {
@@ -208,7 +211,7 @@ export class InterviewScene extends Phaser.Scene {
         }) as any; // Cast because createStyledButton returns Container but we need to reference it
     }
 
-    private startInterview(): void {
+    private async startInterview(): Promise<void> {
         const openings = this.isPressureInterview ? [
             '行，开始吧。简单介绍下自己，别说废话。',
             '我时间紧，直接开始。你有什么特别的？',
@@ -221,9 +224,23 @@ export class InterviewScene extends Phaser.Scene {
 
         const opening = openings[Math.floor(Math.random() * openings.length)];
         this.currentQuestion = '自我介绍';
+        
+        // 使用简历信息生成示例回答
+        const resume = jobHuntSystem.getResume();
+        const educationMap: { [key: string]: string } = {
+            'high_school': '高中',
+            'college': '大专',
+            'bachelor': '本科',
+            'master': '硕士',
+            'phd': '博士'
+        };
+        this.currentSampleAnswer = `您好，我叫${resume.name}，今年${resume.age}岁，毕业于${resume.school}，${educationMap[resume.education] || '本科'}学历，${resume.major}专业。我有${resume.experience}年的工作经验，擅长${resume.skills.slice(0, 3).join('、')}等技术。在之前的项目中，我曾主导过核心模块的开发，具有较强的抗压能力和团队协作精神。`;
 
         this.responseText.setText(`${this.currentRound.interviewerName}:\n\n"${opening}"`);
         this.updateHint('自我介绍');
+        
+        // 记录历史
+        this.interviewHistory.push({ role: 'assistant', content: opening });
     }
 
     private updateHint(questionType: string): void {
@@ -276,57 +293,91 @@ export class InterviewScene extends Phaser.Scene {
 
         // HTML输入框
         const inputHTML = `
-            <div style="display: flex; flex-direction: column; gap: 10px; width: 750px;">
+            <div id="interview-input-container" style="
+                display: flex; 
+                flex-direction: column; 
+                gap: 15px; 
+                width: 760px;
+                background: rgba(26, 26, 46, 0.95);
+                padding: 25px;
+                border-radius: 12px;
+                border: 2px solid #4a90d9;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                font-family: 'Arial', sans-serif;
+            ">
+                <div style="color: #4a90d9; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+                    面试官的问题已提出
+                </div>
                 <textarea id="interviewInput" 
-                          placeholder="输入你的回答..."
+                          placeholder="在此输入你的回答... (建议结合个人技能点)"
                           style="width: 100%; 
-                                 height: 120px;
-                                 padding: 12px; 
-                                 font-size: 14px; 
-                                 background: #2a2a3a; 
+                                 height: 150px;
+                                 padding: 15px; 
+                                 font-size: 15px; 
+                                 background: #0f0f1e; 
                                  color: #ffffff; 
-                                 border: 2px solid #4a90d9; 
-                                 border-radius: 6px;
+                                 border: 1px solid #333; 
+                                 border-radius: 8px;
                                  outline: none;
                                  resize: none;
+                                 line-height: 1.5;
                                  font-family: inherit;
                                  box-sizing: border-box;"></textarea>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button id="interviewSubmit"
-                            style="padding: 12px 40px;
-                                   font-size: 15px;
-                                   background: #4a90d9;
+                <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                    <button id="aiHintBtn"
+                            style="padding: 10px 20px;
+                                   font-size: 14px;
+                                   background: #6c5ce7;
                                    color: #ffffff;
                                    border: none;
                                    border-radius: 6px;
                                    cursor: pointer;
+                                   transition: all 0.2s;
                                    font-weight: bold;">
-                        ✅ 提交回答
+                        ✨ AI 助攻 (自动填充示例)
                     </button>
                     <button id="interviewCancel"
-                            style="padding: 12px 40px;
-                                   font-size: 15px;
-                                   background: #666666;
+                            style="padding: 10px 20px;
+                                   font-size: 14px;
+                                   background: #444;
+                                   color: #ccc;
+                                   border: none;
+                                   border-radius: 6px;
+                                   cursor: pointer;
+                                   transition: all 0.2s;">
+                        取消
+                    </button>
+                    <button id="interviewSubmit"
+                            style="padding: 10px 30px;
+                                   font-size: 14px;
+                                   background: #00b894;
                                    color: #ffffff;
                                    border: none;
                                    border-radius: 6px;
-                                   cursor: pointer;">
-                        ❌ 取消
+                                   cursor: pointer;
+                                   font-weight: bold;
+                                   transition: all 0.2s;">
+                        确认提交回答
                     </button>
                 </div>
             </div>
         `;
 
-        const domElement = this.add.dom(640, 360 + 20, 'div').createFromHTML(inputHTML);
-        // 不放入 container
-        // inputContainer.add(domElement);
+        const domElement = this.add.dom(640, 360, 'div').createFromHTML(inputHTML);
         domElement.setDepth(10001);
+        domElement.setOrigin(0.5);
+
+        // 调整 inputContainer 以适应新的 DOM 样式
+        inputBg.setVisible(false); // 使用 HTML 自带的背景
+        questionTitle.setY(-180); // 将标题移高一点
+        questionTitle.setStyle({ fontSize: '18px', color: '#00ff88' });
 
         // 延迟绑定事件
         this.time.delayedCall(100, () => {
             const textarea = document.getElementById('interviewInput') as HTMLTextAreaElement;
             const submitBtn = document.getElementById('interviewSubmit') as HTMLButtonElement;
             const cancelBtn = document.getElementById('interviewCancel') as HTMLButtonElement;
+            const aiHintBtn = document.getElementById('aiHintBtn') as HTMLButtonElement;
 
             if (textarea) {
                 textarea.focus();
@@ -346,13 +397,18 @@ export class InterviewScene extends Phaser.Scene {
                     return;
                 }
 
+                // 记录历史
+                this.interviewHistory.push({ role: 'player', content: input });
+
                 // 销毁输入框和 DOM 元素
                 inputContainer.destroy();
                 domElement.destroy();
 
                 // 禁用按钮
-                this.answerBtn.setStyle({ backgroundColor: '#3a3a4a', color: '#888888' });
-                this.answerBtn.setText('思考中...');
+                this.setAnswerBtnText('思考中...');
+                if ((this.answerBtn as any).setStyle) {
+                    (this.answerBtn as any).setStyle({ backgroundColor: '#3a3a4a', color: '#888888' });
+                }
 
                 this.questionCount++;
 
@@ -364,8 +420,8 @@ export class InterviewScene extends Phaser.Scene {
                 // 显示回答和反馈
                 this.responseText.setText(`你: "${input.substring(0, 100)}${input.length > 100 ? '...' : ''}"\n\n${this.currentRound.interviewerName}正在思考...`);
 
-                this.time.delayedCall(1500, () => {
-                    this.showResponse(evaluation);
+                this.time.delayedCall(1500, async () => {
+                    await this.showResponse(evaluation);
                 });
             };
 
@@ -384,6 +440,22 @@ export class InterviewScene extends Phaser.Scene {
                 });
                 submitBtn.addEventListener('mouseleave', () => {
                     submitBtn.style.background = '#4a90d9';
+                });
+            }
+
+            // AI 助攻按钮
+            if (aiHintBtn) {
+                aiHintBtn.addEventListener('click', () => {
+                    if (textarea && this.currentSampleAnswer) {
+                        textarea.value = this.currentSampleAnswer;
+                        textarea.focus();
+                    }
+                });
+                aiHintBtn.addEventListener('mouseenter', () => {
+                    aiHintBtn.style.background = '#af7ac5';
+                });
+                aiHintBtn.addEventListener('mouseleave', () => {
+                    aiHintBtn.style.background = '#9b59b6';
                 });
             }
 
@@ -465,7 +537,7 @@ export class InterviewScene extends Phaser.Scene {
         return { change, quality };
     }
 
-    private showResponse(evaluation: { change: number; quality: 'good' | 'ok' | 'bad' }): void {
+    private async showResponse(evaluation: { change: number; quality: 'good' | 'ok' | 'bad' }): Promise<void> {
         const responses = this.getResponses(evaluation.quality);
         const response = responses[Math.floor(Math.random() * responses.length)];
 
@@ -477,19 +549,89 @@ export class InterviewScene extends Phaser.Scene {
         }
 
         // 下一个问题
-        const nextQ = this.getNextQuestion();
-        this.currentQuestion = nextQ.display;
-
         this.responseText.setText(`${this.currentRound.interviewerName}:
+        
+"${response}
+
+(面试官正在组织下一个问题...)"`);
+
+        try {
+            const job = jobHuntSystem.getJobPosition(this.application.jobId);
+            const company = jobHuntSystem.getCompany(this.application.companyId);
+            const resume = jobHuntSystem.getResume();
+
+            // 构建完整的玩家信息，包含简历内容
+            const playerInfoForAI = {
+                name: resume.name,
+                age: resume.age,
+                education: resume.education,
+                school: resume.school,
+                major: resume.major,
+                experience: resume.experience,
+                skills: resume.skills,
+                projects: resume.projects
+            };
+
+            const aiResult = await apiService.generateInterviewQuestion(
+                playerInfoForAI,
+                company,
+                job,
+                {
+                    round: this.currentRound.round,
+                    interviewerRole: this.currentRound.interviewerRole,
+                    isPressure: this.isPressureInterview
+                },
+                this.interviewHistory
+            );
+
+            this.currentQuestion = aiResult.display_type || aiResult.type;
+            this.currentSampleAnswer = aiResult.sample_answer;
+            const question = aiResult.question;
+
+            // 记录历史
+            this.interviewHistory.push({ role: 'assistant', content: question });
+
+            this.responseText.setText(`${this.currentRound.interviewerName}:
+
+"${response}
+
+${question}"`);
+            this.updateHint(aiResult.type);
+
+        } catch (error) {
+            console.error('AI 问题生成失败，使用本地题库', error);
+            const nextQ = this.getNextQuestion();
+            this.currentQuestion = nextQ.display;
+            this.currentSampleAnswer = ""; // 降级模式无示例回答
+
+            this.responseText.setText(`${this.currentRound.interviewerName}:
 
 "${response}
 
 ${nextQ.question}"`);
-        this.updateHint(nextQ.type);
+            this.updateHint(nextQ.type);
+        }
 
-        this.answerBtn = createStyledButton(this, 730, 600, 300, 55, '✍️ 输入你的回答', () => {
-            this.submitAnswer();
-        }) as any;
+        // 重新创建按钮以确保交互性正常
+        if (this.answerBtn) this.answerBtn.destroy();
+        this.createAnswerButton();
+    }
+
+    private setAnswerBtnText(text: string): void {
+        if (!this.answerBtn) return;
+        try {
+            if ((this.answerBtn as any).setText) {
+                (this.answerBtn as any).setText(text);
+            }
+            // 兼容 Container 情况
+            const container = this.answerBtn as any;
+            if (container.list) {
+                const label = container.list.find((obj: any) => obj instanceof Phaser.GameObjects.Text);
+                if (label) label.setText(text);
+            }
+        } catch (e) {
+            console.warn('Failed to set button text', e);
+        }
     }
 
     private getResponses(quality: string): string[] {
