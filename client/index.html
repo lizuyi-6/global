@@ -64,7 +64,8 @@
   <style>
     /* CSS Variables - Modern Color Palette */
     :root {
-      --bg-primary: #050505;
+      --bg-primary: transparent;
+      /* Was #050505 - Changed to transparent to reveal body gradient */
       --bg-secondary: #0A0A0A;
       --bg-panel: #0C0C0E;
       --bg-card: #111113;
@@ -78,9 +79,13 @@
       --accent-amber: #f59e0b;
       --accent-red: #ef4444;
       --text-primary: #ffffff;
-      --text-secondary: #a1a1aa;
-      --text-muted: #71717a;
+      --text-secondary: #e4e4e7;
+      /* Zinc-200 - Brighter for contrast */
+      --text-muted: #d4d4d8;
+      /* Zinc-300 */
       --text-dim: #52525b;
+      --star-beige: #F3EDE6;
+      --star-blue: #6885A3;
       --mouse-x: 50vw;
       --mouse-y: 50vh;
     }
@@ -99,11 +104,10 @@
     }
 
     body {
-      background-color: #0f0f14;
-      background-image:
-        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
+      background: linear-gradient(135deg, #6885A3 0%, #F3EDE6 100%);
+      background-attachment: fixed;
+      /* Ensure gradient covers full scroll */
+      background-size: cover;
       color: var(--text-secondary);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -112,16 +116,14 @@
       width: 100vw;
       height: 100vh;
       cursor: default;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+      /* Shadow to make text pop on light bg */
     }
 
     /* Vignette to focus center */
+    /* Vignette - REMOVED to show background color */
     body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at center, transparent 0%, #0f0f14 100%);
-      pointer-events: none;
-      z-index: 0;
+      content: none;
     }
 
     /* Custom Selection */
@@ -184,7 +186,7 @@
       position: absolute;
       top: 0;
       left: 0;
-      background: var(--bg-primary);
+      background: transparent;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -202,7 +204,8 @@
       height: 100%;
       z-index: 100;
       /* Above everything */
-      background-color: #050505;
+      background: transparent;
+      /* Changed from solid black to transparent to show body gradient */
       overflow-y: auto;
       /* Allow scrolling content */
       overflow-x: hidden;
@@ -369,7 +372,7 @@
   </style>
 </head>
 
-<body>
+<body class="overflow-x-hidden">
   <!-- Visual FX Layers (Global) -->
   <canvas id="bg-canvas"></canvas>
   <div class="grid-bg"></div>
@@ -382,7 +385,7 @@
   <div id="landing-page-overlay">
     <!-- Generated Page Content -->
     <nav
-      class="fixed top-0 w-full z-50 border-b border-white/5 bg-[#050505]/70 backdrop-blur-xl transition-all duration-300">
+      class="fixed top-0 w-full z-50 border-b border-white/5 bg-black/10 backdrop-blur-xl transition-all duration-300">
       <div class="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         <a href="#" class="flex items-center gap-2 group">
           <div
@@ -394,26 +397,26 @@
         </a>
 
         <div class="hidden md:flex items-center gap-6">
-          <a href="#features" class="text-xs text-zinc-400 hover:text-white transition-colors"
+          <a href="#features" class="text-xs text-zinc-200 hover:text-white transition-colors"
             data-i18n="nav.features">Features</a>
-          <a href="#tech" class="text-xs text-zinc-400 hover:text-white transition-colors"
+          <a href="#tech" class="text-xs text-zinc-200 hover:text-white transition-colors"
             data-i18n="nav.tech">Technology</a>
-          <a href="#roadmap" class="text-xs text-zinc-400 hover:text-white transition-colors"
+          <a href="#roadmap" class="text-xs text-zinc-200 hover:text-white transition-colors"
             data-i18n="nav.roadmap">Roadmap</a>
         </div>
 
         <div class="flex items-center gap-3">
-          <a href="https://github.com" target="_blank" class="text-zinc-500 hover:text-white transition-colors">
+          <a href="https://github.com" target="_blank" class="text-zinc-300 hover:text-white transition-colors">
             <iconify-icon icon="lucide:github" width="16"></iconify-icon>
           </a>
           <!-- Language Switcher -->
           <div class="relative">
             <select id="language-selector"
-              class="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs rounded px-2 py-1 pr-6 hover:border-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer">
+              class="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs rounded px-2 py-1 pr-6 hover:border-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer">
               <option value="zh-CN">中文</option>
               <option value="en">EN</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-zinc-500">
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-zinc-300">
               <iconify-icon icon="lucide:chevron-down" width="12"></iconify-icon>
             </div>
           </div>
@@ -448,7 +451,7 @@
           </span>
         </h1>
 
-        <p class="text-sm md:text-base text-zinc-400 font-light max-w-xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed opacity-0"
+        <p class="text-sm md:text-base text-zinc-200 font-light max-w-xl mx-auto mb-8 leading-relaxed animate-slide-up-delayed opacity-0"
           data-i18n="hero.subtitle">
           职场人生 (Career Life) is a Phaser 3 simulation engine driven by Generative AI.
           Navigate office politics, negotiate salaries, and build your empire in a
@@ -474,114 +477,120 @@
       <div class="perspective-container w-full max-w-5xl px-4 mx-auto relative z-10 animate-slide-up-delayed opacity-0"
         style="animation-delay: 0.5s;">
 
-        <!-- The Card/Screen -->
+        <!-- The Card/Screen - Beige Theme -->
         <div
-          class="game-ui-card relative bg-[#0A0A0B] rounded-xl overflow-hidden border border-white/10 aspect-[16/10] md:aspect-[21/9] flex flex-col">
+          class="game-ui-card relative bg-[#FAF7F2] rounded-xl overflow-hidden border border-[#5A4A42]/10 aspect-[16/10] md:aspect-[21/9] flex flex-col shadow-2xl">
 
           <!-- Window Bar -->
-          <div class="h-8 bg-[#0F0F11] border-b border-white/5 flex items-center px-3 gap-2">
+          <div class="h-8 bg-[#E6E0D8] border-b border-[#5A4A42]/5 flex items-center px-3 gap-2">
             <div class="flex gap-1.5">
-              <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
-              <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
-              <div class="w-2.5 h-2.5 rounded-full bg-zinc-700/50"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-[#C2B8AD]"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-[#C2B8AD]"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-[#C2B8AD]"></div>
             </div>
-            <div class="ml-auto flex items-center gap-2 text-[10px] font-mono text-zinc-500">
+            <div class="ml-auto flex items-center gap-2 text-[10px] font-mono text-[#8C847E]">
               <span class="flex items-center gap-1"><iconify-icon icon="lucide:wifi" width="10"></iconify-icon>
                 <span data-i18n="ui.connected">CONNECTED</span></span>
-              <span class="text-indigo-500" data-i18n="ui.ai_active">AI_ENGINE: ACTIVE</span>
+              <span class="text-[#8B5CF6]" data-i18n="ui.ai_active">AI_ENGINE: ACTIVE</span>
             </div>
           </div>
 
           <!-- Game Content Area -->
           <div class="flex-1 flex overflow-hidden">
             <!-- Sidebar (Stats) -->
-            <div class="w-48 bg-[#0C0C0E] border-r border-white/5 p-4 hidden md:flex flex-col gap-6">
+            <div class="w-48 bg-[#FFFCF8] border-r border-[#5A4A42]/5 p-4 hidden md:flex flex-col gap-6">
               <!-- Profile -->
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  class="w-10 h-10 rounded-lg bg-[#F5F3FF] text-[#8B5CF6] border border-[#DDD6FE] flex items-center justify-center">
                   <iconify-icon icon="lucide:user" width="18"></iconify-icon>
                 </div>
                 <div class="flex flex-col">
-                  <span class="text-xs font-semibold text-white" data-i18n="ui.role">Intern</span>
-                  <span class="text-[10px] text-zinc-500" data-i18n="ui.level">Level 1</span>
+                  <span class="text-xs font-bold text-[#4B5563]" data-i18n="ui.role">Intern</span>
+                  <span class="text-[10px] text-[#9CA3AF]" data-i18n="ui.level">Level 1</span>
                 </div>
               </div>
 
               <!-- Resources -->
               <div class="space-y-3">
-                <div class="flex items-center justify-between p-2 rounded bg-white/5 border border-white/5">
-                  <span class="text-[10px] text-zinc-400">¥ Money</span>
-                  <span class="text-xs font-mono text-emerald-400">2,500</span>
+                <div class="flex items-center justify-between p-2 rounded bg-[#F9FAFB] border border-[#F3F4F6]">
+                  <span class="text-[10px] text-[#6B7280]">¥ Money</span>
+                  <span class="text-xs font-mono text-emerald-600 font-bold">2,500</span>
                 </div>
-                <div class="flex items-center justify-between p-2 rounded bg-white/5 border border-white/5">
-                  <span class="text-[10px] text-zinc-400">Stress</span>
-                  <span class="text-xs font-mono text-rose-400">High</span>
+                <div class="flex items-center justify-between p-2 rounded bg-[#F9FAFB] border border-[#F3F4F6]">
+                  <span class="text-[10px] text-[#6B7280]">Stress</span>
+                  <span class="text-xs font-mono text-rose-500 font-bold">High</span>
                 </div>
               </div>
 
               <!-- Energy Bar -->
               <div class="space-y-1">
-                <div class="flex justify-between text-[10px] text-zinc-400 uppercase tracking-wider">
+                <div class="flex justify-between text-[10px] text-[#6B7280] uppercase tracking-wider">
                   <span data-i18n="ui.energy">Energy</span><span>85%</span>
                 </div>
-                <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                <div class="h-1 w-full bg-[#E5E7EB] rounded-full overflow-hidden">
                   <div class="h-full bg-emerald-500 w-[85%]"></div>
                 </div>
               </div>
 
               <!-- Active Tasks -->
               <div class="mt-auto">
-                <p class="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Active Quest</p>
-                <div class="p-2 rounded border border-indigo-500/20 bg-indigo-500/5">
-                  <p class="text-[10px] text-indigo-300">Complete Sprint Report</p>
+                <p class="text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-2">Active Quest</p>
+                <div class="p-2 rounded border border-[#E0E7FF] bg-[#EEF2FF]">
+                  <p class="text-[10px] text-[#4F46E5] font-medium">Complete Sprint Report</p>
                   <div class="flex items-center gap-1 mt-1">
-                    <iconify-icon icon="lucide:clock" width="10" class="text-indigo-400"></iconify-icon>
-                    <span class="text-[9px] text-indigo-400">2h remaining</span>
+                    <iconify-icon icon="lucide:clock" width="10" class="text-[#6366F1]"></iconify-icon>
+                    <span class="text-[9px] text-[#6366F1]">2h remaining</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Main View -->
-            <div class="flex-1 bg-[#050505] relative flex flex-col">
-              <div class="absolute inset-0 grid-bg opacity-30"></div>
+            <div class="flex-1 bg-[#F5F2EB]/50 relative flex flex-col">
+              <div class="absolute inset-0 grid-bg opacity-5"></div>
 
               <!-- Top Bar -->
-              <div class="h-10 border-b border-white/5 flex items-center px-4 justify-between bg-white/2">
+              <div
+                class="h-10 border-b border-[#5A4A42]/5 flex items-center px-4 justify-between bg-white/50 backdrop-blur-sm">
                 <div class="flex gap-4">
                   <span
-                    class="text-[10px] text-zinc-400 hover:text-white cursor-pointer transition-colors">OFFICE</span>
-                  <span class="text-[10px] text-white border-b border-indigo-500 pb-0.5 cursor-pointer">MEETING</span>
-                  <span class="text-[10px] text-zinc-400 hover:text-white cursor-pointer transition-colors">EMAIL</span>
+                    class="text-[10px] text-[#374151] font-semibold cursor-pointer border-b-2 border-transparent hover:border-[#D1D5DB] transition-all">OFFICE</span>
+                  <span
+                    class="text-[10px] text-[#6366F1] font-bold border-b-2 border-[#6366F1] pb-0.5 cursor-pointer">MEETING</span>
+                  <span
+                    class="text-[10px] text-[#6B7280] hover:text-[#374151] cursor-pointer transition-colors">EMAIL</span>
                 </div>
-                <div class="text-[10px] text-zinc-600 font-mono">Build v0.9.2</div>
+                <div class="text-[10px] text-[#9CA3AF] font-mono">Build v0.9.2</div>
               </div>
 
               <!-- Mock Dialogue -->
               <div class="flex-1 flex flex-col items-center justify-center p-8 relative z-0">
-                <div class="w-16 h-16 rounded-full border-2 border-indigo-500/30 p-1 mb-4 animate-float">
+                <div class="w-16 h-16 rounded-full border-2 border-[#E9D5FF] p-1 mb-4 animate-float bg-white">
                   <div
-                    class="w-full h-full rounded-full bg-gradient-to-b from-zinc-700 to-zinc-900 flex items-center justify-center overflow-hidden">
-                    <iconify-icon icon="lucide:user-check" class="text-zinc-400" width="32"></iconify-icon>
+                    class="w-full h-full rounded-full bg-gradient-to-b from-[#F3E8FF] to-[#E9D5FF] flex items-center justify-center overflow-hidden">
+                    <iconify-icon icon="lucide:user-check" class="text-[#A855F7]" width="32"></iconify-icon>
                   </div>
                 </div>
-                <div class="max-w-md w-full glass rounded-xl p-5 border-t border-white/10 shadow-2xl relative">
+
+                <!-- Dialogue Box - Warm Light Glass -->
+                <div
+                  class="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-xl p-5 border border-white/50 shadow-[0_8px_30px_rgba(90,74,66,0.04)] relative">
                   <div
-                    class="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-[#1F1F22]">
+                    class="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white">
                   </div>
-                  <p class="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-wide" data-i18n="ui.manager">
+                  <p class="text-xs font-bold text-[#7C3AED] mb-2 uppercase tracking-wide" data-i18n="ui.manager">
                     Manager David</p>
-                  <p class="text-sm text-zinc-200 leading-relaxed font-light" id="typewriter-text"></p>
-                  <span id="cursor" class="inline-block w-[2px] h-[1em] bg-indigo-500 align-middle ml-1"></span>
+                  <p class="text-sm text-[#374151] leading-relaxed font-medium" id="typewriter-text"></p>
+                  <span id="cursor" class="inline-block w-[2px] h-[1em] bg-[#7C3AED] align-middle ml-1"></span>
 
                   <!-- Response Options -->
                   <div class="mt-4 flex gap-2">
                     <button
-                      class="flex-1 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] text-zinc-300 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white transition-all">Accept
+                      class="flex-1 py-1.5 rounded bg-[#F3F4F6] border border-[#E5E7EB] text-[10px] text-[#4B5563] font-medium hover:bg-[#EEF2FF] hover:border-[#C7D2FE] hover:text-[#4F46E5] transition-all shadow-sm">Accept
                       Offer</button>
                     <button
-                      class="flex-1 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] text-zinc-300 hover:bg-rose-600 hover:border-rose-500 hover:text-white transition-all">Decline</button>
+                      class="flex-1 py-1.5 rounded bg-[#F3F4F6] border border-[#E5E7EB] text-[10px] text-[#4B5563] font-medium hover:bg-[#FFF1F2] hover:border-[#FECDD3] hover:text-[#E11D48] transition-all shadow-sm">Decline</button>
                   </div>
                 </div>
               </div>
@@ -591,7 +600,7 @@
 
         <!-- Horizon Glow -->
         <div
-          class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[120%] h-[100px] bg-indigo-600/20 blur-[100px] rounded-full pointer-events-none z-[-1]">
+          class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[120%] h-[100px] bg-[#8B5CF6]/10 blur-[100px] rounded-full pointer-events-none z-[-1]">
         </div>
       </div>
     </main>
@@ -615,7 +624,7 @@
                 <iconify-icon icon="lucide:brain-circuit" width="24"></iconify-icon>
               </div>
               <h3 class="text-2xl font-bold text-white mb-3" data-i18n="feature1.title">AI-Powered NPCs</h3>
-              <p class="text-zinc-400 leading-relaxed max-w-md" data-i18n="feature1.desc">
+              <p class="text-zinc-200 leading-relaxed max-w-md" data-i18n="feature1.desc">
                 Characters generated by LLMs. They have memories, personalities, and hidden agendas.
               </p>
             </div>
@@ -637,7 +646,7 @@
                 <iconify-icon icon="lucide:users" width="24"></iconify-icon>
               </div>
               <h3 class="text-2xl font-bold text-white mb-3" data-i18n="feature2.title">Office Politics</h3>
-              <p class="text-zinc-400 leading-relaxed" data-i18n="feature2.desc">
+              <p class="text-zinc-200 leading-relaxed" data-i18n="feature2.desc">
                 Navigate complex social hierarchies. Your reputation matters more than your code.
               </p>
             </div>
@@ -662,7 +671,7 @@
                 </div>
                 <h3 class="text-2xl font-bold text-white" data-i18n="feature3.title">Dynamic Career</h3>
               </div>
-              <p class="text-zinc-400 leading-relaxed max-w-2xl" data-i18n="feature3.desc">
+              <p class="text-zinc-200 leading-relaxed max-w-2xl" data-i18n="feature3.desc">
                 From intern to CTO. Every decision impacts your salary, stress levels, and job security.
               </p>
             </div>
@@ -670,11 +679,11 @@
             <!-- Visual Stats Mockup for Feature 3 -->
             <div class="relative z-10 flex gap-4 opacity-60 group-hover:opacity-100 transition-opacity">
               <div class="px-4 py-2 rounded-lg bg-black/40 border border-white/5 backdrop-blur-sm">
-                <span class="text-[10px] text-zinc-500 uppercase">Salary</span>
+                <span class="text-[10px] text-zinc-300 uppercase">Salary</span>
                 <div class="text-emerald-400 font-mono">¥ 25,000</div>
               </div>
               <div class="px-4 py-2 rounded-lg bg-black/40 border border-white/5 backdrop-blur-sm">
-                <span class="text-[10px] text-zinc-500 uppercase">Stress</span>
+                <span class="text-[10px] text-zinc-300 uppercase">Stress</span>
                 <div class="text-rose-400 font-mono">82%</div>
               </div>
             </div>
@@ -698,11 +707,11 @@
                 class="inline-block px-2 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded mb-2 border border-indigo-500/20">PHASE
                 1 - COMPLETED</span>
               <h4 class="text-lg font-semibold text-white" data-i18n="roadmap.p1.title">Core Engine</h4>
-              <p class="text-zinc-500 text-sm mt-1" data-i18n="roadmap.p1.desc">Basic Phaser 3 Setup, Isometric
+              <p class="text-zinc-300 text-sm mt-1" data-i18n="roadmap.p1.desc">Basic Phaser 3 Setup, Isometric
                 Rendering, and initial LLM integration.</p>
             </div>
             <div
-              class="absolute left-4 md:left-1/2 -translate-x-[5px] w-2.5 h-2.5 bg-indigo-500 rounded-full border-4 border-[#050505] shadow-[0_0_10px_rgba(99,102,241,0.5)] order-1 md:order-2">
+              class="absolute left-4 md:left-1/2 -translate-x-[5px] w-2.5 h-2.5 bg-indigo-500 rounded-full border-4 border-transparent shadow-[0_0_10px_rgba(99,102,241,0.5)] order-1 md:order-2">
             </div>
             <div class="md:w-[45%] order-3"></div>
           </div>
@@ -711,14 +720,14 @@
           <div class="relative flex flex-col md:flex-row items-center justify-between gap-8 group">
             <div class="md:w-[45%] order-2 md:order-1"></div>
             <div
-              class="absolute left-4 md:left-1/2 -translate-x-[5px] w-2.5 h-2.5 bg-zinc-600 rounded-full border-4 border-[#050505] order-1 md:order-2 z-10 bg-white animate-pulse">
+              class="absolute left-4 md:left-1/2 -translate-x-[5px] w-2.5 h-2.5 bg-zinc-600 rounded-full border-4 border-transparent order-1 md:order-2 z-10 bg-white animate-pulse">
             </div>
             <div class="md:w-[45%] order-3">
               <span
                 class="inline-block px-2 py-1 bg-white/10 text-white text-[10px] font-bold rounded mb-2 border border-white/20">PHASE
                 2 - CURRENT</span>
               <h4 class="text-lg font-semibold text-white" data-i18n="roadmap.p2.title">Alpha Testing</h4>
-              <p class="text-zinc-500 text-sm mt-1" data-i18n="roadmap.p2.desc">Web Deployment, Save System, and
+              <p class="text-zinc-300 text-sm mt-1" data-i18n="roadmap.p2.desc">Web Deployment, Save System, and
                 enhanced NPC interactions.</p>
             </div>
           </div>
@@ -741,7 +750,7 @@
                     ENGINE</span>
                 </div>
                 <h3 class="text-2xl font-bold text-white mb-2">Phaser 3</h3>
-                <p class="text-sm text-zinc-400 leading-relaxed" data-i18n="tech.phaser">
+                <p class="text-sm text-zinc-200 leading-relaxed" data-i18n="tech.phaser">
                   High-performance 2D rendering engine handling sprites, physics, and scene management.
                 </p>
               </div>
@@ -756,7 +765,7 @@
                     class="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-mono border border-indigo-500/20">INTELLIGENCE</span>
                 </div>
                 <h3 class="text-2xl font-bold text-white mb-2">Generative AI</h3>
-                <p class="text-sm text-zinc-400 leading-relaxed" data-i18n="tech.genai">
+                <p class="text-sm text-zinc-200 leading-relaxed" data-i18n="tech.genai">
                   Dynamic dialogue and narrative branching powered by Large Language Models.
                 </p>
               </div>
@@ -767,7 +776,7 @@
                 <iconify-icon icon="lucide:box" class="text-rose-400 text-2xl mb-2"></iconify-icon>
                 <div>
                   <h3 class="text-sm font-bold text-white mb-1">WebGL</h3>
-                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.webgl">Hardware-accelerated
+                  <p class="text-[10px] text-zinc-300 leading-tight" data-i18n="tech.webgl">Hardware-accelerated
                     graphics.</p>
                 </div>
               </div>
@@ -778,7 +787,7 @@
                 <iconify-icon icon="lucide:palette" class="text-cyan-400 text-2xl mb-2"></iconify-icon>
                 <div>
                   <h3 class="text-sm font-bold text-white mb-1">Tailwind</h3>
-                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.tailwind">Utility-first modern
+                  <p class="text-[10px] text-zinc-300 leading-tight" data-i18n="tech.tailwind">Utility-first modern
                     styling.</p>
                 </div>
               </div>
@@ -789,7 +798,7 @@
                 <iconify-icon icon="lucide:code-2" class="text-blue-400 text-2xl mb-2"></iconify-icon>
                 <div>
                   <h3 class="text-sm font-bold text-white mb-1">TypeScript</h3>
-                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.ts">Type-safe robust codebase.</p>
+                  <p class="text-[10px] text-zinc-300 leading-tight" data-i18n="tech.ts">Type-safe robust codebase.</p>
                 </div>
               </div>
 
@@ -799,7 +808,7 @@
                 <iconify-icon icon="lucide:zap" class="text-yellow-400 text-2xl mb-2"></iconify-icon>
                 <div>
                   <h3 class="text-sm font-bold text-white mb-1">Vite</h3>
-                  <p class="text-[10px] text-zinc-500 leading-tight" data-i18n="tech.vite">Lightning-fast tooling.</p>
+                  <p class="text-[10px] text-zinc-300 leading-tight" data-i18n="tech.vite">Lightning-fast tooling.</p>
                 </div>
               </div>
 
@@ -808,11 +817,11 @@
         </section>
 
         <!-- Footer -->
-        <footer class="border-t border-white/5 bg-[#020202] py-12">
+        <footer class="border-t border-white/5 bg-black/20 py-12">
           <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
             <div class="flex items-center gap-2">
               <span class="text-xs font-semibold text-zinc-300" data-i18n="footer.brand">职场人生</span>
-              <span class="text-[10px] text-zinc-600" data-i18n="footer.rights">© 2024</span>
+              <span class="text-[10px] text-zinc-400" data-i18n="footer.rights">© 2024</span>
             </div>
           </div>
         </footer>
@@ -1094,7 +1103,11 @@
             draw() {
               const opacity = Math.max(0.05, Math.min(0.8, this.alpha));
               ctx.globalAlpha = opacity;
-              ctx.fillStyle = this.pixelColor || '#818cf8'; // Indigo-400
+              ctx.globalAlpha = opacity;
+              // Mixed colors: Randomly pick from the two requested colors
+              // #DED7CD (Beige) or #405C7B (Blue)
+              this.pixelColor = this.pixelColor || (Math.random() > 0.5 ? '#DED7CD' : '#405C7B');
+              ctx.fillStyle = this.pixelColor;
 
               ctx.beginPath();
               ctx.arc(this.screenX, this.screenY, this.baseSize * this.currentScale, 0, Math.PI * 2);
@@ -1143,7 +1156,8 @@
             // Draw Connections
             // Naive O(N^2) check - limit to a subset or optimize if performance drops
             // Only checking every 2nd particle against others for performance
-            ctx.strokeStyle = '#6366f1';
+            // Connection lines also obey the color scheme - we can use a subtle mix or just one
+            ctx.strokeStyle = '#405C7B';
             ctx.lineWidth = 0.5;
 
             for (let i = 0; i < particles.length; i += 2) {

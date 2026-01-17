@@ -5,6 +5,13 @@
  */
 
 // 现代配色方案 - 与 landing.html 完全一致
+export const USER_PALETTE = [
+    0x0068a7, // Deep Sky Blue (Primary)
+    0x61b0d1, // Light Sky Blue (Accent)
+    0x6b84b4, // Muted Blue (Secondary)
+    0xf18765  // Soft Orange/Coral (Warning/Action)
+];
+
 export const COLORS = {
     // 背景色 - Pure Dark Theme (与 landing.html 一致)
     bg: 0x050505,           // 纯黑背景 #050505
@@ -20,15 +27,15 @@ export const COLORS = {
     borderMedium: 0x3f3f46, // zinc-700
     borderBright: 0x52525b, // zinc-600
 
-    // 强调色 - 与 landing.html Tailwind 配置一致
-    primary: 0x6366f1,      // indigo-500
-    primaryLight: 0x818cf8, // indigo-400
-    primaryDark: 0x4f46e5,  // indigo-600
-    secondary: 0x8b5cf6,    // purple-500
-    accent: 0x06b6d4,       // cyan-500
-    success: 0x10b981,      // emerald-500
-    danger: 0xef4444,       // red-500
-    warning: 0xf59e0b,      // amber-500
+    // 强调色 - Configured from USER_PALETTE
+    primary: USER_PALETTE[0],      // #0068a7
+    primaryLight: USER_PALETTE[1], // #61b0d1
+    primaryDark: 0x004e7a,         // Darker #0068a7
+    secondary: USER_PALETTE[2],    // #6b84b4
+    accent: USER_PALETTE[1],       // #61b0d1
+    success: 0x10b981,             // emerald-500 (Keep success green for clarity)
+    danger: 0xef4444,              // red-500 (Keep danger red for clarity)
+    warning: USER_PALETTE[3],      // #f18765
 
     // 文字颜色 - Zinc 色阶
     textMain: 0xffffff,     // 主文字 white
@@ -38,7 +45,7 @@ export const COLORS = {
     textDark: 0x3f3f46,     // zinc-700
 
     // 状态色
-    info: 0x6366f1,
+    info: USER_PALETTE[1],  // #61b0d1
     error: 0xef4444,
 
     // 面板色 (玻璃质感)
@@ -237,10 +244,10 @@ export function createGridBackground(
  * 包含: 深空渐变、多层星点、流动粒子、现代光晕
  */
 export function createModernStarBackground(scene: Phaser.Scene, width: number = 2560, height: number = 1440): void {
-    // 深空渐变背景
-    const bg = scene.add.graphics();
-    bg.fillGradientStyle(0x030308, 0x030308, 0x0a0a1a, 0x0a0a1a, 1);
-    bg.fillRect(0, 0, width, height);
+    // 深空渐变背景 - REMOVED to allow HTML background to show
+    // const bg = scene.add.graphics();
+    // bg.fillGradientStyle(0x030308, 0x030308, 0x0a0a1a, 0x0a0a1a, 1);
+    // bg.fillRect(0, 0, width, height);
 
     // 第一层: 远处微小星点 - 静态背景
     const farStars = scene.add.graphics();
@@ -272,14 +279,14 @@ export function createModernStarBackground(scene: Phaser.Scene, width: number = 
     for (let i = 0; i < 8; i++) {
         const x = Phaser.Math.Between(100, width - 100);
         const y = Phaser.Math.Between(50, height - 50);
-        
+
         // 外层光晕
         const glow = scene.add.graphics();
         glow.fillStyle(0x6366f1, 0.1);
         glow.fillCircle(x, y, 20);
         glow.fillStyle(0x6366f1, 0.05);
         glow.fillCircle(x, y, 35);
-        
+
         // 十字光芒
         const rays = scene.add.graphics();
         rays.lineStyle(1, 0xffffff, 0.3);
@@ -288,10 +295,10 @@ export function createModernStarBackground(scene: Phaser.Scene, width: number = 
         rays.lineStyle(1, 0xffffff, 0.15);
         rays.lineBetween(x - 8, y - 8, x + 8, y + 8);
         rays.lineBetween(x + 8, y - 8, x - 8, y + 8);
-        
+
         // 核心亮点
         scene.add.circle(x, y, 2, 0xffffff, 0.9);
-        
+
         // 脉冲动画
         scene.tweens.add({
             targets: [glow, rays],
@@ -444,7 +451,7 @@ export function createGlassCard(
     const {
         rounded = 16,
         fillColor = COLORS.bgPanel,
-        fillAlpha = 0.6,
+        fillAlpha = 0.4, // Reduced from 0.6
         borderColor = 0xffffff,
         borderAlpha = 0.05,
         borderWidth = 2
@@ -487,7 +494,7 @@ export function createWindowCard(
 
     // 卡片主体
     const cardBg = scene.add.graphics();
-    cardBg.fillStyle(COLORS.bgPanel, 0.9);
+    cardBg.fillStyle(COLORS.bgPanel, 0.7); // Reduced from 0.9
     cardBg.fillRoundedRect(-width / 2, -height / 2, width, height, rounded);
     cardBg.lineStyle(2, 0xffffff, 0.08);
     cardBg.strokeRoundedRect(-width / 2, -height / 2, width, height, rounded);
@@ -514,7 +521,7 @@ export function createWindowCard(
 /**
  * 磨砂玻璃质感效果辅助函数 - 现代风格
  */
-export function applyGlassEffect(rect: Phaser.GameObjects.Rectangle, alpha = 0.5) {
+export function applyGlassEffect(rect: Phaser.GameObjects.Rectangle, alpha = 0.3) {
     rect.setFillStyle(COLORS.bgPanel, alpha);
     rect.setStrokeStyle(2, 0xffffff, 0.05);
 }

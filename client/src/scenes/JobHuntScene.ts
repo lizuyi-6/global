@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Application, Company, JobPosition } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
 import { notificationManager } from '../NotificationManager';
-import { applyGlassEffect, COLORS, createModernStarBackground, createStyledButton, FONTS, Layout, TEXT_STYLES } from '../UIConfig';
+import { COLORS, FONTS, Layout, TEXT_STYLES, USER_PALETTE, applyGlassEffect, createModernStarBackground, createStyledButton } from '../UIConfig';
 
 /**
  * 求职主界面场景
@@ -16,7 +16,7 @@ export class JobHuntScene extends Phaser.Scene {
     private jobListPage: number = 0;
     private jobsPerPage: number = 4; // Use 4 to fit taller cards
     private layout!: Layout;
-    
+
     // 滚动相关
     private scrollContainer!: Phaser.GameObjects.Container;
     private scrollY: number = 0;
@@ -140,7 +140,7 @@ export class JobHuntScene extends Phaser.Scene {
 
         // 状态栏背景 - 现代卡片风格
         const statusBg = this.add.graphics();
-        statusBg.fillStyle(COLORS.bgPanel, 0.85);
+        statusBg.fillStyle(COLORS.bgPanel, 0.5); // Reduced from 0.85
         statusBg.fillRoundedRect(0, 0, 2560, 160, 0);
         statusBg.lineStyle(2, 0xffffff, 0.05);
         statusBg.strokeRect(0, 158, 2560, 2);
@@ -182,23 +182,44 @@ export class JobHuntScene extends Phaser.Scene {
         this.createMiniStat(statsX + 200, 60, 'INTVW', status.totalInterviews);
         this.createMiniStat(statsX + 400, 60, 'OFFER', status.totalOffers);
 
-        // 下一天按钮 (Styled)
-        const nextDayBtn = createStyledButton(this, 2360, 80, 320, 100, 'NEXT DAY ⏭️', () => this.advanceDay());
-        nextDayBtn.scale = 2; // Simple scale if createStyledButton generates complex container, OR rely on size args if simple. 
-        // Note: createStyledButton usually takes size args. I passed 320, 100 which is 2x 160, 50.
-        // But font size inside createStyledButton might be fixed. 
-        // If createStyledButton uses fixed font size, we need to scale the container.
-        // Assuming createStyledButton uses size correctly for bg but text might be small. 
-        // Let's add scale=2 just in case for text, or rely on size.
-        // Actually, createStyledButton returns a container. If I set scale=1 (default), the text might be small.
-        // Let's manually set scale to 1 but ensure I passed 2x dimensions. 
-        // Wait, if I pass 2x dimensions, but font is small, it looks weird.
-        // I'll check createStyledButton later. For now, let's assume I need to handle it.
-        // Safest is to not scale the button container but just pass larger dimensions if supported.
-        // However, I will comment out scale=2 and trust dimensions for now, or use a multiplier if needed.
-        // Re-reading: "160, 50" -> "320, 100". 
+        // 下一天按钮 (Styled - Coral Orange)
+        // USER_PALETTE[3] is Coral (#f18765)
+        // Pass 'danger' style or custom? createStyledButton supports: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger'
+        // Let's use 'danger' (red) or keep 'primary' but hacked?
+        // Better: createStyledButton implementation uses fixed colors. 
+        // Let's modify the button creation slightly or use 'danger' which is red/orange.
+        // Or update UIConfig to use Palette for 'danger'/'warning'?
+        // UIConfig already maps warning -> USER_PALETTE[3].
+        // But createStyledButton only takes specific string keys.
+        // Let's use 'primary' but since we changed primary to USER_PALETTE[0] (Blue), that's not what we want.
+        // Wait, I want "Next Day" to be Coral.
+        // Let's just create a custom button logic here or use 'danger' if it maps to something close.
+        // COLORS.danger is still red. COLORS.warning is USER_PALETTE[3].
+        // createStyledButton doesn't support 'warning'.
+        // I'll manually create the button here for maximum control or add 'warning' support to createStyledButton later.
+        // For now, let's just make a custom colored button here since it's just one button.
 
-        this.statusPanel.add(nextDayBtn);
+        const nextDayContainer = this.add.container(2360, 80);
+        const nextDayBg = this.add.rectangle(0, 0, 320, 100, USER_PALETTE[3], 1); // Coral
+        nextDayBg.setInteractive({ useHandCursor: true });
+
+        const nextDayText = this.add.text(0, 0, 'NEXT DAY ⏭️', {
+            fontSize: '32px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        nextDayContainer.add([nextDayBg, nextDayText]);
+
+        nextDayBg.on('pointerdown', () => {
+            this.tweens.add({ targets: nextDayContainer, scaleX: 0.95, scaleY: 0.95, duration: 50, yoyo: true });
+            this.advanceDay();
+        });
+        nextDayBg.on('pointerover', () => nextDayBg.setFillStyle(0xffa07a, 1)); // Lighter coral
+        nextDayBg.on('pointerout', () => nextDayBg.setFillStyle(USER_PALETTE[3], 1));
+
+        this.statusPanel.add(nextDayContainer);
     }
 
     private createStatusMeter(x: number, y: number, label: string, value: number, color: number): void {
@@ -232,24 +253,45 @@ export class JobHuntScene extends Phaser.Scene {
 
         // 导航背景 - 现代卡片风格
         const navBg = this.add.graphics();
-        navBg.fillStyle(COLORS.bgPanel, 0.6);
+        navBg.fillStyle(COLORS.bgPanel, 0.3); // Reduced from 0.6
         navBg.fillRoundedRect(40, 280, 360, 1040, 24);
         navBg.lineStyle(2, 0xffffff, 0.05);
         navBg.strokeRoundedRect(40, 280, 360, 1040, 24);
         this.navPanel.add(navBg);
 
-        navItems.forEach(item => {
+        navItems.forEach((item, index) => {
             const container = this.add.container(220, item.y);
             const isActive = this.currentTab === item.key;
+
+            // Map tab key to palette color
+            // jobs -> [0] Blue
+            // applications -> [1] Sky
+            // interviews -> [2] Muted
+            // offers -> [3] Coral
+            const tabColors: { [key: string]: number } = {
+                'jobs': USER_PALETTE[0],
+                'applications': USER_PALETTE[1],
+                'interviews': USER_PALETTE[2],
+                'offers': USER_PALETTE[3]
+            };
+            const itemColor = tabColors[item.key];
+
             const iconColor = isActive ? 0xffffff : 0x888888;
 
             const bg = this.add.graphics();
             if (isActive) {
-                bg.fillStyle(COLORS.primary, 0.2);
+                // Active: Full color background
+                bg.fillStyle(itemColor, 1);
                 bg.fillRoundedRect(-160, -50, 320, 100, 16);
-                bg.lineStyle(2, COLORS.primary, 0.4);
-                bg.strokeRoundedRect(-160, -50, 320, 100, 16);
+                // bg.lineStyle(2, itemColor, 0.4);
+            } else {
+                // Inactive: Transparent or faint
+                bg.fillStyle(0x000000, 0); // Transparent
+                // bg.fillRoundedRect(-160, -50, 320, 100, 16);
             }
+
+            // Actually, let's just complete the if/else properly.
+
 
             // 绘制图标
             const iconG = this.add.graphics();
@@ -459,7 +501,7 @@ export class JobHuntScene extends Phaser.Scene {
         // 创建可滚动区域的可视范围
         const scrollAreaTop = -280;
         const scrollAreaHeight = height - 500; // 留出顶部和底部空间
-        
+
         // 创建滚动容器
         this.scrollContainer = this.add.container(0, scrollAreaTop);
         this.mainContent.add(this.scrollContainer);
@@ -491,19 +533,23 @@ export class JobHuntScene extends Phaser.Scene {
             const cardContainer = this.add.container(0, y);
             this.scrollContainer.add(cardContainer);
 
-            // 背景 (磨砂玻璃卡片)
-            const bg = this.add.rectangle(0, 0, 1680, cardHeight, COLORS.bgCard, 0.6);
-            bg.setStrokeStyle(3, COLORS.primary, 0.3);
+            // 背景 (彩色卡片 - 使用用户配色循环)
+            // #0068a7, #61b0d1, #6b84b4, #f18765
+            const cardColor = USER_PALETTE[index % USER_PALETTE.length];
+            const bg = this.add.rectangle(0, 0, 1680, cardHeight, cardColor, 0.8); // Higher opacity for color pop
 
-            const shadow = this.add.rectangle(12, 12, 1680, cardHeight, 0x000000, 0.6);
+            // Side accent or border? Let's just keep simple fill as requested.
+            // bg.setStrokeStyle(3, COLORS.primary, 0.3); // Remove stroke or match color
+
+            const shadow = this.add.rectangle(12, 12, 1680, cardHeight, 0x000000, 0.2); // Softer shadow
             cardContainer.add(shadow);
             cardContainer.add(bg);
 
-            // 公司名
+            // 公司名 - White
             const companyName = this.add.text(-780, -70, company.name.toUpperCase(), {
                 fontSize: '24px',
                 fontFamily: FONTS.mono,
-                color: '#06b6d4',
+                color: '#ffffff', // Was #06b6d4, now white for contrast
                 letterSpacing: 2
             });
             cardContainer.add(companyName);
@@ -517,29 +563,31 @@ export class JobHuntScene extends Phaser.Scene {
             });
             cardContainer.add(jobTitle);
 
-            // 薪资
+            // 薪资 - White
             const salary = this.add.text(780, -70,
                 `¥${(job.salaryRange[0] / 1000).toFixed(0)}k - ${(job.salaryRange[1] / 1000).toFixed(0)}k`, {
                 fontSize: '40px',
                 fontFamily: FONTS.mono,
-                color: '#10b981',
+                color: '#ffffff', // Was #10b981
                 fontStyle: 'bold'
             }).setOrigin(1, 0);
             cardContainer.add(salary);
 
-            // 要求
+            // 要求 - White with slight opacity
             const reqs = this.add.text(-780, 50, `${job.experience}  •  ${job.education}`, {
                 fontSize: '28px',
                 fontFamily: FONTS.main,
-                color: '#c0c0c6'
+                color: '#ffffff' // Was #c0c0c6
             });
+            reqs.setAlpha(0.9);
             cardContainer.add(reqs);
 
             // 标签系统
             let tagX = 300;
             const createTag = (text: string, color: number) => {
-                const tagBg = this.add.rectangle(tagX, 50, 120, 48, color, 0.15);
-                tagBg.setStrokeStyle(2, color, 0.4);
+                // Tags on colored background -> use White transparent bg
+                const tagBg = this.add.rectangle(tagX, 50, 120, 48, 0xffffff, 0.2);
+                tagBg.setStrokeStyle(1, 0xffffff, 0.5);
                 const tagText = this.add.text(tagX, 50, text, {
                     fontSize: '22px',
                     fontFamily: FONTS.main,
@@ -566,6 +614,7 @@ export class JobHuntScene extends Phaser.Scene {
                 'mid': '中型',
                 'state': '国企'
             };
+            // Note: colors param ignored in new white-tag design
             createTag(typeLabels[company.type], typeColors[company.type]);
 
             if (job.urgency !== 'normal') {
@@ -577,42 +626,50 @@ export class JobHuntScene extends Phaser.Scene {
             const hasApplied = applications.some(app => app.jobId === job.id);
 
             const btnText = hasApplied ? '✓ 已投递' : '投递简历';
-            const btnColor = hasApplied ? COLORS.borderMedium : COLORS.primary;
+            // Button on colored card -> White bg with colored text OR Dark bg?
+            // Let's use White bg button for high contrast/pop
 
-            const applyBtnBg = this.add.rectangle(700, 50, 240, 88, btnColor, hasApplied ? 0.2 : 1);
-            if (!hasApplied) applyBtnBg.setStrokeStyle(0);
+            const applyBtnBg = this.add.rectangle(700, 50, 240, 88, 0xffffff, hasApplied ? 0.3 : 1);
+            // if (!hasApplied) applyBtnBg.setStrokeStyle(0);
 
             const applyBtnText = this.add.text(700, 50, btnText, {
                 fontSize: '30px',
                 fontFamily: FONTS.main,
-                color: hasApplied ? '#888888' : '#ffffff',
+                color: hasApplied ? '#eeeeee' : '#000000', // Black text on white button
                 fontStyle: 'bold'
             }).setOrigin(0.5);
+
+            // If applied, button is transparent white, text is white? 
+            // "hasApplied ? 0.3 : 1" -> 0.3 white bg. Text should be white.
+            // If active, white bg (1), text black.
+
+            if (hasApplied) {
+                applyBtnText.setColor('#ffffff');
+                applyBtnBg.setFillStyle(0xffffff, 0.3);
+            } else {
+                applyBtnText.setColor(Phaser.Display.Color.IntegerToColor(cardColor).rgba); // Use the card's color for text? Or just black?
+                // Actually black or dark gray is cleaner on white.
+                applyBtnText.setColor('#333333');
+            }
 
             cardContainer.add([applyBtnBg, applyBtnText]);
 
             if (!hasApplied) {
                 applyBtnBg.setInteractive({ useHandCursor: true });
                 applyBtnBg.on('pointerover', () => {
-                    applyBtnBg.setFillStyle(0x818cf8, 1);
+                    applyBtnBg.setScale(1.05);
                     this.tweens.add({ targets: cardContainer, scaleX: 1.01, scaleY: 1.01, duration: 200, ease: 'Cubic.out' });
                 });
                 applyBtnBg.on('pointerout', () => {
-                    applyBtnBg.setFillStyle(COLORS.primary, 1);
+                    applyBtnBg.setScale(1);
                     this.tweens.add({ targets: cardContainer, scaleX: 1, scaleY: 1, duration: 200, ease: 'Cubic.out' });
                 });
                 applyBtnBg.on('pointerdown', () => {
-                    applyBtnText.setText('...');
-                    this.applyJob(job);
+                    this.handleApplyJob(job);
                 });
             }
-
-            // 点击卡片查看详情
-            bg.setInteractive({ useHandCursor: true });
-            bg.on('pointerover', () => bg.setStrokeStyle(2, COLORS.primary, 0.6));
-            bg.on('pointerout', () => bg.setStrokeStyle(2, COLORS.borderLight, 1));
-            bg.on('pointerdown', () => this.showJobDetail(job, company));
         });
+
 
         // 添加滚轮事件监听
         this.setupScrollListener();
@@ -625,7 +682,7 @@ export class JobHuntScene extends Phaser.Scene {
                 color: '#666666'
             }).setOrigin(0.5);
             this.mainContent.add(scrollHint);
-            
+
             // 淡入淡出动画
             this.tweens.add({
                 targets: scrollHint,
@@ -640,19 +697,19 @@ export class JobHuntScene extends Phaser.Scene {
     private setupScrollListener(): void {
         // 移除旧的监听器
         this.input.off('wheel');
-        
+
         // 添加滚轮事件
         this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number) => {
             if (this.currentTab !== 'jobs' || !this.scrollContainer) return;
-            
+
             // 检查指针是否在主内容区域
             const { width, height } = this.getLayoutInfo();
             if (pointer.x < 500 || pointer.x > width - 100) return; // 左侧导航区域不响应
-            
+
             // 更新滚动位置
             this.scrollY += deltaY * 0.5;
             this.scrollY = Phaser.Math.Clamp(this.scrollY, 0, this.maxScrollY);
-            
+
             // 应用滚动
             this.scrollContainer.y = -280 - this.scrollY;
         });
