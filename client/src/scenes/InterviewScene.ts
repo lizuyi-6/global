@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
+import { apiService } from '../APIService';
 import type { Application, InterviewRound } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
-import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
-import { apiService } from '../APIService';
+import { COLORS, FONTS, applyGlassEffect, createGlow, createGridBackground, createStyledButton } from '../UIConfig';
 
 /**
  * 面试场景 - 自由回答版
@@ -52,72 +52,67 @@ export class InterviewScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 背景
-        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+        // 背景 - 2K
+        this.add.rectangle(1280, 720, 2560, 1440, COLORS.bg);
 
-        // 背景装饰
-        const deco = this.add.graphics();
-        deco.lineStyle(2, COLORS.primary, 0.1);
-        for (let i = 0; i < 1280; i += 40) {
-            deco.moveTo(i, 0);
-            deco.lineTo(i, 720);
-        }
-        for (let i = 0; i < 720; i += 40) {
-            deco.moveTo(0, i);
-            deco.lineTo(1280, i);
-        }
-        deco.strokePath();
+        // 网格背景
+        createGridBackground(this, 2560, 1440);
+
+        // 渐变光晕
+        createGlow(this, 400, 200, 500, COLORS.primary, 0.06);
+        createGlow(this, 2200, 300, 400, COLORS.secondary, 0.04);
+        createGlow(this, 1280, 1500, 600, COLORS.primary, 0.05);
 
         const job = jobHuntSystem.getJobPosition(this.application.jobId);
         const company = jobHuntSystem.getCompany(this.application.companyId);
 
-        // 标题容器
-        const headerContainer = this.add.container(640, 60);
-        const titleText = this.add.text(0, -15, '🎤 面试环节', {
-            fontSize: '36px',
+        // 标题容器 - 2K
+        const headerContainer = this.add.container(1280, 120);
+        const titleText = this.add.text(0, -30, '🎤 面试环节', {
+            fontSize: '72px',
             fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        const subTitleText = this.add.text(0, 25, `${company?.name} / ${job?.title} - ROUND ${this.currentRound.round}`, {
-            fontSize: '12px',
+        const subTitleText = this.add.text(0, 50, `${company?.name} / ${job?.title} - ROUND ${this.currentRound.round}`, {
+            fontSize: '24px',
             fontFamily: FONTS.mono,
-            color: '#4a90d9',
-            letterSpacing: 2
+            color: '#6366f1',
+            letterSpacing: 4
         }).setOrigin(0.5);
         headerContainer.add([titleText, subTitleText]);
 
         // 面试官区域
         this.createInterviewerArea();
 
-        // 对话区域
-        const dialogBg = this.add.rectangle(730, 300, 800, 280, COLORS.panel, 0.6);
+        // 对话区域 - 2K
+        const dialogBg = this.add.rectangle(1460, 600, 1600, 560, COLORS.bgPanel, 0.6);
         applyGlassEffect(dialogBg);
 
-        this.responseText = this.add.text(730, 300, '', {
-            fontSize: '18px',
+        this.responseText = this.add.text(1460, 600, '', {
+            fontSize: '36px',
             fontFamily: FONTS.main,
             color: '#ffffff',
-            wordWrap: { width: 740 },
+            wordWrap: { width: 1480 },
             align: 'left',
-            lineSpacing: 10
+            lineSpacing: 20
         }).setOrigin(0.5);
 
-        // 参考提示区域
-        const hintBg = this.add.rectangle(730, 480, 800, 60, 0xffffff, 0.05);
-        hintBg.setStrokeStyle(1, 0xffffff, 0.1);
+        // 参考提示区域 - 2K
+        const hintBg = this.add.rectangle(1460, 960, 1600, 120, 0xffffff, 0.05);
+        hintBg.setStrokeStyle(2, 0xffffff, 0.1);
 
-        this.add.text(350, 455, '💡 HINTS:', {
-            fontSize: '11px',
+        this.add.text(700, 910, '💡 HINTS:', {
+            fontSize: '22px',
             fontFamily: FONTS.mono,
-            color: '#4a90d9'
+            color: '#6366f1'
         });
 
-        this.hintText = this.add.text(730, 485, '', {
-            fontSize: '14px',
+        this.hintText = this.add.text(1460, 970, '', {
+            fontSize: '28px',
             fontFamily: FONTS.main,
-            color: '#888888',
-            wordWrap: { width: 760 },
+            color: '#71717a',
+            wordWrap: { width: 1520 },
             align: 'center'
         }).setOrigin(0.5);
 
@@ -132,39 +127,40 @@ export class InterviewScene extends Phaser.Scene {
     }
 
     private createInterviewerArea(): void {
-        const interviewerBg = this.add.rectangle(200, 380, 280, 440, COLORS.panel, 0.5);
+        // 面试官区域 - 2K
+        const interviewerBg = this.add.rectangle(400, 760, 560, 880, COLORS.bgPanel, 0.5);
         applyGlassEffect(interviewerBg);
 
         // 装饰边框
         const border = this.add.graphics();
-        border.lineStyle(2, this.isPressureInterview ? 0xff4444 : 0x4a90d9, 0.3);
-        border.strokeRect(80, 180, 240, 400);
+        border.lineStyle(4, this.isPressureInterview ? COLORS.danger : COLORS.primary, 0.3);
+        border.strokeRoundedRect(160, 360, 480, 800, 24);
 
         // 表情
-        this.moodEmoji = this.add.text(200, 320, this.getMoodEmoji(), {
-            fontSize: '120px'
+        this.moodEmoji = this.add.text(400, 640, this.getMoodEmoji(), {
+            fontSize: '240px'
         }).setOrigin(0.5);
 
         // 名字标签
-        const nameBg = this.add.rectangle(200, 480, 220, 40, 0x000000, 0.5);
-        this.add.text(200, 480, this.currentRound.interviewerName, {
-            fontSize: '20px',
+        const nameBg = this.add.rectangle(400, 960, 440, 80, 0x000000, 0.5);
+        this.add.text(400, 960, this.currentRound.interviewerName, {
+            fontSize: '40px',
             fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(200, 515, this.currentRound.interviewerRole, {
-            fontSize: '14px',
+        this.add.text(400, 1030, this.currentRound.interviewerRole, {
+            fontSize: '28px',
             fontFamily: FONTS.mono,
-            color: '#4a90d9'
+            color: '#6366f1'
         }).setOrigin(0.5);
 
         if (this.isPressureInterview) {
-            const warningText = this.add.text(200, 560, 'PRESSURE MONITOR: HIGH', {
-                fontSize: '10px',
+            const warningText = this.add.text(400, 1120, 'PRESSURE MONITOR: HIGH', {
+                fontSize: '20px',
                 fontFamily: FONTS.mono,
-                color: '#ff4444'
+                color: '#ef4444'
             }).setOrigin(0.5);
 
             this.tweens.add({
@@ -206,9 +202,9 @@ export class InterviewScene extends Phaser.Scene {
     }
 
     private createAnswerButton(): void {
-        this.answerBtn = createStyledButton(this, 730, 600, 300, 55, '✍️ 输入你的回答', () => {
+        this.answerBtn = createStyledButton(this, 1460, 1200, 600, 110, '✍️ 输入你的回答', () => {
             this.submitAnswer();
-        }) as any; // Cast because createStyledButton returns Container but we need to reference it
+        }) as any;
     }
 
     private async startInterview(): Promise<void> {
@@ -224,7 +220,7 @@ export class InterviewScene extends Phaser.Scene {
 
         const opening = openings[Math.floor(Math.random() * openings.length)];
         this.currentQuestion = '自我介绍';
-        
+
         // 使用简历信息生成示例回答
         const resume = jobHuntSystem.getResume();
         const educationMap: { [key: string]: string } = {
@@ -238,7 +234,7 @@ export class InterviewScene extends Phaser.Scene {
 
         this.responseText.setText(`${this.currentRound.interviewerName}:\n\n"${opening}"`);
         this.updateHint('自我介绍');
-        
+
         // 记录历史
         this.interviewHistory.push({ role: 'assistant', content: opening });
     }
@@ -265,95 +261,97 @@ export class InterviewScene extends Phaser.Scene {
         // 禁用按钮防止重复点击
         this.answerBtn.disableInteractive();
 
-        // 创建内嵌输入框
-        const inputContainer = this.add.container(640, 360);
+        // 创建内嵌输入框 - 2K
+        const inputContainer = this.add.container(1280, 720);
         inputContainer.setDepth(10000);
 
         // 背景遮罩 - 阻止点击穿透
-        const overlay = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.8);
+        const overlay = this.add.rectangle(0, 0, 2560, 1440, 0x000000, 0.85);
         overlay.setOrigin(0.5);
-        overlay.setInteractive();  // 关键！阻止点击穿透到后面
+        overlay.setInteractive();
         inputContainer.add(overlay);
 
-        // 输入框背景
-        const inputBg = this.add.rectangle(0, 0, 800, 300, 0x1a1a2e);
-        inputBg.setStrokeStyle(3, 0x4a90d9);
-        inputBg.setOrigin(0.5);
+        // 输入框背景 - 玻璃质感
+        const inputBg = this.add.graphics();
+        inputBg.fillStyle(COLORS.bgPanel, 0.98);
+        inputBg.fillRoundedRect(-800, -300, 1600, 600, 24);
+        inputBg.lineStyle(3, COLORS.primary, 0.5);
+        inputBg.strokeRoundedRect(-800, -300, 1600, 600, 24);
         inputContainer.add(inputBg);
 
         // 问题标题
-        const questionTitle = this.add.text(0, -100, `面试官问: "${this.currentQuestion}"`, {
-            fontSize: '16px',
+        const questionTitle = this.add.text(0, -200, `面试官问: "${this.currentQuestion}"`, {
+            fontSize: '32px',
             color: '#ffffff',
             fontStyle: 'bold',
-            wordWrap: { width: 750 },
+            wordWrap: { width: 1500 },
             align: 'center'
         }).setOrigin(0.5);
         inputContainer.add(questionTitle);
 
-        // HTML输入框
+        // HTML输入框 - 2K 适配
         const inputHTML = `
             <div id="interview-input-container" style="
                 display: flex; 
                 flex-direction: column; 
-                gap: 15px; 
-                width: 760px;
-                background: rgba(26, 26, 46, 0.95);
-                padding: 25px;
-                border-radius: 12px;
-                border: 2px solid #4a90d9;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                font-family: 'Arial', sans-serif;
+                gap: 30px; 
+                width: 1520px;
+                background: rgba(5, 5, 5, 0.98);
+                padding: 50px;
+                border-radius: 24px;
+                border: 2px solid rgba(99, 102, 241, 0.5);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+                font-family: 'Inter', sans-serif;
             ">
-                <div style="color: #4a90d9; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+                <div style="color: #6366f1; font-weight: bold; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">
                     面试官的问题已提出
                 </div>
                 <textarea id="interviewInput" 
                           placeholder="在此输入你的回答... (建议结合个人技能点)"
                           style="width: 100%; 
-                                 height: 150px;
-                                 padding: 15px; 
-                                 font-size: 15px; 
-                                 background: #0f0f1e; 
+                                 height: 300px;
+                                 padding: 30px; 
+                                 font-size: 30px; 
+                                 background: #0a0a0a; 
                                  color: #ffffff; 
-                                 border: 1px solid #333; 
-                                 border-radius: 8px;
+                                 border: 2px solid rgba(255,255,255,0.1); 
+                                 border-radius: 16px;
                                  outline: none;
                                  resize: none;
                                  line-height: 1.5;
                                  font-family: inherit;
                                  box-sizing: border-box;"></textarea>
-                <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                <div style="display: flex; gap: 30px; justify-content: flex-end;">
                     <button id="aiHintBtn"
-                            style="padding: 10px 20px;
-                                   font-size: 14px;
-                                   background: #6c5ce7;
+                            style="padding: 20px 40px;
+                                   font-size: 28px;
+                                   background: #8b5cf6;
                                    color: #ffffff;
                                    border: none;
-                                   border-radius: 6px;
+                                   border-radius: 12px;
                                    cursor: pointer;
                                    transition: all 0.2s;
                                    font-weight: bold;">
                         ✨ AI 助攻 (自动填充示例)
                     </button>
                     <button id="interviewCancel"
-                            style="padding: 10px 20px;
-                                   font-size: 14px;
-                                   background: #444;
-                                   color: #ccc;
-                                   border: none;
-                                   border-radius: 6px;
+                            style="padding: 20px 40px;
+                                   font-size: 28px;
+                                   background: #27272a;
+                                   color: #a1a1aa;
+                                   border: 2px solid rgba(255,255,255,0.1);
+                                   border-radius: 12px;
                                    cursor: pointer;
                                    transition: all 0.2s;">
                         取消
                     </button>
                     <button id="interviewSubmit"
-                            style="padding: 10px 30px;
-                                   font-size: 14px;
-                                   background: #00b894;
+                            style="padding: 20px 60px;
+                                   font-size: 28px;
+                                   background: #6366f1;
                                    color: #ffffff;
                                    border: none;
-                                   border-radius: 6px;
+                                   border-radius: 12px;
                                    cursor: pointer;
                                    font-weight: bold;
                                    transition: all 0.2s;">
@@ -363,14 +361,14 @@ export class InterviewScene extends Phaser.Scene {
             </div>
         `;
 
-        const domElement = this.add.dom(640, 360, 'div').createFromHTML(inputHTML);
+        const domElement = this.add.dom(1280, 720, 'div').createFromHTML(inputHTML);
         domElement.setDepth(10001);
         domElement.setOrigin(0.5);
 
         // 调整 inputContainer 以适应新的 DOM 样式
-        inputBg.setVisible(false); // 使用 HTML 自带的背景
-        questionTitle.setY(-180); // 将标题移高一点
-        questionTitle.setStyle({ fontSize: '18px', color: '#00ff88' });
+        inputBg.setVisible(false);
+        questionTitle.setY(-360);
+        questionTitle.setStyle({ fontSize: '36px', color: '#10b981' });
 
         // 延迟绑定事件
         this.time.delayedCall(100, () => {
@@ -436,10 +434,10 @@ export class InterviewScene extends Phaser.Scene {
             if (submitBtn) {
                 submitBtn.addEventListener('click', handleSubmit);
                 submitBtn.addEventListener('mouseenter', () => {
-                    submitBtn.style.background = '#5aa0e9';
+                    submitBtn.style.background = '#818cf8';
                 });
                 submitBtn.addEventListener('mouseleave', () => {
-                    submitBtn.style.background = '#4a90d9';
+                    submitBtn.style.background = '#6366f1';
                 });
             }
 
@@ -452,10 +450,10 @@ export class InterviewScene extends Phaser.Scene {
                     }
                 });
                 aiHintBtn.addEventListener('mouseenter', () => {
-                    aiHintBtn.style.background = '#af7ac5';
+                    aiHintBtn.style.background = '#a78bfa';
                 });
                 aiHintBtn.addEventListener('mouseleave', () => {
-                    aiHintBtn.style.background = '#9b59b6';
+                    aiHintBtn.style.background = '#8b5cf6';
                 });
             }
 
@@ -463,10 +461,10 @@ export class InterviewScene extends Phaser.Scene {
             if (cancelBtn) {
                 cancelBtn.addEventListener('click', handleCancel);
                 cancelBtn.addEventListener('mouseenter', () => {
-                    cancelBtn.style.background = '#888888';
+                    cancelBtn.style.background = '#3f3f46';
                 });
                 cancelBtn.addEventListener('mouseleave', () => {
-                    cancelBtn.style.background = '#666666';
+                    cancelBtn.style.background = '#27272a';
                 });
             }
 
@@ -724,21 +722,14 @@ ${nextQ.question}"`);
                 (nextRound ? `恭喜通过！已安排第${nextRound.round}轮面试` : '🎉 所有面试通过！等待Offer!') :
                 '很遗憾，面试未通过';
 
-            const resultBtn = this.add.text(640, 550, msg, {
-                fontSize: '20px',
-                color: passed ? '#00ff88' : '#ff4444',
-                backgroundColor: '#333333',
-                padding: { x: 40, y: 15 }
+            const resultBtn = this.add.text(1280, 1100, msg, {
+                fontSize: '40px',
+                color: passed ? '#10b981' : '#ef4444',
+                backgroundColor: '#1a1a1d',
+                padding: { x: 80, y: 30 }
             }).setOrigin(0.5);
 
-            const backBtn = this.add.text(640, 620, '返回', {
-                fontSize: '16px',
-                color: '#ffffff',
-                backgroundColor: '#4a90d9',
-                padding: { x: 50, y: 12 }
-            }).setOrigin(0.5);
-            backBtn.setInteractive({ useHandCursor: true });
-            backBtn.on('pointerdown', () => {
+            const backBtn = createStyledButton(this, 1280, 1240, 400, 100, '返回', () => {
                 this.scene.stop();
                 this.scene.resume('JobHuntScene');
             });
@@ -746,16 +737,16 @@ ${nextQ.question}"`);
     }
 
     private createBottomBar(): void {
-        this.add.text(640, 680, this.isPressureInterview ?
+        this.add.text(1280, 1360, this.isPressureInterview ?
             '⚠️ 压力面试：请认真思考后回答，面试官会更严格评判' :
             '💡 提示：观察面试官表情判断回答效果，参考提示组织回答', {
-            fontSize: '12px',
-            color: this.isPressureInterview ? '#ff6644' : '#666666'
+            fontSize: '24px',
+            color: this.isPressureInterview ? '#ef4444' : '#52525b'
         }).setOrigin(0.5);
 
-        const quitBtn = this.add.text(1200, 680, '放弃面试', {
-            fontSize: '12px',
-            color: '#ff4444'
+        const quitBtn = this.add.text(2400, 1360, '放弃面试', {
+            fontSize: '24px',
+            color: '#ef4444'
         });
         quitBtn.setInteractive({ useHandCursor: true });
         quitBtn.on('pointerdown', () => {

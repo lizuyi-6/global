@@ -59,7 +59,7 @@ export class StockScene extends Phaser.Scene {
         const subTitleText = this.add.text(0, 50, 'STOCK MARKET / WEALTH ACCUMULATION STRATEGY', {
             fontSize: '24px', // 12 -> 24
             fontFamily: FONTS.mono,
-            color: '#4a90d9',
+            color: '#6366f1',
             letterSpacing: 4 // 2 -> 4
         }).setOrigin(0.5);
         headerContainer.add([titleText, subTitleText]);
@@ -410,7 +410,7 @@ export class StockScene extends Phaser.Scene {
                 padding: { x: 12, y: 6 }
             });
             // Fix color string
-            if (isActive) btn.setBackgroundColor('#4a90d9');
+            if (isActive) btn.setBackgroundColor('#6366f1');
 
             btn.setInteractive({ useHandCursor: true });
             btn.on('pointerdown', () => {

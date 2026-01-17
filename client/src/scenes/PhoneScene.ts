@@ -179,10 +179,10 @@ export class PhoneScene extends Phaser.Scene {
             const rel = gameState.getRelationship(name);
 
             // 联系人卡片 - w 350->700, h 60->120
-            const card = this.add.rectangle(0, y, 700, 120, 0x3a3a4a);
+            const card = this.add.rectangle(0, y, 700, 120, COLORS.bgCard);
             card.setInteractive({ useHandCursor: true });
-            card.on('pointerover', () => card.setFillStyle(0x4a4a5a));
-            card.on('pointerout', () => card.setFillStyle(0x3a3a4a));
+            card.on('pointerover', () => card.setFillStyle(COLORS.panelOverlay));
+            card.on('pointerout', () => card.setFillStyle(COLORS.bgCard));
             card.on('pointerdown', () => this.callContact(name));
             card.setData('appContent', true);
             this.phoneContainer.add(card);
@@ -255,7 +255,7 @@ export class PhoneScene extends Phaser.Scene {
             tasks.forEach((task, index) => {
                 const y = -240 + index * 180;
 
-                const card = this.add.rectangle(0, y, 700, 140, 0x3a3a4a);
+                const card = this.add.rectangle(0, y, 700, 140, COLORS.bgCard);
                 card.setData('appContent', true);
                 this.phoneContainer.add(card);
 
@@ -266,11 +266,11 @@ export class PhoneScene extends Phaser.Scene {
                 taskTitle.setData('appContent', true);
                 this.phoneContainer.add(taskTitle);
 
-                const progressBg = this.add.rectangle(-60, y + 30, 400, 20, 0x222222);
+                const progressBg = this.add.rectangle(-60, y + 30, 400, 20, COLORS.borderSubtle);
                 progressBg.setData('appContent', true);
                 this.phoneContainer.add(progressBg);
 
-                const progressFill = this.add.rectangle(-260 + task.progress * 2, y + 30, task.progress * 4, 20, 0x00ff88);
+                const progressFill = this.add.rectangle(-260 + task.progress * 2, y + 30, task.progress * 4, 20, COLORS.success);
                 progressFill.setOrigin(0, 0.5);
                 progressFill.setData('appContent', true);
                 this.phoneContainer.add(progressFill);
@@ -305,7 +305,7 @@ export class PhoneScene extends Phaser.Scene {
         title.setData('appContent', true);
         this.phoneContainer.add(title);
 
-        const assetCard = this.add.rectangle(0, -200, 700, 200, 0x2a4a6a);
+        const assetCard = this.add.rectangle(0, -200, 700, 200, COLORS.primary, 0.2);
         assetCard.setData('appContent', true);
         this.phoneContainer.add(assetCard);
 
@@ -387,10 +387,10 @@ export class PhoneScene extends Phaser.Scene {
         nameValue.setData('appContent', true);
         this.phoneContainer.add(nameValue);
 
-        const resetBtn = this.add.rectangle(0, 200, 400, 80, 0xaa3333);
+        const resetBtn = this.add.rectangle(0, 200, 400, 80, COLORS.danger);
         resetBtn.setInteractive({ useHandCursor: true });
-        resetBtn.on('pointerover', () => resetBtn.setFillStyle(0xcc4444));
-        resetBtn.on('pointerout', () => resetBtn.setFillStyle(0xaa3333));
+        resetBtn.on('pointerover', () => resetBtn.setFillStyle(0xf87171));
+        resetBtn.on('pointerout', () => resetBtn.setFillStyle(COLORS.danger));
         resetBtn.on('pointerdown', () => {
             if (confirm('确定要重置游戏吗？所有进度将丢失！')) {
                 gameState.resetGame();
