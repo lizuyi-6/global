@@ -233,6 +233,155 @@ export function createGridBackground(
 }
 
 /**
+ * 创建现代粒子星空背景 - 科技感设计
+ * 包含: 深空渐变、多层星点、流动粒子、现代光晕
+ */
+export function createModernStarBackground(scene: Phaser.Scene, width: number = 2560, height: number = 1440): void {
+    // 深空渐变背景
+    const bg = scene.add.graphics();
+    bg.fillGradientStyle(0x030308, 0x030308, 0x0a0a1a, 0x0a0a1a, 1);
+    bg.fillRect(0, 0, width, height);
+
+    // 第一层: 远处微小星点 - 静态背景
+    const farStars = scene.add.graphics();
+    farStars.setAlpha(0.6);
+    for (let i = 0; i < 200; i++) {
+        const x = Phaser.Math.Between(0, width);
+        const y = Phaser.Math.Between(0, height);
+        const size = Phaser.Math.FloatBetween(0.5, 1);
+        farStars.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.2, 0.5));
+        farStars.fillCircle(x, y, size);
+    }
+
+    // 第二层: 中距离星点 - 微微闪烁
+    for (let i = 0; i < 50; i++) {
+        const x = Phaser.Math.Between(0, width);
+        const y = Phaser.Math.Between(0, height);
+        const star = scene.add.circle(x, y, Phaser.Math.FloatBetween(1, 1.5), 0xffffff, 0.4);
+        scene.tweens.add({
+            targets: star,
+            alpha: { from: 0.4, to: 0.1 },
+            duration: Phaser.Math.Between(2000, 5000),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    // 第三层: 近处亮星 - 带十字光芒
+    for (let i = 0; i < 8; i++) {
+        const x = Phaser.Math.Between(100, width - 100);
+        const y = Phaser.Math.Between(50, height - 50);
+        
+        // 外层光晕
+        const glow = scene.add.graphics();
+        glow.fillStyle(0x6366f1, 0.1);
+        glow.fillCircle(x, y, 20);
+        glow.fillStyle(0x6366f1, 0.05);
+        glow.fillCircle(x, y, 35);
+        
+        // 十字光芒
+        const rays = scene.add.graphics();
+        rays.lineStyle(1, 0xffffff, 0.3);
+        rays.lineBetween(x - 15, y, x + 15, y);
+        rays.lineBetween(x, y - 15, x, y + 15);
+        rays.lineStyle(1, 0xffffff, 0.15);
+        rays.lineBetween(x - 8, y - 8, x + 8, y + 8);
+        rays.lineBetween(x + 8, y - 8, x - 8, y + 8);
+        
+        // 核心亮点
+        scene.add.circle(x, y, 2, 0xffffff, 0.9);
+        
+        // 脉冲动画
+        scene.tweens.add({
+            targets: [glow, rays],
+            alpha: { from: 1, to: 0.5 },
+            scale: { from: 1, to: 1.2 },
+            duration: Phaser.Math.Between(3000, 5000),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    // 流动粒子 - 上升效果
+    for (let i = 0; i < 30; i++) {
+        const particle = scene.add.circle(
+            Phaser.Math.Between(0, width),
+            Phaser.Math.Between(0, height),
+            Phaser.Math.FloatBetween(1, 3),
+            0x6366f1,
+            Phaser.Math.FloatBetween(0.1, 0.4)
+        );
+        const startX = particle.x;
+        scene.tweens.add({
+            targets: particle,
+            y: -50,
+            x: startX + Phaser.Math.Between(-100, 100),
+            alpha: 0,
+            duration: Phaser.Math.Between(8000, 15000),
+            repeat: -1,
+            delay: Phaser.Math.Between(0, 5000),
+            onRepeat: () => {
+                particle.x = Phaser.Math.Between(0, width);
+                particle.y = height + 50;
+                particle.alpha = Phaser.Math.FloatBetween(0.1, 0.4);
+            }
+        });
+    }
+
+    // 浮动光球粒子
+    for (let i = 0; i < 15; i++) {
+        const size = Phaser.Math.Between(40, 100);
+        const floater = scene.add.circle(
+            Phaser.Math.Between(0, width),
+            Phaser.Math.Between(0, height),
+            size,
+            [0x6366f1, 0x8b5cf6, 0x06b6d4, 0x10b981][Phaser.Math.Between(0, 3)],
+            Phaser.Math.FloatBetween(0.01, 0.03)
+        );
+        scene.tweens.add({
+            targets: floater,
+            x: floater.x + Phaser.Math.Between(-150, 150),
+            y: floater.y + Phaser.Math.Between(-100, 100),
+            alpha: Phaser.Math.FloatBetween(0.01, 0.04),
+            scale: Phaser.Math.FloatBetween(0.8, 1.3),
+            duration: Phaser.Math.Between(10000, 20000),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    // 现代光晕效果
+    const topLeftGlow = scene.add.graphics();
+    topLeftGlow.fillStyle(0x6366f1, 0.12);
+    topLeftGlow.fillCircle(width * 0.08, height * 0.07, width * 0.16);
+    topLeftGlow.fillStyle(0x6366f1, 0.06);
+    topLeftGlow.fillCircle(width * 0.08, height * 0.07, width * 0.24);
+
+    const bottomRightGlow = scene.add.graphics();
+    bottomRightGlow.fillStyle(0x06b6d4, 0.08);
+    bottomRightGlow.fillCircle(width * 0.86, height * 0.9, width * 0.2);
+    bottomRightGlow.fillStyle(0x06b6d4, 0.04);
+    bottomRightGlow.fillCircle(width * 0.86, height * 0.9, width * 0.28);
+
+    const centerGlow = scene.add.graphics();
+    centerGlow.fillStyle(0x8b5cf6, 0.05);
+    centerGlow.fillCircle(width / 2, height / 2, width * 0.24);
+
+    // 光晕呼吸动画
+    scene.tweens.add({
+        targets: [topLeftGlow, bottomRightGlow, centerGlow],
+        alpha: { from: 1, to: 0.6 },
+        duration: 5000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+    });
+}
+
+/**
  * 创建渐变光晕效果
  */
 export function createGlow(

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { gameState } from '../GameState';
-import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
+import { COLORS, FONTS, applyGlassEffect, createModernStarBackground, createStyledButton } from '../UIConfig';
 import type { EventChoice, WorkplaceEvent } from '../WorkplaceSystem';
 import { POSITIONS, workplaceSystem } from '../WorkplaceSystem';
 
@@ -25,21 +25,8 @@ export class WorkplaceEventScene extends Phaser.Scene {
             return;
         }
 
-        // 半透明背景
-        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
-
-        // 背景装饰
-        const deco = this.add.graphics();
-        deco.lineStyle(2, COLORS.primary, 0.1);
-        for (let i = 0; i < 1280; i += 40) {
-            deco.moveTo(i, 0);
-            deco.lineTo(i, 720);
-        }
-        for (let i = 0; i < 720; i += 40) {
-            deco.moveTo(0, i);
-            deco.lineTo(1280, i);
-        }
-        deco.strokePath();
+        // 现代粒子星空背景
+        createModernStarBackground(this, 1280, 720);
 
         // 标题容器
         const header = this.add.container(640, 60);

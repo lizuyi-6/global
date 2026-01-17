@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { gameState } from '../GameState';
 import type { KLineData, Stock } from '../StockMarket';
 import { stockMarket } from '../StockMarket';
-import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
+import { COLORS, FONTS, applyGlassEffect, createModernStarBackground, createStyledButton } from '../UIConfig';
 
 /**
  * 股票交易界面
@@ -29,15 +29,14 @@ export class StockScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 背景 - (1280, 720) center, 2560x1440
-        const bg = this.add.rectangle(1280, 720, 2560, 1440, COLORS.bg);
-        bg.setDepth(60000);
+        // 现代粒子星空背景
+        createModernStarBackground(this, 2560, 1440);
 
-        // 背景装饰 - Loop to 2560/1440
+        // 网格背景装饰
         const deco = this.add.graphics();
         deco.setDepth(60001);
-        deco.lineStyle(2, COLORS.primary, 0.1);
-        for (let i = 0; i < 2560; i += 80) { // Increased step to 80
+        deco.lineStyle(2, COLORS.primary, 0.05);
+        for (let i = 0; i < 2560; i += 80) {
             deco.moveTo(i, 0);
             deco.lineTo(i, 1440);
         }
@@ -828,7 +827,12 @@ export class StockScene extends Phaser.Scene {
         } else {
             stockMarket.stopMarket();
             this.scene.stop();
-            this.scene.resume('PhoneScene');
+            // 恢复可能的父场景
+            if (this.scene.isPaused('JobHuntScene')) {
+                this.scene.resume('JobHuntScene');
+            } else if (this.scene.isPaused('PhoneScene')) {
+                this.scene.resume('PhoneScene');
+            }
         }
     }
 

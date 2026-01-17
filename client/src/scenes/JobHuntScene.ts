@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Application, Company, JobPosition } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
 import { notificationManager } from '../NotificationManager';
-import { applyGlassEffect, COLORS, createStyledButton, FONTS, Layout, TEXT_STYLES } from '../UIConfig';
+import { applyGlassEffect, COLORS, createModernStarBackground, createStyledButton, FONTS, Layout, TEXT_STYLES } from '../UIConfig';
 
 /**
  * 求职主界面场景
@@ -16,6 +16,12 @@ export class JobHuntScene extends Phaser.Scene {
     private jobListPage: number = 0;
     private jobsPerPage: number = 4; // Use 4 to fit taller cards
     private layout!: Layout;
+    
+    // 滚动相关
+    private scrollContainer!: Phaser.GameObjects.Container;
+    private scrollY: number = 0;
+    private maxScrollY: number = 0;
+    private scrollMask!: Phaser.GameObjects.Graphics;
 
     constructor() {
         super({ key: 'JobHuntScene' });
@@ -57,22 +63,11 @@ export class JobHuntScene extends Phaser.Scene {
             }
         });
 
-        // 现代背景 - 与模板一致
-        this.add.rectangle(centerX, centerY, width, height, COLORS.bg);
+        // 现代粒子星空背景
+        createModernStarBackground(this, width, height);
 
         // 网格背景
         this.createGridBackground();
-
-        // 渐变光晕 - Scale sizes
-        const topGlow = this.add.graphics();
-        topGlow.fillStyle(COLORS.primary, 0.06);
-        topGlow.fillCircle(width * 0.22, -60, 700);
-        topGlow.fillStyle(COLORS.secondary, 0.04);
-        topGlow.fillCircle(width * 0.74, 240, 560);
-
-        const bottomGlow = this.add.graphics();
-        bottomGlow.fillStyle(COLORS.accent, 0.03);
-        bottomGlow.fillCircle(width * 0.86, height + 60, 640);
 
         // 标题容器 - Scale position
         const header = this.add.container(centerX, 100);
@@ -454,41 +449,57 @@ export class JobHuntScene extends Phaser.Scene {
     private showJobList(): void {
         const jobs = jobHuntSystem.getJobPositions();
         const companies = jobHuntSystem.getCompanies();
+        const { height } = this.getLayoutInfo();
 
-        // 标题 - 下移以避开顶部状态栏 (Status Bar ends at ~360)
-        // mainContent at 760. y=-350 -> Abs 410.
+        // 标题 - 固定位置
         const title = this.add.text(0, -350, '热门职位', { ...TEXT_STYLES.h2, fontSize: '56px' });
         title.setOrigin(0.5, 0.5);
         this.mainContent.add(title);
 
-        const totalPages = Math.ceil(jobs.length / this.jobsPerPage);
-        const startIdx = this.jobListPage * this.jobsPerPage;
-        const pageJobs = jobs.slice(startIdx, startIdx + this.jobsPerPage);
+        // 创建可滚动区域的可视范围
+        const scrollAreaTop = -280;
+        const scrollAreaHeight = height - 500; // 留出顶部和底部空间
+        
+        // 创建滚动容器
+        this.scrollContainer = this.add.container(0, scrollAreaTop);
+        this.mainContent.add(this.scrollContainer);
 
-        // 职位列表 - Bento Style
-        pageJobs.forEach((job, index) => {
+        // 创建遮罩
+        if (this.scrollMask) this.scrollMask.destroy();
+        this.scrollMask = this.add.graphics();
+        this.scrollMask.fillStyle(0xffffff);
+        // mainContent 在 (1400, 760)，滚动区域从 -280 开始
+        this.scrollMask.fillRect(1400 - 900, 760 + scrollAreaTop, 1800, scrollAreaHeight);
+        this.scrollMask.setVisible(false); // 隐藏遮罩图形本身
+        this.scrollContainer.setMask(this.scrollMask.createGeometryMask());
+
+        // 计算内容总高度
+        const cardHeight = 240;
+        const cardSpacing = 48;
+        const totalContentHeight = jobs.length * (cardHeight + cardSpacing);
+        this.maxScrollY = Math.max(0, totalContentHeight - scrollAreaHeight + 100);
+        this.scrollY = 0;
+
+        // 职位列表 - 显示所有职位
+        jobs.forEach((job, index) => {
             const company = companies.find(c => c.id === job.companyId);
             if (!company) return;
 
-            // Increase card height (120px -> 240px) and spacing (SPACING.cardGap -> 48px)
-            const cardHeight = 240;
-            // Start lower to avoid overlap. y=-200 -> Abs 560. Top edge = 560 - 120 = 440. Safe from Status Bar (360).
-            const y = -200 + index * (cardHeight + 48);
+            const y = index * (cardHeight + cardSpacing);
 
             // 职位卡片容器
             const cardContainer = this.add.container(0, y);
-            this.mainContent.add(cardContainer);
+            this.scrollContainer.add(cardContainer);
 
-            // 背景 (磨砂玻璃卡片 - Lighter for visibility)
+            // 背景 (磨砂玻璃卡片)
             const bg = this.add.rectangle(0, 0, 1680, cardHeight, COLORS.bgCard, 0.6);
-            bg.setStrokeStyle(3, COLORS.primary, 0.3); // Thicker, brighter border
+            bg.setStrokeStyle(3, COLORS.primary, 0.3);
 
-            // Stronger Shadow
             const shadow = this.add.rectangle(12, 12, 1680, cardHeight, 0x000000, 0.6);
             cardContainer.add(shadow);
             cardContainer.add(bg);
 
-            // 公司名 (Top Left)
+            // 公司名
             const companyName = this.add.text(-780, -70, company.name.toUpperCase(), {
                 fontSize: '24px',
                 fontFamily: FONTS.mono,
@@ -497,7 +508,7 @@ export class JobHuntScene extends Phaser.Scene {
             });
             cardContainer.add(companyName);
 
-            // 职位名 (Main Title)
+            // 职位名
             const jobTitle = this.add.text(-780, -10, job.title, {
                 fontSize: '44px',
                 fontFamily: FONTS.main,
@@ -506,17 +517,17 @@ export class JobHuntScene extends Phaser.Scene {
             });
             cardContainer.add(jobTitle);
 
-            // 薪资 (Top Right)
+            // 薪资
             const salary = this.add.text(780, -70,
                 `¥${(job.salaryRange[0] / 1000).toFixed(0)}k - ${(job.salaryRange[1] / 1000).toFixed(0)}k`, {
                 fontSize: '40px',
                 fontFamily: FONTS.mono,
                 color: '#10b981',
                 fontStyle: 'bold'
-            }).setOrigin(1, 0); // Align Right
+            }).setOrigin(1, 0);
             cardContainer.add(salary);
 
-            // 要求 (Below Title)
+            // 要求
             const reqs = this.add.text(-780, 50, `${job.experience}  •  ${job.education}`, {
                 fontSize: '28px',
                 fontFamily: FONTS.main,
@@ -524,7 +535,7 @@ export class JobHuntScene extends Phaser.Scene {
             });
             cardContainer.add(reqs);
 
-            // 标签系统 (Right Side, Bottom)
+            // 标签系统
             let tagX = 300;
             const createTag = (text: string, color: number) => {
                 const tagBg = this.add.rectangle(tagX, 50, 120, 48, color, 0.15);
@@ -535,10 +546,8 @@ export class JobHuntScene extends Phaser.Scene {
                     color: '#ffffff',
                     padding: { x: 12, y: 6 }
                 }).setOrigin(0.5);
-
                 const tagWidth = Math.max(120, tagText.width + 32);
                 tagBg.width = tagWidth;
-
                 cardContainer.add([tagBg, tagText]);
                 tagX += tagWidth + 24;
             };
@@ -563,16 +572,15 @@ export class JobHuntScene extends Phaser.Scene {
                 createTag(job.urgency === 'asap' ? '急招' : '紧急', COLORS.danger);
             }
 
-            // 投递按钮 (Absolute Right Bottom)
+            // 投递按钮
             const applications = jobHuntSystem.getApplications();
             const hasApplied = applications.some(app => app.jobId === job.id);
 
             const btnText = hasApplied ? '✓ 已投递' : '投递简历';
             const btnColor = hasApplied ? COLORS.borderMedium : COLORS.primary;
 
-            // Larger button target
             const applyBtnBg = this.add.rectangle(700, 50, 240, 88, btnColor, hasApplied ? 0.2 : 1);
-            if (!hasApplied) applyBtnBg.setStrokeStyle(0); // Solid fill for action
+            if (!hasApplied) applyBtnBg.setStrokeStyle(0);
 
             const applyBtnText = this.add.text(700, 50, btnText, {
                 fontSize: '30px',
@@ -585,95 +593,69 @@ export class JobHuntScene extends Phaser.Scene {
 
             if (!hasApplied) {
                 applyBtnBg.setInteractive({ useHandCursor: true });
-
                 applyBtnBg.on('pointerover', () => {
-                    applyBtnBg.setFillStyle(0x818cf8, 1); // Lighter Indigo
+                    applyBtnBg.setFillStyle(0x818cf8, 1);
                     this.tweens.add({ targets: cardContainer, scaleX: 1.01, scaleY: 1.01, duration: 200, ease: 'Cubic.out' });
                 });
-
                 applyBtnBg.on('pointerout', () => {
                     applyBtnBg.setFillStyle(COLORS.primary, 1);
                     this.tweens.add({ targets: cardContainer, scaleX: 1, scaleY: 1, duration: 200, ease: 'Cubic.out' });
                 });
-
                 applyBtnBg.on('pointerdown', () => {
                     applyBtnText.setText('...');
                     this.applyJob(job);
                 });
             }
 
-            // 点击卡片背景查看详情
+            // 点击卡片查看详情
             bg.setInteractive({ useHandCursor: true });
-            bg.on('pointerover', () => {
-                bg.setStrokeStyle(2, COLORS.primary, 0.6);
-            });
-            bg.on('pointerout', () => {
-                bg.setStrokeStyle(2, COLORS.borderLight, 1);
-            });
+            bg.on('pointerover', () => bg.setStrokeStyle(2, COLORS.primary, 0.6));
+            bg.on('pointerout', () => bg.setStrokeStyle(2, COLORS.borderLight, 1));
             bg.on('pointerdown', () => this.showJobDetail(job, company));
         });
 
-        // 分页控制 (Moved down)
-        this.createPaginationControls(totalPages);
+        // 添加滚轮事件监听
+        this.setupScrollListener();
+
+        // 显示滚动提示
+        if (this.maxScrollY > 0) {
+            const scrollHint = this.add.text(0, scrollAreaHeight - 40, '↑ 滚动查看更多职位 ↓', {
+                fontSize: '24px',
+                fontFamily: FONTS.main,
+                color: '#666666'
+            }).setOrigin(0.5);
+            this.mainContent.add(scrollHint);
+            
+            // 淡入淡出动画
+            this.tweens.add({
+                targets: scrollHint,
+                alpha: { from: 1, to: 0.3 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
     }
 
-    private createPaginationControls(totalPages: number): void {
-        const y = 560; // Scaled 280
-        const controlContainer = this.add.container(0, y);
-        this.mainContent.add(controlContainer);
-
-        // 页码信息
-        const pageText = this.add.text(0, 0, `第 ${this.jobListPage + 1} / ${totalPages} 页`, {
-            fontSize: '28px',
-            fontFamily: FONTS.mono,
-            color: '#888888'
-        }).setOrigin(0.5);
-        controlContainer.add(pageText);
-
-        // 上一页
-        if (this.jobListPage > 0) {
-            const prevBtn = createStyledButton(this, -240, 0, 200, 60, 'PREV', () => {
-                this.jobListPage--;
-                this.refreshContent();
-            });
-            controlContainer.add(prevBtn);
-        }
-
-        // 下一页
-        if (this.jobListPage < totalPages - 1) {
-            const nextBtn = createStyledButton(this, 240, 0, 200, 60, 'NEXT', () => {
-                this.jobListPage++;
-                this.refreshContent();
-
-                // 预加载逻辑
-                const jobs = jobHuntSystem.getJobPositions();
-                const currentPoolEnd = (this.jobListPage + 1) * this.jobsPerPage;
-                if (currentPoolEnd >= jobs.length - 2) {
-                    jobHuntSystem.fetchMoreJobs();
-                }
-            });
-            controlContainer.add(nextBtn);
-        } else if (jobHuntSystem.isFetching()) {
-            const loadingText = this.add.text(240, 0, 'AI 生成中...', {
-                fontSize: '24px',
-                color: '#4a90d9'
-            }).setOrigin(0.5);
-            controlContainer.add(loadingText);
-        } else if (totalPages > 0) {
-            // 在最后一页也可以尝试触发加载更多（如果总数还很少）
-            const jobs = jobHuntSystem.getJobPositions();
-            if (jobs.length < 50) { // 设定一个合理的人工上限
-                const moreBtn = createStyledButton(this, 240, 0, 200, 60, 'REFRESH', async () => {
-                    // 显示加载状态
-                    this.refreshContent();
-                    // 等待 AI 生成完成
-                    await jobHuntSystem.fetchMoreJobs();
-                    // 刷新列表
-                    this.refreshContent();
-                });
-                controlContainer.add(moreBtn);
-            }
-        }
+    private setupScrollListener(): void {
+        // 移除旧的监听器
+        this.input.off('wheel');
+        
+        // 添加滚轮事件
+        this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number) => {
+            if (this.currentTab !== 'jobs' || !this.scrollContainer) return;
+            
+            // 检查指针是否在主内容区域
+            const { width, height } = this.getLayoutInfo();
+            if (pointer.x < 500 || pointer.x > width - 100) return; // 左侧导航区域不响应
+            
+            // 更新滚动位置
+            this.scrollY += deltaY * 0.5;
+            this.scrollY = Phaser.Math.Clamp(this.scrollY, 0, this.maxScrollY);
+            
+            // 应用滚动
+            this.scrollContainer.y = -280 - this.scrollY;
+        });
     }
 
     private showApplications(): void {

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { apiService } from '../APIService';
 import type { Application, InterviewRound } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
-import { COLORS, FONTS, applyGlassEffect, createGlow, createGridBackground, createStyledButton } from '../UIConfig';
+import { COLORS, FONTS, applyGlassEffect, createGlow, createGridBackground, createModernStarBackground, createStyledButton } from '../UIConfig';
 
 /**
  * 面试场景 - 自由回答版
@@ -52,16 +52,11 @@ export class InterviewScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 背景 - 2K
-        this.add.rectangle(1280, 720, 2560, 1440, COLORS.bg);
+        // 现代粒子星空背景
+        createModernStarBackground(this, 2560, 1440);
 
         // 网格背景
         createGridBackground(this, 2560, 1440);
-
-        // 渐变光晕
-        createGlow(this, 400, 200, 500, COLORS.primary, 0.06);
-        createGlow(this, 2200, 300, 400, COLORS.secondary, 0.04);
-        createGlow(this, 1280, 1500, 600, COLORS.primary, 0.05);
 
         const job = jobHuntSystem.getJobPosition(this.application.jobId);
         const company = jobHuntSystem.getCompany(this.application.companyId);
