@@ -29,11 +29,13 @@ export class StockScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 背景
-        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+        // 背景 - 最高层级确保覆盖底层场景
+        const bg = this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+        bg.setDepth(60000);
 
         // 背景装饰
         const deco = this.add.graphics();
+        deco.setDepth(60001);
         deco.lineStyle(2, COLORS.primary, 0.1);
         for (let i = 0; i < 1280; i += 40) {
             deco.moveTo(i, 0);
@@ -47,6 +49,7 @@ export class StockScene extends Phaser.Scene {
 
         // 标题容器
         const headerContainer = this.add.container(640, 60);
+        headerContainer.setDepth(60100);
         const titleText = this.add.text(0, -15, '📈 股票交易所', {
             fontSize: '36px',
             fontFamily: FONTS.main,
@@ -61,11 +64,15 @@ export class StockScene extends Phaser.Scene {
         }).setOrigin(0.5);
         headerContainer.add([titleText, subTitleText]);
 
-        // 创建容器
-        this.headerContainer = this.add.container(0, 50); // 往下移动
+        // 创建容器 - 都设置高深度
+        this.headerContainer = this.add.container(0, 50);
+        this.headerContainer.setDepth(60200);
         this.stockListContainer = this.add.container(0, 0);
+        this.stockListContainer.setDepth(60150);
         this.detailContainer = this.add.container(0, 0);
+        this.detailContainer.setDepth(60150);
         this.positionContainer = this.add.container(0, 0);
+        this.positionContainer.setDepth(60150);
 
         // 绘制头部
         this.drawHeader();

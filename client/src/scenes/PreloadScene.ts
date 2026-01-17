@@ -60,89 +60,185 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     /**
-     * 创建占位符资源
-     * 使用代码生成简单的像素图形，后续可替换为真实美术资源
+     * 创建占位符资源 (高清重制版)
+     * 使用代码生成高质量矢量图形，4x 分辨率以保证清晰度
      */
     createPlaceholderAssets(): void {
-        // 玩家精灵 (32x32 像素小人)
+        const dpr = 4; // 内部绘制倍数
+
+        // 1. 玩家精灵 (128x128 高清)
         const playerGraphics = this.make.graphics({ x: 0, y: 0 });
+
+        // 身体阴影
+        playerGraphics.fillStyle(0x000000, 0.2);
+        playerGraphics.fillEllipse(16 * dpr, 28 * dpr, 24 * dpr, 8 * dpr);
+
+        // 身体 (西装)
         playerGraphics.fillStyle(0x4a90d9, 1);
-        playerGraphics.fillRect(8, 0, 16, 8);   // 头
-        playerGraphics.fillStyle(0x3d7ab8, 1);
-        playerGraphics.fillRect(6, 8, 20, 16);  // 身体
+        playerGraphics.fillRoundedRect(8 * dpr, 10 * dpr, 16 * dpr, 18 * dpr, 4 * dpr);
+
+        // 头部
+        playerGraphics.fillStyle(0xffdbac, 1); // 肤色
+        playerGraphics.fillCircle(16 * dpr, 8 * dpr, 9 * dpr);
+
+        // 头发
+        playerGraphics.fillStyle(0x2d3436, 1);
+        playerGraphics.beginPath();
+        playerGraphics.arc(16 * dpr, 8 * dpr, 9.5 * dpr, Phaser.Math.DegToRad(180), Phaser.Math.DegToRad(360), false);
+        playerGraphics.fillPath();
+
+        // 腿
         playerGraphics.fillStyle(0x2d5a8a, 1);
-        playerGraphics.fillRect(8, 24, 6, 8);   // 左腿
-        playerGraphics.fillRect(18, 24, 6, 8);  // 右腿
-        playerGraphics.generateTexture('player', 32, 32);
+        playerGraphics.fillRoundedRect(10 * dpr, 24 * dpr, 5 * dpr, 8 * dpr, 2 * dpr);
+        playerGraphics.fillRoundedRect(17 * dpr, 24 * dpr, 5 * dpr, 8 * dpr, 2 * dpr);
+
+        playerGraphics.generateTexture('player', 32 * dpr, 32 * dpr);
         playerGraphics.destroy();
 
-        // 等距地板瓦片 (64x32 等距菱形)
+        // 2. 地板瓦片 (256x128 高清等距)
+        const floorW = 64 * dpr;
+        const floorH = 32 * dpr;
         const floorGraphics = this.make.graphics({ x: 0, y: 0 });
+
+        // 顶面
         floorGraphics.fillStyle(0x8b7355, 1);
         floorGraphics.beginPath();
-        floorGraphics.moveTo(32, 0);
-        floorGraphics.lineTo(64, 16);
-        floorGraphics.lineTo(32, 32);
-        floorGraphics.lineTo(0, 16);
+        floorGraphics.moveTo(floorW / 2, 0);
+        floorGraphics.lineTo(floorW, floorH / 2);
+        floorGraphics.lineTo(floorW / 2, floorH);
+        floorGraphics.lineTo(0, floorH / 2);
         floorGraphics.closePath();
         floorGraphics.fillPath();
-        floorGraphics.lineStyle(1, 0x6b5344, 1);
+
+        // 侧边 (厚度)
+        const thickness = 4 * dpr;
+        floorGraphics.fillStyle(0x6b5344, 1);
+        floorGraphics.beginPath();
+        floorGraphics.moveTo(0, floorH / 2);
+        floorGraphics.lineTo(floorW / 2, floorH);
+        floorGraphics.lineTo(floorW / 2, floorH + thickness);
+        floorGraphics.lineTo(0, floorH / 2 + thickness);
+        floorGraphics.closePath();
+        floorGraphics.fillPath();
+
+        floorGraphics.fillStyle(0x5a4233, 1);
+        floorGraphics.beginPath();
+        floorGraphics.moveTo(floorW / 2, floorH);
+        floorGraphics.lineTo(floorW, floorH / 2);
+        floorGraphics.lineTo(floorW, floorH / 2 + thickness);
+        floorGraphics.lineTo(floorW / 2, floorH + thickness);
+        floorGraphics.closePath();
+        floorGraphics.fillPath();
+
+        // 边缘高光
+        floorGraphics.lineStyle(2, 0xa38a6a, 0.5);
+        floorGraphics.beginPath();
+        floorGraphics.moveTo(floorW / 2, 0);
+        floorGraphics.lineTo(floorW, floorH / 2);
+        floorGraphics.lineTo(floorW / 2, floorH);
+        floorGraphics.lineTo(0, floorH / 2);
+        floorGraphics.closePath();
         floorGraphics.strokePath();
-        floorGraphics.generateTexture('floor_tile', 64, 32);
+
+        floorGraphics.generateTexture('floor_tile', floorW, floorH + thickness);
         floorGraphics.destroy();
 
-        // 办公桌 (64x48 等距)
+        // 3. 办公桌 (256x192 高清)
+        const deskW = 64 * dpr;
+        const deskH = 48 * dpr;
         const deskGraphics = this.make.graphics({ x: 0, y: 0 });
-        // 桌面
-        deskGraphics.fillStyle(0xc4a574, 1);
+
+        // 桌面 (木纹色)
+        deskGraphics.fillStyle(0xe2b57b, 1);
         deskGraphics.beginPath();
-        deskGraphics.moveTo(32, 0);
-        deskGraphics.lineTo(64, 12);
-        deskGraphics.lineTo(32, 24);
-        deskGraphics.lineTo(0, 12);
+        deskGraphics.moveTo(deskW / 2, 0);
+        deskGraphics.lineTo(deskW, 12 * dpr);
+        deskGraphics.lineTo(deskW / 2, 24 * dpr);
+        deskGraphics.lineTo(0, 12 * dpr);
         deskGraphics.closePath();
         deskGraphics.fillPath();
-        // 桌腿
-        deskGraphics.fillStyle(0x8b6914, 1);
-        deskGraphics.fillRect(4, 12, 4, 36);
-        deskGraphics.fillRect(56, 12, 4, 36);
-        deskGraphics.generateTexture('desk', 64, 48);
+
+        // 桌面厚度
+        deskGraphics.fillStyle(0xc4955a, 1);
+        deskGraphics.beginPath();
+        deskGraphics.moveTo(0, 12 * dpr);
+        deskGraphics.lineTo(deskW / 2, 24 * dpr);
+        deskGraphics.lineTo(deskW / 2, 28 * dpr);
+        deskGraphics.lineTo(0, 16 * dpr);
+        deskGraphics.closePath();
+        deskGraphics.fillPath();
+
+        deskGraphics.fillStyle(0xa8753a, 1);
+        deskGraphics.beginPath();
+        deskGraphics.moveTo(deskW / 2, 24 * dpr);
+        deskGraphics.lineTo(deskW, 12 * dpr);
+        deskGraphics.lineTo(deskW, 16 * dpr);
+        deskGraphics.lineTo(deskW / 2, 28 * dpr);
+        deskGraphics.closePath();
+        deskGraphics.fillPath();
+
+        // 桌腿 (金属感)
+        deskGraphics.fillStyle(0x555555, 1);
+        // 左腿
+        deskGraphics.fillRoundedRect(4 * dpr, 14 * dpr, 4 * dpr, 34 * dpr, 2);
+        // 右腿
+        deskGraphics.fillRoundedRect(56 * dpr, 14 * dpr, 4 * dpr, 34 * dpr, 2);
+
+        deskGraphics.generateTexture('desk', deskW, deskH);
         deskGraphics.destroy();
 
-        // 电脑显示器 (24x32)
+        // 4. 电脑 (96x128 高清)
+        const compW = 24 * dpr;
+        const compH = 32 * dpr;
         const computerGraphics = this.make.graphics({ x: 0, y: 0 });
-        computerGraphics.fillStyle(0x333333, 1);
-        computerGraphics.fillRect(2, 0, 20, 16);  // 屏幕边框
-        computerGraphics.fillStyle(0x4488ff, 1);
-        computerGraphics.fillRect(4, 2, 16, 12);  // 屏幕
-        computerGraphics.fillStyle(0x333333, 1);
-        computerGraphics.fillRect(10, 16, 4, 8);  // 支架
-        computerGraphics.fillRect(6, 24, 12, 4);  // 底座
-        computerGraphics.generateTexture('computer', 24, 32);
+
+        // 屏幕边框
+        computerGraphics.fillStyle(0x2d3436, 1);
+        computerGraphics.fillRoundedRect(0, 0, 24 * dpr, 18 * dpr, 2 * dpr);
+
+        // 屏幕内容 (亮蓝)
+        computerGraphics.fillStyle(0x0984e3, 1);
+        computerGraphics.fillRoundedRect(2 * dpr, 2 * dpr, 20 * dpr, 14 * dpr, 1 * dpr);
+
+        // 支架
+        computerGraphics.fillStyle(0x636e72, 1);
+        computerGraphics.fillRect(10 * dpr, 18 * dpr, 4 * dpr, 6 * dpr);
+
+        // 底座
+        computerGraphics.fillStyle(0x2d3436, 1);
+        computerGraphics.fillRoundedRect(6 * dpr, 24 * dpr, 12 * dpr, 4 * dpr, 1 * dpr);
+
+        computerGraphics.generateTexture('computer', compW, compH);
         computerGraphics.destroy();
 
-        // NPC 同事 (32x32)
+        // 5. NPC 同事 (128x128 高清)
         const npcGraphics = this.make.graphics({ x: 0, y: 0 });
-        npcGraphics.fillStyle(0xd94a4a, 1);
-        npcGraphics.fillRect(8, 0, 16, 8);   // 头
-        npcGraphics.fillStyle(0xb83d3d, 1);
-        npcGraphics.fillRect(6, 8, 20, 16);  // 身体
-        npcGraphics.fillStyle(0x8a2d2d, 1);
-        npcGraphics.fillRect(8, 24, 6, 8);   // 左腿
-        npcGraphics.fillRect(18, 24, 6, 8);  // 右腿
-        npcGraphics.generateTexture('npc', 32, 32);
-        npcGraphics.destroy();
 
-        // 椅子 (32x40)
-        const chairGraphics = this.make.graphics({ x: 0, y: 0 });
-        chairGraphics.fillStyle(0x4a4a4a, 1);
-        chairGraphics.fillRect(8, 20, 16, 4);   // 座面
-        chairGraphics.fillRect(8, 0, 16, 20);   // 靠背
-        chairGraphics.fillStyle(0x333333, 1);
-        chairGraphics.fillRect(14, 24, 4, 12);  // 支柱
-        chairGraphics.fillRect(6, 36, 20, 4);   // 底座
-        chairGraphics.generateTexture('chair', 32, 40);
-        chairGraphics.destroy();
+        // 阴影
+        npcGraphics.fillStyle(0x000000, 0.2);
+        npcGraphics.fillEllipse(16 * dpr, 28 * dpr, 24 * dpr, 8 * dpr);
+
+        // 衣服
+        npcGraphics.fillStyle(0xe17055, 1);
+        npcGraphics.fillRoundedRect(8 * dpr, 10 * dpr, 16 * dpr, 18 * dpr, 4 * dpr);
+
+        // 头
+        npcGraphics.fillStyle(0xffdbac, 1);
+        npcGraphics.fillCircle(16 * dpr, 8 * dpr, 9 * dpr);
+
+        // 头发 (不同的发型)
+        npcGraphics.fillStyle(0x6c5ce7, 1);
+        npcGraphics.beginPath();
+        npcGraphics.arc(16 * dpr, 8 * dpr, 10 * dpr, Phaser.Math.DegToRad(160), Phaser.Math.DegToRad(380), false);
+        npcGraphics.fillPath();
+
+        // 腿
+        npcGraphics.fillStyle(0xd63031, 1);
+        npcGraphics.fillRoundedRect(10 * dpr, 24 * dpr, 5 * dpr, 8 * dpr, 2 * dpr);
+        npcGraphics.fillRoundedRect(17 * dpr, 24 * dpr, 5 * dpr, 8 * dpr, 2 * dpr);
+
+        npcGraphics.generateTexture('npc', 32 * dpr, 32 * dpr);
+        npcGraphics.destroy();
     }
 
     create(): void {
