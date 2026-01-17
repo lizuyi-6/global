@@ -903,6 +903,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             // 键盘锁定逻辑
             inputElement?.addEventListener('focus', () => {
                 this.input.keyboard!.enabled = false;
+                // 重置所有按键状态，防止角色持续移动
+                this.input.keyboard!.resetKeys();
                 console.log('[Input] Keyboard disabled (input focused)');
             });
             inputElement?.addEventListener('blur', () => {
@@ -1716,6 +1718,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
 
             input?.addEventListener('focus', () => {
                 this.input.keyboard!.enabled = false;
+                // 重置所有按键状态，防止角色持续移动
+                this.input.keyboard!.resetKeys();
             });
             input?.addEventListener('blur', () => {
                 this.input.keyboard!.enabled = true;
