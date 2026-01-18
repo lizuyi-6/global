@@ -316,8 +316,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     private drawPixelMan(g: Phaser.GameObjects.Graphics, color: number): void {
         g.clear();
 
-        // 影子
-        g.fillStyle(0x000000, 0.2);
+        // 影子 (Reduced opacity)
+        g.fillStyle(0x000000, 0.1); // 0.2 -> 0.1
         g.fillEllipse(0, 0, 30, 10);
 
         // 身体 (西装) - 使用圆角矩形代替方块
@@ -561,15 +561,61 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         // 放置物品
         this.createIsoObject(x - 20, y - 10, 'comp', `comp_${x}_${y}`, `${label} 电脑`, '点击打开任务列表');
         this.createIsoObject(x + 20, y + 10, 'cup', `cup_${x}_${y}`, '咖啡杯', '熬夜必备');
+
+        // 玩家工位提示 (引导交互)
+        if (isPlayerDesk) {
+            const hintContainer = this.add.container(iso.x - 20, iso.y - 120);
+
+            // 箭头
+            const arrow = this.add.text(0, 0, '⬇️', { fontSize: '32px' }).setOrigin(0.5);
+
+            // 标签
+            const labelText = this.add.text(0, -35, '接收任务', {
+                fontSize: '16px',
+                fontFamily: FONTS.main,
+                color: '#ffffff',
+                backgroundColor: '#0068a7',
+                padding: { x: 8, y: 4 }
+            }).setOrigin(0.5);
+
+            // 提示背景 glow
+            const glow = this.add.graphics();
+            glow.fillStyle(0x0068a7, 0.3);
+            glow.fillCircle(0, -35, 40);
+
+            hintContainer.add([glow, arrow, labelText]);
+            this.worldContainer.add(hintContainer);
+            hintContainer.setDepth(iso.y + 20000); // 确保在最上层
+
+            // 上下浮动动画
+            this.tweens.add({
+                targets: hintContainer,
+                y: hintContainer.y - 15,
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // 光晕脉冲
+            this.tweens.add({
+                targets: glow,
+                alpha: 0.1,
+                scale: 1.2,
+                duration: 1200,
+                yoyo: true,
+                repeat: -1
+            });
+        }
     }
 
     private createIsoObject(worldX: number, worldY: number, type: string, id: string, name: string, description: string): void {
         const iso = this.cartToIso(worldX, worldY);
         const container = this.add.container(iso.x, iso.y);
 
-        // 影子
+        // 影子 (Reduced opacity to avoid black artifacts)
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.2);
+        shadow.fillStyle(0x000000, 0.1); // 0.2 -> 0.1
         shadow.fillEllipse(0, 0, 30, 15);
         container.add(shadow);
 
