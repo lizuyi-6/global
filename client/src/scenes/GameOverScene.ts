@@ -92,13 +92,13 @@ export class GameOverScene extends Phaser.Scene {
     private createVictoryScreen(): void {
         const centerX = 1280;
 
-        // 胜利标题
+        // 胜利标题 (Upscaled 80 -> 100)
         const title = this.add.text(centerX, 200, 'MISSION ACCOMPLISHED', {
-            fontSize: '80px',
+            fontSize: '100px',
             fontFamily: FONTS.mono,
             color: '#00ff88',
             fontStyle: 'bold',
-            letterSpacing: 8
+            letterSpacing: 10
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -109,15 +109,16 @@ export class GameOverScene extends Phaser.Scene {
             ease: 'Power2'
         });
 
-        // 公司信息
+        // 公司信息 (Upscaled 48 -> 60)
         const companyText = this.add.text(centerX, 400, `已获得 ${this.companyName} 录用确认`, {
-            fontSize: '48px',
+            fontSize: '60px',
             fontFamily: FONTS.main,
             color: '#ffffff'
         }).setOrigin(0.5).setAlpha(0);
 
-        const salaryText = this.add.text(centerX, 490, `ESTIMATED ANNUAL INCOME: ¥${(this.salary * 12).toLocaleString()}`, {
-            fontSize: '36px',
+        // 薪资 (Upscaled 36 -> 42)
+        const salaryText = this.add.text(centerX, 500, `ESTIMATED ANNUAL INCOME: ¥${(this.salary * 12).toLocaleString()}`, {
+            fontSize: '42px',
             fontFamily: FONTS.mono,
             color: '#ffaa00'
         }).setOrigin(0.5).setAlpha(0);
@@ -129,18 +130,18 @@ export class GameOverScene extends Phaser.Scene {
             duration: 600
         });
 
-        // 求职历程统计
-        this.createStatsPanel(640, true);
+        // 求职历程统计 (Move down slightly to accommodate larger panel)
+        this.createStatsPanel(680, true);
 
-        // 评价
+        // 评价 (Upscaled 30 -> 36, Width 1200 -> 1600)
         const evaluation = this.getVictoryEvaluation();
-        const evalText = this.add.text(centerX, 1160, evaluation, {
-            fontSize: '30px',
+        const evalText = this.add.text(centerX, 1200, evaluation, {
+            fontSize: '36px',
             fontFamily: FONTS.main,
             color: '#888888',
             align: 'center',
-            wordWrap: { width: 1200 },
-            lineSpacing: 16
+            wordWrap: { width: 1600 },
+            lineSpacing: 18
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -154,13 +155,13 @@ export class GameOverScene extends Phaser.Scene {
     private createDefeatScreen(): void {
         const centerX = 1280;
 
-        // 失败标题
+        // 失败标题 (Upscaled 80 -> 100)
         const title = this.add.text(centerX, 200, 'SYSTEM TERMINATED', {
-            fontSize: '80px',
+            fontSize: '100px',
             fontFamily: FONTS.mono,
             color: '#ff4444',
             fontStyle: 'bold',
-            letterSpacing: 8
+            letterSpacing: 10
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -171,9 +172,9 @@ export class GameOverScene extends Phaser.Scene {
             ease: 'Power2'
         });
 
-        // 失败原因
+        // 失败原因 (Upscaled 48 -> 60)
         const reasonText = this.add.text(centerX, 400, this.endReason, {
-            fontSize: '48px',
+            fontSize: '60px',
             fontFamily: FONTS.main,
             color: '#ffaaaa'
         }).setOrigin(0.5).setAlpha(0);
@@ -185,18 +186,18 @@ export class GameOverScene extends Phaser.Scene {
             duration: 600
         });
 
-        // 求职历程统计
-        this.createStatsPanel(560, false);
+        // 求职历程统计 (Move down)
+        this.createStatsPanel(680, false);
 
-        // 建议
+        // 建议 (Upscaled 30 -> 36, Width 1200 -> 1600)
         const advice = this.getDefeatAdvice();
-        const adviceText = this.add.text(centerX, 1160, advice, {
-            fontSize: '30px',
+        const adviceText = this.add.text(centerX, 1200, advice, {
+            fontSize: '36px',
             fontFamily: FONTS.main,
             color: '#888888',
             align: 'center',
-            wordWrap: { width: 1200 },
-            lineSpacing: 16
+            wordWrap: { width: 1600 },
+            lineSpacing: 18
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -211,15 +212,15 @@ export class GameOverScene extends Phaser.Scene {
         const panel = this.add.container(1280, startY);
         panel.setAlpha(0);
 
-        // 背景
-        const bg = this.add.rectangle(0, 0, 1400, 500, COLORS.panel, 0.5);
+        // 背景 (Upscaled 1400x500 -> 1800x600)
+        const bg = this.add.rectangle(0, 0, 1800, 600, COLORS.panel, 0.5);
         bg.setStrokeStyle(2, isVictory ? COLORS.success : COLORS.danger, 0.3);
         applyGlassEffect(bg, 0.5);
         panel.add(bg);
 
-        // 标题
-        const panelTitle = this.add.text(0, -200, 'HISTORICAL DATA / 历史记录', {
-            fontSize: '28px',
+        // 标题 (Upscaled 28px -> 42px)
+        const panelTitle = this.add.text(0, -250, 'HISTORICAL DATA / 历史记录', {
+            fontSize: '42px',
             fontFamily: FONTS.mono,
             color: '#ffffff',
             letterSpacing: 4
@@ -238,17 +239,20 @@ export class GameOverScene extends Phaser.Scene {
 
         stats.forEach((stat, index) => {
             const isLeft = index < 3;
-            const x = isLeft ? -600 : 100;
-            const y = -100 + (index % 3) * 90;
+            // Spacing adjusted for wider panel (spread out more)
+            const x = isLeft ? -750 : 150;
+            const y = -120 + (index % 3) * 110; // Vertical spacing increased
 
-            const icon = this.add.text(x, y, stat.icon, { fontSize: '36px' }).setOrigin(0, 0.5);
-            const label = this.add.text(x + 70, y - 20, stat.label, {
-                fontSize: '20px',
+            const icon = this.add.text(x, y, stat.icon, { fontSize: '64px' }).setOrigin(0, 0.5); // 36 -> 64
+
+            const label = this.add.text(x + 90, y - 25, stat.label, {
+                fontSize: '28px', // 20 -> 28
                 fontFamily: FONTS.mono,
                 color: '#666666'
             }).setOrigin(0, 0.5);
-            const value = this.add.text(x + 70, y + 20, stat.value, {
-                fontSize: '32px',
+
+            const value = this.add.text(x + 90, y + 25, stat.value, {
+                fontSize: '54px', // 32 -> 54
                 fontFamily: FONTS.mono,
                 color: '#ffffff',
                 fontStyle: 'bold'

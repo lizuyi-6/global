@@ -123,15 +123,18 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         // 提示
         this.showWelcomeMessage();
 
-        // 监听事件
-        this.events.on('startChat', (npcName: string) => {
-            this.showChatDialog(npcName);
-        });
-
         // 监听胜利事件
         gameState.on('game_win', (data: any) => {
             console.log('[Office] Game Win Triggered:', data);
             this.scene.start('GameOverScene', { success: true, reason: data.reason });
+        });
+
+        // 监听暂停/恢复事件，隐藏/显示 DOM (防止文字穿透)
+        this.events.on('pause', () => {
+            if (this.commandInput) this.commandInput.setVisible(false);
+        });
+        this.events.on('resume', () => {
+            if (this.commandInput) this.commandInput.setVisible(true);
         });
     }
 
@@ -611,6 +614,21 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                 duration: 1200,
                 yoyo: true,
                 repeat: -1
+            });
+
+            // Make hint interactive (User Request: easier to click)
+            hintContainer.setInteractive(new Phaser.Geom.Rectangle(-40, -80, 80, 100), Phaser.Geom.Rectangle.Contains);
+            hintContainer.on('pointerdown', () => {
+                this.scene.launch('ComputerScene');
+                this.scene.pause();
+            });
+            hintContainer.on('pointerover', () => {
+                arrow.setScale(1.2);
+                document.body.style.cursor = 'pointer';
+            });
+            hintContainer.on('pointerout', () => {
+                arrow.setScale(1);
+                document.body.style.cursor = 'default';
             });
         }
     }

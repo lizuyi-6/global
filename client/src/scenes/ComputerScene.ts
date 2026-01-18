@@ -67,7 +67,7 @@ export class ComputerScene extends Phaser.Scene {
         this.createIcon(100, 100, '📧', '工作邮件', () => this.openMailApp());
 
         // My Computer
-        this.createIcon(100, 220, '💻', '我的电脑', () => { });
+        this.createIcon(100, 220, '💻', '我的电脑', () => this.openMyComputer());
 
         // Trash
         this.createIcon(100, 340, '🗑️', '回收站', () => { });
@@ -166,9 +166,76 @@ export class ComputerScene extends Phaser.Scene {
             });
         }
     }
+}
+
+    private openMyComputer(): void {
+    if(this.currentWindow) {
+    this.currentWindow.destroy();
+}
+
+const winW = 800;
+const winH = 600;
+const winX = 1360 / 2;
+const winY = 800 / 2;
+
+const windowContainer = this.add.container(winX, winY);
+this.currentWindow = windowContainer;
+this.desktopContainer.add(windowContainer);
+
+// Window Frame (Glass Effect)
+const bg = this.add.rectangle(0, 0, winW, winH, 0xf0f2f5);
+bg.setStrokeStyle(1, 0xcccccc);
+windowContainer.add(bg);
+
+// Header
+const header = this.add.rectangle(0, -winH / 2 + 20, winW, 40, 0x0068a7);
+const title = this.add.text(-winW / 2 + 10, -winH / 2 + 20, '我的电脑 - 属性', { fontSize: '18px', color: '#ffffff' }).setOrigin(0, 0.5);
+const closeBtn = this.add.text(winW / 2 - 20, -winH / 2 + 20, 'X', { fontSize: '20px', color: '#ffffff' }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+closeBtn.on('pointerdown', () => {
+    windowContainer.destroy();
+    this.currentWindow = null;
+});
+windowContainer.add([header, title, closeBtn]);
+
+// Content
+const player = gameState.getPlayer();
+const account = gameState.getAccount();
+
+// 1. Sidebar
+const sidebar = this.add.rectangle(-winW / 2 + 100, 20, 200, winH - 40, 0xffffff);
+windowContainer.add(sidebar);
+
+const avatar = this.add.circle(-winW / 2 + 100, -100, 60, 0x0068a7);
+const avatarText = this.add.text(-winW / 2 + 100, -100, player.name.charAt(0), { fontSize: '48px', color: '#ffffff' }).setOrigin(0.5);
+windowContainer.add([avatar, avatarText]);
+
+// 2. Info Grid
+const startX = 50;
+const startY = -150;
+const lineHeight = 50;
+
+const infos = [
+    { label: '姓名', value: player.name },
+    { label: '职位', value: player.position },
+    { label: '月薪', value: `¥${player.salary}` },
+    { label: '入职天数', value: `${player.day} 天` },
+    { label: '总资产', value: `¥${account.totalAssets.toLocaleString()}` },
+    { label: '----------------', value: '' }, // Divider
+    { label: '沟通能力', value: `${player.skills.communication}` },
+    { label: '技术能力', value: `${player.skills.technical}` },
+    { label: '管理能力', value: `${player.skills.management}` }
+];
+
+infos.forEach((info, index) => {
+    const y = startY + index * lineHeight;
+    const label = this.add.text(startX, y, info.label + ':', { fontSize: '20px', color: '#666666', fontStyle: 'bold' });
+    const value = this.add.text(startX + 150, y, info.value, { fontSize: '20px', color: '#000000' });
+    windowContainer.add([label, value]);
+});
+    }
 
     private closeComputer(): void {
-        this.scene.stop();
-        this.scene.resume('ImprovedOfficeScene');
-    }
+    this.scene.stop();
+    this.scene.resume('ImprovedOfficeScene');
+}
 }

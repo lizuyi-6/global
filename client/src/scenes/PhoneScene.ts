@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { gameState } from '../GameState';
-import { COLORS, FONTS, applyGlassEffect } from '../UIConfig';
+import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
 
 /**
  * 手机界面场景
@@ -402,27 +402,25 @@ export class PhoneScene extends Phaser.Scene {
         nameValue.setData('appContent', true);
         this.phoneContainer.add(nameValue);
 
-        const resetBtn = this.add.rectangle(0, 200, 400, 80, COLORS.danger);
-        resetBtn.setInteractive({ useHandCursor: true });
-        resetBtn.on('pointerover', () => resetBtn.setFillStyle(0xf87171));
-        resetBtn.on('pointerout', () => resetBtn.setFillStyle(COLORS.danger));
-        resetBtn.on('pointerdown', () => {
-            if (confirm('确定要重置游戏吗？所有进度将丢失！')) {
-                gameState.resetGame();
-                this.closePhone();
-                this.scene.get('ImprovedOfficeScene').scene.restart();
-            }
-        });
+        // 使用标准按钮组件替代手动绘制，修复文字不可见和错位问题
+        const resetBtn = createStyledButton(
+            this,
+            0,
+            200,
+            400,
+            80,
+            '重置游戏',
+            () => {
+                if (confirm('确定要重置游戏吗？所有进度将丢失！')) {
+                    gameState.resetGame();
+                    this.closePhone();
+                    this.scene.get('ImprovedOfficeScene').scene.restart();
+                }
+            },
+            'danger'
+        );
         resetBtn.setData('appContent', true);
         this.phoneContainer.add(resetBtn);
-
-        const resetText = this.add.text(0, 200, '重置游戏', {
-            fontSize: '32px',
-            color: '#ffffff'
-        });
-        resetText.setOrigin(0.5, 0.5);
-        resetText.setData('appContent', true);
-        this.phoneContainer.add(resetText);
 
         this.addBackButton();
     }
