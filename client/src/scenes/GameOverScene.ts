@@ -93,7 +93,7 @@ export class GameOverScene extends Phaser.Scene {
         const centerX = 1280;
 
         // 胜利标题
-        const title = this.add.text(centerX, 200, '🎉 MISSION ACCOMPLISHED', {
+        const title = this.add.text(centerX, 200, 'MISSION ACCOMPLISHED', {
             fontSize: '80px',
             fontFamily: FONTS.mono,
             color: '#00ff88',
@@ -155,7 +155,7 @@ export class GameOverScene extends Phaser.Scene {
         const centerX = 1280;
 
         // 失败标题
-        const title = this.add.text(centerX, 200, '💀 SYSTEM TERMINATED', {
+        const title = this.add.text(centerX, 200, 'SYSTEM TERMINATED', {
             fontSize: '80px',
             fontFamily: FONTS.mono,
             color: '#ff4444',

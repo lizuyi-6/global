@@ -559,8 +559,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         deskGraphics.setDepth(iso.y + 900);
 
         // 放置物品
-        this.createIsoObject(x - 20, y - 10, '💻', `comp_${x}_${y}`, `${label} 电脑`, '正在运行代码...');
-        this.createIsoObject(x + 20, y + 10, '☕', `cup_${x}_${y}`, '咖啡杯', '熬夜必备');
+        this.createIsoObject(x - 20, y - 10, 'comp', `comp_${x}_${y}`, `${label} 电脑`, '点击打开任务列表');
+        this.createIsoObject(x + 20, y + 10, 'cup', `cup_${x}_${y}`, '咖啡杯', '熬夜必备');
     }
 
     private createIsoObject(worldX: number, worldY: number, type: string, id: string, name: string, description: string): void {
@@ -596,6 +596,18 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                 break;
             case 'comp': // 电脑 (作为独立物品时)
                 this.drawComputer(g);
+                // 添加交互：点击打开任务列表
+                container.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
+                container.on('pointerdown', () => {
+                    this.scene.launch('PhoneScene');
+                    this.scene.pause();
+                    this.time.delayedCall(100, () => {
+                        const phoneScene = this.scene.get('PhoneScene') as any;
+                        if (phoneScene && phoneScene.showTasks) {
+                            phoneScene.showTasks();
+                        }
+                    });
+                });
                 break;
             case 'cup': // 杯子
                 this.drawCup(g);

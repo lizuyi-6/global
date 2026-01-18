@@ -258,7 +258,23 @@ export class PhoneScene extends Phaser.Scene {
 
                 const card = this.add.rectangle(0, y, 700, 140, COLORS.bgCard);
                 card.setData('appContent', true);
+                card.setInteractive({ useHandCursor: true });
                 this.phoneContainer.add(card);
+
+                // Task Interaction
+                card.on('pointerover', () => card.setFillStyle(COLORS.panelOverlay));
+                card.on('pointerout', () => card.setFillStyle(COLORS.bgCard));
+                card.on('pointerdown', () => {
+                    this.closePhone();
+                    this.scene.launch('TaskGameScene', {
+                        task: task,
+                        gameType: task.type === 'coding' ? 'typing'
+                            : task.type === 'meeting' ? 'sorting'
+                                : task.type === 'report' ? 'memory'
+                                    : 'clicking'
+                    });
+                    this.scene.pause('ImprovedOfficeScene');
+                });
 
                 const taskTitle = this.add.text(-320, y - 30, task.title, {
                     fontSize: '28px',
