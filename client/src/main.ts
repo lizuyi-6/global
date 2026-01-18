@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { gameState } from './GameState';
+import { ComputerScene } from './scenes/ComputerScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { ImprovedOfficeScene } from './scenes/ImprovedOfficeScene';
 import { InterviewScene } from './scenes/InterviewScene';
@@ -22,7 +23,8 @@ const config: Phaser.Types.Core.GameConfig = {
   width: DESIGN_WIDTH,
   height: DESIGN_HEIGHT,
   parent: 'app',
-  backgroundColor: '#050505',
+  transparent: true,
+  // backgroundColor: '#050505',
   pixelArt: false,
   roundPixels: false,
   antialias: true,
@@ -33,7 +35,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false
     }
   },
-  scene: [PreloadScene, LandingScene, ResumeEditScene, JobHuntScene, InterviewScene, ImprovedOfficeScene, PhoneScene, StockScene, TaskGameScene, WorkplaceEventScene, GameOverScene],
+  scene: [PreloadScene, LandingScene, ResumeEditScene, JobHuntScene, InterviewScene, ImprovedOfficeScene, PhoneScene, ComputerScene, StockScene, TaskGameScene, WorkplaceEventScene, GameOverScene],
   dom: {
     createContainer: true
   },
@@ -72,4 +74,3 @@ if (gameState.hasSaveData()) {
 stockMarket.startMarket();
 
 export default game;
-

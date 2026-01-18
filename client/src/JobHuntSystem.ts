@@ -64,6 +64,7 @@ export interface Application {
     interviewRounds: InterviewRound[];  // 面试轮次
     rejectionReason?: string;     // 拒绝原因
     offerDetails?: OfferDetails;  // offer详情
+    usedQuestionIds?: string[];   // 跨轮次已使用的问题ID（避免重复）
 }
 
 /** 面试轮次 */
@@ -102,7 +103,7 @@ export interface PlayerResume {
     experience: number;           // 工作年限
     skills: string[];
     projects: string[];           // 项目经历
-    
+
     // 新增字段：竞赛、证书、荣誉、自我描述
     competitions?: string[];      // 竞赛经历 (如: "ACM铜牌", "Kaggle Top 10%")
     certificates?: string[];      // 证书 (如: "AWS认证", "PMP", "CPA")
@@ -111,7 +112,7 @@ export interface PlayerResume {
     selfDescription?: string;     // 自我描述/个人亮点
     internships?: string[];       // 实习经历 (如: "字节跳动实习")
     publications?: string[];      // 发表论文/专利
-    
+
     expectedSalary: [number, number];
     jobPreferences: {
         industries: string[];
@@ -488,12 +489,12 @@ class JobHuntSystem {
 
         try {
             const newListing = await apiService.generateJobs(this.resume, 15);
-            
+
             if (newListing && Array.isArray(newListing)) {
                 newListing.forEach(item => {
                     const company: Company = item.company;
                     const position: JobPosition = item.position;
-                    
+
                     // 确保 ID 唯一且关联正确
                     company.id = company.id || `dyn_comp_${Date.now()}_${Math.random()}`;
                     position.id = position.id || `dyn_job_${Date.now()}_${Math.random()}`;
@@ -506,7 +507,7 @@ class JobHuntSystem {
                     }
                     this.dynamicJobs.push(position);
                 });
-                
+
                 this.jobPoolSize = this.dynamicJobs.length;
                 this.emit('jobs_updated', { count: this.dynamicJobs.length });
             }
@@ -658,7 +659,7 @@ class JobHuntSystem {
 
         if (daysSinceApply >= responseDays) {
             // 1. 系统直接拒绝的概率 (简历初筛失败)
-            const directRejectChance = 0.2; 
+            const directRejectChance = 0.2;
             if (Math.random() < directRejectChance) {
                 app.status = 'rejected';
                 app.rejectionReason = REJECTION_REASONS[Math.floor(Math.random() * 3)]; // 前三种标准理由
@@ -715,11 +716,17 @@ class JobHuntSystem {
                 app.lastUpdateDay = this.status.currentDay;
 
                 // 安排第一轮面试
+                // 创业公司有概率直接由技术面
+                let initialRole = 'HR';
+                if (company.type === 'startup' && Math.random() < 0.4) {
+                    initialRole = '技术面试官';
+                }
+
                 const firstRound: InterviewRound = {
                     round: 1,
                     type: company.type === 'foreign' ? 'phone' : 'video',
                     interviewerName: this.generateInterviewerName(),
-                    interviewerRole: 'HR',
+                    interviewerRole: initialRole,
                     scheduledDay: this.status.currentDay + 2 + Math.floor(Math.random() * 3),
                     scheduledTime: ['10:00', '14:00', '15:30', '16:00'][Math.floor(Math.random() * 4)],
                     status: 'scheduled'
@@ -779,7 +786,7 @@ class JobHuntSystem {
     private calculateInterviewChance(job: JobPosition, company: Company): number {
         // 使用综合简历评分系统
         const resumeScore = this.calculateResumeScore(job, company);
-        
+
         // 基础概率：根据简历评分计算 (0-100 分 -> 5%-60% 概率)
         let chance = 0.05 + (resumeScore / 100) * 0.55;
 
@@ -1020,11 +1027,27 @@ class JobHuntSystem {
         // 安排下一轮
         const roundTypes: InterviewRound['type'][] = ['phone', 'video', 'onsite', 'hr'];
         const roles = ['HR', '技术面试官', '部门主管', 'VP'];
+
+        // Dynamic Role Progression based on previous role
+        let nextRole = '技术面试官';
+        if (lastRound) {
+            const currentIndex = roles.indexOf(lastRound.interviewerRole);
+            if (currentIndex >= 0 && currentIndex < roles.length - 1) {
+                nextRole = roles[currentIndex + 1];
+            } else {
+                // Fallback if max reached or unknown
+                nextRole = roles[roles.length - 1];
+            }
+        } else {
+            // Should not happen as lastRound checked above, but safe fallback
+            nextRole = '技术面试官';
+        }
+
         const nextRound: InterviewRound = {
             round: app.interviewRounds.length + 1,
             type: roundTypes[Math.min(app.interviewRounds.length, roundTypes.length - 1)],
             interviewerName: this.generateInterviewerName(),
-            interviewerRole: roles[Math.min(app.interviewRounds.length, roles.length - 1)],
+            interviewerRole: nextRole,
             scheduledDay: this.status.currentDay + 2 + Math.floor(Math.random() * 3),
             scheduledTime: ['10:00', '14:00', '15:30'][Math.floor(Math.random() * 3)],
             status: 'scheduled'

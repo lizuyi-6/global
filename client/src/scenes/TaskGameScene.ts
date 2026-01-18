@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import type { Task } from '../GameState';
 import { gameState } from '../GameState';
-import { COLORS, FONTS, applyGlassEffect, createStyledButton } from '../UIConfig';
+import { COLORS, FONTS, applyGlassEffect, createModernStarBackground, createStyledButton } from '../UIConfig';
 
 /**
- * 任务小游戏场景
+ * 任务小游戏场景 (2K 适配版)
  * 包含多种小游戏类型来完成工作任务
+ * Base Resolution: 2560 x 1440
  */
 export class TaskGameScene extends Phaser.Scene {
     private currentTask: Task | null = null;
@@ -29,47 +30,37 @@ export class TaskGameScene extends Phaser.Scene {
     }
 
     create(): void {
-        // 背景
-        this.add.rectangle(640, 360, 1280, 720, COLORS.bg);
+        // 黑色背景遮罩 (防止与办公室场景重叠导致看不清)
+        this.add.rectangle(1280, 720, 2560, 1440, 0x000000, 0.95).setDepth(-100);
 
-        // 背景装饰
-        const deco = this.add.graphics();
-        deco.lineStyle(2, COLORS.primary, 0.1);
-        for (let i = 0; i < 1280; i += 40) {
-            deco.moveTo(i, 0);
-            deco.lineTo(i, 720);
-        }
-        for (let i = 0; i < 720; i += 40) {
-            deco.moveTo(0, i);
-            deco.lineTo(1280, i);
-        }
-        deco.strokePath();
+        // 现代粒子星空背景
+        createModernStarBackground(this, 2560, 1440);
 
         // 标题容器
-        const headerContainer = this.add.container(640, 60);
-        const titleText = this.add.text(0, -15, '⌨️ 任务挑战', {
-            fontSize: '36px',
+        const headerContainer = this.add.container(1280, 120);
+        const titleText = this.add.text(0, -30, '⌨️ 任务挑战', {
+            fontSize: '72px',
             fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        const subTitleText = this.add.text(0, 25, 'TASK EXECUTION / MAXIMIZE EFFICIENCY', {
-            fontSize: '12px',
+        const subTitleText = this.add.text(0, 50, 'TASK EXECUTION / MAXIMIZE EFFICIENCY', {
+            fontSize: '24px',
             fontFamily: FONTS.mono,
             color: '#4a90d9',
-            letterSpacing: 2
+            letterSpacing: 4
         }).setOrigin(0.5);
         headerContainer.add([titleText, subTitleText]);
 
         // 游戏容器
-        this.gameContainer = this.add.container(0, 50); // 往下移动
+        this.gameContainer = this.add.container(0, 100); // 往下移动
 
         // 绘制顶部信息
         this.drawHeader();
 
         // 提示信息
-        const promptText = this.add.text(640, 130, this.getInstruction(), {
-            fontSize: '18px',
+        const promptText = this.add.text(1280, 260, this.getInstruction(), {
+            fontSize: '36px',
             fontFamily: FONTS.main,
             color: '#4a90d9',
             fontStyle: 'bold'
@@ -105,34 +96,42 @@ export class TaskGameScene extends Phaser.Scene {
 
     /** 绘制顶部信息 */
     private drawHeader(): void {
-        // 背景
-        const headerBg = this.add.rectangle(640, 50, 1280, 100, COLORS.panel, 0.8);
+        // 背景 - 2560 width
+        const headerBg = this.add.rectangle(1280, 100, 2560, 200, COLORS.panel, 0.8);
         applyGlassEffect(headerBg);
 
         // 任务名称
-        const taskTitle = this.add.text(120, 30, this.currentTask?.title || '工作任务', {
-            fontSize: '24px',
+        const taskTitle = this.add.text(240, 60, this.currentTask?.title || '工作任务', {
+            fontSize: '48px',
             fontFamily: FONTS.main,
             color: '#ffffff',
             fontStyle: 'bold'
         });
 
         // 返回按钮
-        const backBtn = this.add.text(50, 30, '←', {
-            fontSize: '28px',
-            color: '#ff4444'
-        }).setInteractive({ useHandCursor: true });
-        backBtn.on('pointerdown', () => this.exitGame(false));
+        // 返回按钮
+        const backBtn = this.add.text(100, 60, '←', {
+            fontSize: '56px',
+            color: '#ff4444',
+            padding: { x: 20, y: 10 }
+        })
+            .setInteractive({ useHandCursor: true })
+            .setDepth(2000); // 确保在最上层
 
-        // 分数显示
-        this.add.text(640, 25, 'SCORE / 分数', {
-            fontSize: '11px',
+        backBtn.on('pointerdown', () => {
+            console.log('Back button clicked');
+            this.exitGame(false);
+        });
+
+        // 分数显示 Center X = 1280
+        this.add.text(1280, 50, 'SCORE / 分数', {
+            fontSize: '22px',
             fontFamily: FONTS.mono,
             color: '#888888'
         }).setOrigin(0.5, 0);
 
-        const scoreText = this.add.text(640, 45, '0', {
-            fontSize: '32px',
+        const scoreText = this.add.text(1280, 90, '0', {
+            fontSize: '64px',
             fontFamily: FONTS.mono,
             color: '#00ff88',
             fontStyle: 'bold'
@@ -141,14 +140,14 @@ export class TaskGameScene extends Phaser.Scene {
         scoreText.setData('type', 'score');
 
         // 时间显示
-        this.add.text(900, 25, 'TIME / 剩余时间', {
-            fontSize: '11px',
+        this.add.text(1800, 50, 'TIME / 剩余时间', {
+            fontSize: '22px',
             fontFamily: FONTS.mono,
             color: '#888888'
         }).setOrigin(0.5, 0);
 
-        const timeText = this.add.text(900, 45, '30.0', {
-            fontSize: '32px',
+        const timeText = this.add.text(1800, 90, '30.0', {
+            fontSize: '64px',
             fontFamily: FONTS.mono,
             color: '#ffcc00',
             fontStyle: 'bold'
@@ -157,14 +156,14 @@ export class TaskGameScene extends Phaser.Scene {
         timeText.setData('type', 'time');
 
         // 目标分数
-        this.add.text(1100, 25, 'TARGET / 目标', {
-            fontSize: '11px',
+        this.add.text(2200, 50, 'TARGET / 目标', {
+            fontSize: '22px',
             fontFamily: FONTS.mono,
             color: '#888888'
         }).setOrigin(0.5, 0);
 
-        this.add.text(1100, 45, '100', {
-            fontSize: '32px',
+        this.add.text(2200, 90, '100', {
+            fontSize: '64px',
             fontFamily: FONTS.mono,
             color: '#4a90d9',
             fontStyle: 'bold'
@@ -210,7 +209,7 @@ export class TaskGameScene extends Phaser.Scene {
         });
     }
 
-    // ========== 打字游戏 ==========
+    // ========== 打字游戏 (Upscaled) ==========
 
     private typingWords: string[] = [];
     private currentWordIndex: number = 0;
@@ -218,8 +217,8 @@ export class TaskGameScene extends Phaser.Scene {
 
     private startTypingGame(): void {
         // 说明
-        const instruction = this.add.text(640, 150, '快速输入屏幕上显示的文字！', {
-            fontSize: '18px',
+        const instruction = this.add.text(1280, 300, '快速输入屏幕上显示的文字！', {
+            fontSize: '36px',
             color: '#888888'
         });
         instruction.setOrigin(0.5, 0.5);
@@ -227,17 +226,17 @@ export class TaskGameScene extends Phaser.Scene {
 
         // 生成单词列表
         this.typingWords = [
-            '报告', '会议', '项目', '客户', '数据', '分析', '方案', '审核',
-            '提交', '审批', '邮件', '回复', '确认', '完成', '计划', '预算',
-            '销售', '利润', '成本', '收入', '支出', '统计', '汇报', '协调'
+            'REPORT', 'MEETING', 'PROJECT', 'CLIENT', 'DATA', 'ANALYSIS', 'PLAN',
+            'SUBMIT', 'EMAIL', 'REPLY', 'CONFIRM', 'DONE', 'BUDGET', 'SALES',
+            'PROFIT', 'COST', 'INCOME', 'GROWTH', 'TEAM', 'WORK', 'KPI'
         ];
         this.shuffleArray(this.typingWords);
         this.currentWordIndex = 0;
         this.inputText = '';
 
         // 显示当前单词
-        const wordDisplay = this.add.text(640, 300, this.typingWords[0], {
-            fontSize: '48px',
+        const wordDisplay = this.add.text(1280, 600, this.typingWords[0], {
+            fontSize: '96px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
@@ -246,11 +245,11 @@ export class TaskGameScene extends Phaser.Scene {
         this.gameContainer.add(wordDisplay);
 
         // 输入框显示
-        const inputDisplay = this.add.text(640, 400, '|', {
-            fontSize: '36px',
+        const inputDisplay = this.add.text(1280, 800, '|', {
+            fontSize: '72px',
             color: '#4a90d9',
             backgroundColor: '#333333',
-            padding: { x: 30, y: 10 }
+            padding: { x: 60, y: 20 }
         });
         inputDisplay.setOrigin(0.5, 0.5);
         inputDisplay.setData('type', 'input');
@@ -263,7 +262,7 @@ export class TaskGameScene extends Phaser.Scene {
             if (event.key === 'Backspace') {
                 this.inputText = this.inputText.slice(0, -1);
             } else if (event.key.length === 1) {
-                this.inputText += event.key;
+                this.inputText += event.key.toUpperCase();
             }
 
             // 更新输入显示
@@ -302,11 +301,11 @@ export class TaskGameScene extends Phaser.Scene {
         this.startTimer();
     }
 
-    // ========== 排序游戏 ==========
+    // ========== 排序游戏 (Upscaled) ==========
 
     private startSortingGame(): void {
-        const instruction = this.add.text(640, 150, '按从小到大的顺序点击数字！', {
-            fontSize: '18px',
+        const instruction = this.add.text(1280, 300, '按从小到大的顺序点击数字！', {
+            fontSize: '36px',
             color: '#888888'
         });
         instruction.setOrigin(0.5, 0.5);
@@ -321,29 +320,30 @@ export class TaskGameScene extends Phaser.Scene {
 
     private generateSortingRound(): void {
         // 清除旧的数字
-        this.gameContainer.list.forEach((child: Phaser.GameObjects.GameObject) => {
-            if (child.getData && child.getData('type') === 'sortNumber') {
-                child.destroy();
-            }
-        });
+        // 清除旧的数字
+        const oldNumbers = this.gameContainer.list.filter(child =>
+            child.getData && child.getData('type') === 'sortNumber'
+        );
+        oldNumbers.forEach(child => child.destroy());
 
         // 生成新的数字（1-9）
         this.sortingNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
         this.shuffleArray(this.sortingNumbers);
         this.nextExpectedNumber = 1;
 
-        // 3x3 网格显示
+        // 3x3 网格显示 (Centered at 1280, 720)
+        // Grid spacing doubled: 400x260
         this.sortingNumbers.forEach((num, index) => {
             const col = index % 3;
             const row = Math.floor(index / 3);
-            const x = 440 + col * 200;
-            const y = 280 + row * 130;
+            const x = 880 + col * 400; // 880, 1280, 1680
+            const y = 560 + row * 260; // 560, 820, 1080
 
             const numBtn = this.add.text(x, y, num.toString(), {
-                fontSize: '48px',
+                fontSize: '96px',
                 color: '#ffffff',
                 backgroundColor: '#3a3a5a',
-                padding: { x: 30, y: 15 }
+                padding: { x: 60, y: 30 }
             });
             numBtn.setOrigin(0.5, 0.5);
             numBtn.setInteractive({ useHandCursor: true });
@@ -375,7 +375,7 @@ export class TaskGameScene extends Phaser.Scene {
         });
     }
 
-    // ========== 记忆游戏 ==========
+    // ========== 记忆游戏 (Upscaled) ==========
 
     private memoryCards: { value: number; flipped: boolean; matched: boolean }[] = [];
     private firstCard: Phaser.GameObjects.Text | null = null;
@@ -383,8 +383,8 @@ export class TaskGameScene extends Phaser.Scene {
     private canFlip: boolean = true;
 
     private startMemoryGame(): void {
-        const instruction = this.add.text(640, 130, '翻开卡片，找到相同的数字配对！', {
-            fontSize: '18px',
+        const instruction = this.add.text(1280, 260, '翻开卡片，找到相同的数字配对！', {
+            fontSize: '36px',
             color: '#888888'
         });
         instruction.setOrigin(0.5, 0.5);
@@ -396,33 +396,36 @@ export class TaskGameScene extends Phaser.Scene {
 
     private generateMemoryCards(): void {
         // 清除旧卡片
-        this.gameContainer.list.forEach((child: Phaser.GameObjects.GameObject) => {
-            if (child.getData && child.getData('type') === 'memoryCard') {
-                child.destroy();
-            }
-        });
+        // 清除旧卡片
+        const oldCards = this.gameContainer.list.filter(child =>
+            child.getData && child.getData('type') === 'memoryCard'
+        );
+        oldCards.forEach(child => child.destroy());
 
+        // 生成配对数字（6对）
         // 生成配对数字（6对）
         const pairs = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6];
         this.shuffleArray(pairs);
+        console.log('[TaskGameScene] Generated Memory Pairs:', pairs);
 
         this.memoryCards = pairs.map(v => ({ value: v, flipped: false, matched: false }));
         this.firstCard = null;
         this.secondCard = null;
         this.canFlip = true;
 
-        // 4x3 网格
+        // 4x3 网格 (Centered at 1280, 720)
+        // Spacing: 340 (w) x 300 (h)
         this.memoryCards.forEach((card, index) => {
             const col = index % 4;
             const row = Math.floor(index / 4);
-            const x = 390 + col * 170;
-            const y = 280 + row * 150;
+            const x = 780 + col * 340; // 780, 1120, 1460, 1800
+            const y = 560 + row * 300; // 560, 860, 1160
 
             const cardObj = this.add.text(x, y, '?', {
-                fontSize: '36px',
+                fontSize: '72px',
                 color: '#ffffff',
                 backgroundColor: '#4a4a6a',
-                padding: { x: 30, y: 20 }
+                padding: { x: 60, y: 40 }
             });
             cardObj.setOrigin(0.5, 0.5);
             cardObj.setInteractive({ useHandCursor: true });
@@ -495,11 +498,11 @@ export class TaskGameScene extends Phaser.Scene {
         }
     }
 
-    // ========== 点击游戏 ==========
+    // ========== 点击游戏 (Upscaled) ==========
 
     private startClickingGame(): void {
-        const instruction = this.add.text(640, 150, '快速点击出现的目标！', {
-            fontSize: '18px',
+        const instruction = this.add.text(1280, 260, '快速点击出现的目标！', {
+            fontSize: '36px',
             color: '#888888'
         });
         instruction.setOrigin(0.5, 0.5);
@@ -512,12 +515,12 @@ export class TaskGameScene extends Phaser.Scene {
     private spawnTarget(): void {
         if (!this.isGameActive) return;
 
-        // 随机位置
-        const x = Phaser.Math.Between(200, 1080);
-        const y = Phaser.Math.Between(200, 550);
+        // 随机位置 (2K Area)
+        const x = Phaser.Math.Between(400, 2160);
+        const y = Phaser.Math.Between(400, 1100);
 
-        // 随机大小
-        const size = Phaser.Math.Between(30, 60);
+        // 随机大小 (Upscaled)
+        const size = Phaser.Math.Between(60, 120);
 
         const target = this.add.circle(x, y, size, 0xff4444);
         target.setInteractive({ useHandCursor: true });
@@ -527,7 +530,7 @@ export class TaskGameScene extends Phaser.Scene {
         // 点击得分
         target.on('pointerdown', () => {
             if (!this.isGameActive) return;
-            this.updateScore(this.score + Math.floor(60 / size * 5));
+            this.updateScore(this.score + Math.floor(120 / size * 5));
             target.destroy();
             this.showFeedback(true);
             this.spawnTarget();
@@ -542,7 +545,7 @@ export class TaskGameScene extends Phaser.Scene {
         });
     }
 
-    // ========== 通用方法 ==========
+    // ========== 通用方法 (Upscaled) ==========
 
     private shuffleArray<T>(array: T[]): void {
         for (let i = array.length - 1; i > 0; i--) {
@@ -552,8 +555,8 @@ export class TaskGameScene extends Phaser.Scene {
     }
 
     private showFeedback(success: boolean): void {
-        const feedback = this.add.text(640, 500, success ? '✓' : '✗', {
-            fontSize: '48px',
+        const feedback = this.add.text(1280, 1000, success ? '✓' : '✗', {
+            fontSize: '96px',
             color: success ? '#00ff88' : '#ff4444'
         });
         feedback.setOrigin(0.5, 0.5);
@@ -573,45 +576,46 @@ export class TaskGameScene extends Phaser.Scene {
             this.timerEvent.destroy();
         }
 
-        // 计算任务完成度
-        const completion = Math.min(100, this.score);
-        const passed = this.score >= 100;
+        // 计算任务完成度 (按比例)
+        const targetScore = 100;
+        const rewardRatio = Math.min(1.5, Math.max(0, this.score / targetScore));
+        const actualReward = Math.floor((this.currentTask?.reward || 0) * rewardRatio);
 
-        // 显示结果
-        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.85);
+        // 显示结果 - Upscaled
+        const overlay = this.add.rectangle(1280, 720, 2560, 1440, 0x000000, 0.85);
         overlay.setDepth(1000);
 
-        const resultContainer = this.add.container(640, 360).setDepth(1001);
+        const resultContainer = this.add.container(1280, 720).setDepth(1001);
 
-        const resultBg = this.add.rectangle(0, 0, 450, 350, COLORS.panel, 0.9);
+        const resultBg = this.add.rectangle(0, 0, 900, 700, COLORS.panel, 0.9);
         applyGlassEffect(resultBg);
         resultContainer.add(resultBg);
 
-        const resultTitle = this.add.text(0, -100, passed ? 'TASK COMPLETED' : 'TASK FAILED', {
-            fontSize: '32px',
+        const resultTitle = this.add.text(0, -200, 'TASK COMPLETED', {
+            fontSize: '64px',
             fontFamily: FONTS.main,
-            color: passed ? '#00ff88' : '#ff4444',
+            color: '#00ff88',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         resultContainer.add(resultTitle);
 
-        const scoreResult = this.add.text(0, -20, `FINAL SCORE: ${this.score}`, {
-            fontSize: '20px',
+        const scoreResult = this.add.text(0, -40, `FINAL SCORE: ${this.score}`, {
+            fontSize: '40px',
             fontFamily: FONTS.mono,
             color: '#ffffff'
         }).setOrigin(0.5);
         resultContainer.add(scoreResult);
 
-        if (passed && this.currentTask) {
-            const rewardText = this.add.text(0, 30, `REWARD: ¥${this.currentTask.reward}`, {
-                fontSize: '18px',
+        if (this.currentTask) {
+            const rewardText = this.add.text(0, 60, `REWARD: ¥${actualReward}`, {
+                fontSize: '36px',
                 fontFamily: FONTS.mono,
                 color: '#ffcc00'
             }).setOrigin(0.5);
             resultContainer.add(rewardText);
         }
 
-        const exitBtn = createStyledButton(this, 0, 110, 240, 50, '返回办公室', () => this.exitGame(passed));
+        const exitBtn = createStyledButton(this, 0, 220, 480, 100, '返回办公室', () => this.exitGame(actualReward));
         resultContainer.add(exitBtn);
 
         // 动画
@@ -626,17 +630,28 @@ export class TaskGameScene extends Phaser.Scene {
         });
     }
 
-    private exitGame(completed: boolean): void {
+    private exitGame(reward: number | boolean): void {
         if (this.timerEvent) {
             this.timerEvent.destroy();
         }
 
-        // 更新任务进度
-        if (completed && this.currentTask) {
+        // 更新任务进度 (Fixed: Always succeeds with proportional reward if pending)
+        if (typeof reward === 'number' && this.currentTask) {
+            // Override the updateTaskProgress to accept money directly or handle it there
+            gameState.addFunds(reward);
+            gameState.updateTaskProgress(this.currentTask.id, 100);
+            gameState.emit('task_completed', { task: this.currentTask, reward: reward });
+        } else if (typeof reward === 'boolean' && reward && this.currentTask) {
+            // Fallback for boolean (legacy)
             gameState.updateTaskProgress(this.currentTask.id, 100);
         }
 
         this.scene.stop();
         this.scene.resume('ImprovedOfficeScene');
+        // Ensure input is visible again
+        const officeScene = this.scene.get('ImprovedOfficeScene') as any;
+        if (officeScene && officeScene.commandInput) {
+            officeScene.commandInput.setVisible(true);
+        }
     }
 }

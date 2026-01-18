@@ -92,7 +92,8 @@ type GameEventType =
     | 'position_changed'    // 持仓变化
     | 'task_updated'        // 任务更新
     | 'relationship_changed' // 关系变化
-    | 'market_update';      // 行情更新
+    | 'market_update'       // 行情更新
+    | 'game_win';           // 游戏胜利
 
 type GameEventCallback = (data: any) => void;
 
@@ -105,6 +106,7 @@ class GameStateManager {
 
     constructor() {
         this.state = this.createInitialState();
+        this.generateDailyTasks(); // Generate initial tasks
     }
 
     /** 创建初始状态 */
@@ -237,6 +239,9 @@ class GameStateManager {
 
         this.state.player.day++;
 
+        // 生成新任务
+        this.generateDailyTasks();
+
         this.emit('day_start', { day: this.state.gameTime.day });
     }
 
@@ -282,6 +287,14 @@ class GameStateManager {
         }, 0);
         this.state.account.stockValue = stockValue;
         this.state.account.totalAssets = this.state.account.cash + stockValue;
+
+        // 检查胜利条件 (资产突破 100万)
+        if (this.state.account.totalAssets >= 1000000) {
+            this.emit('game_win', {
+                success: true,
+                reason: `资产达到 ¥${this.state.account.totalAssets.toLocaleString()}，实现财富自由！`
+            });
+        }
     }
 
     // ========== 持仓系统 ==========
@@ -423,6 +436,59 @@ class GameStateManager {
     }
 
     // ========== 任务系统 ==========
+
+    /** 生成每日任务 */
+    generateDailyTasks(): void {
+        const types = ['coding', 'report', 'meeting', 'clicking'];
+        // Generate 3-5 tasks
+        const count = 3 + Math.floor(Math.random() * 3);
+
+        // Clear old pending tasks (optional: keep them? stick to clearing for now)
+        this.state.tasks = this.state.tasks.filter(t => t.status === 'completed');
+
+        for (let i = 0; i < count; i++) {
+            const type = types[Math.floor(Math.random() * types.length)];
+            let title = '';
+            let description = '';
+            let reward = 0;
+
+            switch (type) {
+                case 'coding':
+                    title = '修复关键Bug';
+                    description = '系统核心模块出现了严重的逻辑错误，需要立即修复。';
+                    reward = 800 + Math.floor(Math.random() * 500);
+                    break;
+                case 'report':
+                    title = '撰写季度报告';
+                    description = '整理本季度的业务数据，生成详细的分析报告。';
+                    reward = 600 + Math.floor(Math.random() * 400);
+                    break;
+                case 'meeting':
+                    title = '参加跨部门会议';
+                    description = '与产品和设计团队协调新功能的开发进度。';
+                    reward = 400 + Math.floor(Math.random() * 300);
+                    break;
+                case 'clicking':
+                    title = '数据录入';
+                    description = '将纸质文档的数据录入到电子系统中，枯燥但必要。';
+                    reward = 300 + Math.floor(Math.random() * 200);
+                    break;
+            }
+
+            this.addTask({
+                id: `task_${this.state.gameTime.day}_${i}_${Date.now()}`,
+                title: title,
+                description: description,
+                type: type as any,
+                difficulty: 'medium',
+                reward: reward,
+                deadline: '18:00',
+                status: 'pending',
+                progress: 0
+            });
+        }
+        console.log(`[GameState] Generated ${count} new tasks for Day ${this.state.gameTime.day}`);
+    }
 
     /** 添加任务 */
     addTask(task: Task): void {

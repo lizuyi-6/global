@@ -118,16 +118,20 @@ class NotificationManager {
 
     /**
      * 显示通知 UI（右下角弹窗）
+     * Scaled for 2K (2560x1440)
      */
     private showNotificationUI(notification: Notification): void {
         if (!this.scene) return;
 
         const scene = this.scene;
         const index = this.notifications.findIndex(n => n.id === notification.id);
-        const y = 680 - index * 90;
 
-        // 创建通知容器
-        const container = scene.add.container(1280, y);
+        // Bottom Right of 2K screen (2560, 1440)
+        // Base Y = 1380 (leaving some padding from bottom)
+        const y = 1380 - index * 140; // Spacing increased 90 -> 140
+
+        // 创建通知容器 - Positioned off-screen initially
+        const container = scene.add.container(2600, y);
         container.setDepth(20000);
         container.setScrollFactor(0);
 
@@ -146,9 +150,9 @@ class NotificationManager {
             'error': 0xff4444
         };
 
-        // 背景
-        const bg = scene.add.rectangle(0, 0, 320, 80, bgColors[notification.type], 0.95);
-        bg.setStrokeStyle(2, borderColors[notification.type]);
+        // 背景 - Scaled size 320x80 -> 500x120
+        const bg = scene.add.rectangle(0, 0, 500, 120, bgColors[notification.type], 0.95);
+        bg.setStrokeStyle(3, borderColors[notification.type]); // Thicker stroke
         bg.setOrigin(1, 1);
         container.add(bg);
 
@@ -159,30 +163,31 @@ class NotificationManager {
             'warning': '⚠️',
             'error': '❌'
         };
-        const icon = scene.add.text(-300, -65, icons[notification.type], {
-            fontSize: '20px'
+        // Scaled position and font size
+        const icon = scene.add.text(-470, -95, icons[notification.type], {
+            fontSize: '32px'
         });
         container.add(icon);
 
-        // 标题
-        const title = scene.add.text(-270, -70, notification.title, {
-            fontSize: '14px',
+        // 标题 - Scaled
+        const title = scene.add.text(-425, -100, notification.title, {
+            fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         container.add(title);
 
-        // 消息
-        const message = scene.add.text(-300, -45, notification.message, {
-            fontSize: '12px',
+        // 消息 - Scaled wordWrap and font size
+        const message = scene.add.text(-470, -65, notification.message, {
+            fontSize: '20px',
             color: '#cccccc',
-            wordWrap: { width: 280 }
+            wordWrap: { width: 440 }
         });
         container.add(message);
 
-        // 关闭按钮
-        const closeBtn = scene.add.text(-15, -75, '×', {
-            fontSize: '18px',
+        // 关闭按钮 - Scaled
+        const closeBtn = scene.add.text(-30, -110, '×', {
+            fontSize: '36px',
             color: '#888888'
         });
         closeBtn.setInteractive({ useHandCursor: true });
@@ -191,9 +196,9 @@ class NotificationManager {
         closeBtn.on('pointerdown', () => this.dismiss(notification.id));
         container.add(closeBtn);
 
-        // 时间戳
-        const timeText = scene.add.text(-300, -15, '刚刚', {
-            fontSize: '10px',
+        // 时间戳 - Scaled
+        const timeText = scene.add.text(-470, -25, '刚刚', {
+            fontSize: '16px',
             color: '#666666'
         });
         container.add(timeText);
@@ -201,10 +206,10 @@ class NotificationManager {
         // 存储容器
         this.notificationContainers.set(notification.id, container);
 
-        // 入场动画：从右侧滑入
+        // 入场动画：从右侧滑入 (Target X = 2540, leaving 20px padding)
         scene.tweens.add({
             targets: container,
-            x: 1270,
+            x: 2540,
             duration: 300,
             ease: 'Back.easeOut'
         });
@@ -216,10 +221,10 @@ class NotificationManager {
     private removeNotificationUI(id: string): void {
         const container = this.notificationContainers.get(id);
         if (container && this.scene) {
-            // 淡出动画
+            // 淡出动画 - target X moved off-screen for 2K
             this.scene.tweens.add({
                 targets: container,
-                x: 1400,
+                x: 2700,
                 alpha: 0,
                 duration: 200,
                 onComplete: () => {
@@ -239,7 +244,8 @@ class NotificationManager {
         this.notifications.forEach((notification, index) => {
             const container = this.notificationContainers.get(notification.id);
             if (container) {
-                const y = 680 - index * 90;
+                // Same calculation as showNotificationUI
+                const y = 1380 - index * 140;
                 this.scene!.tweens.add({
                     targets: container,
                     y: y,

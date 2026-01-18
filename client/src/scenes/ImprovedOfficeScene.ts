@@ -123,9 +123,18 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         // 提示
         this.showWelcomeMessage();
 
-        // 监听事件
-        this.events.on('startChat', (npcName: string) => {
-            this.showChatDialog(npcName);
+        // 监听胜利事件
+        gameState.on('game_win', (data: any) => {
+            console.log('[Office] Game Win Triggered:', data);
+            this.scene.start('GameOverScene', { success: true, reason: data.reason });
+        });
+
+        // 监听暂停/恢复事件，隐藏/显示 DOM (防止文字穿透)
+        this.events.on('pause', () => {
+            if (this.commandInput) this.commandInput.setVisible(false);
+        });
+        this.events.on('resume', () => {
+            if (this.commandInput) this.commandInput.setVisible(true);
         });
     }
 
@@ -316,8 +325,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     private drawPixelMan(g: Phaser.GameObjects.Graphics, color: number): void {
         g.clear();
 
-        // 影子
-        g.fillStyle(0x000000, 0.2);
+        // 影子 (Reduced opacity)
+        g.fillStyle(0x000000, 0.1); // 0.2 -> 0.1
         g.fillEllipse(0, 0, 30, 10);
 
         // 身体 (西装) - 使用圆角矩形代替方块
@@ -559,17 +568,78 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         deskGraphics.setDepth(iso.y + 900);
 
         // 放置物品
-        this.createIsoObject(x - 20, y - 10, '💻', `comp_${x}_${y}`, `${label} 电脑`, '正在运行代码...');
-        this.createIsoObject(x + 20, y + 10, '☕', `cup_${x}_${y}`, '咖啡杯', '熬夜必备');
+        this.createIsoObject(x - 20, y - 10, 'comp', `comp_${x}_${y}`, `${label} 电脑`, '点击打开任务列表');
+        this.createIsoObject(x + 20, y + 10, 'cup', `cup_${x}_${y}`, '咖啡杯', '熬夜必备');
+
+        // 玩家工位提示 (引导交互)
+        if (isPlayerDesk) {
+            const hintContainer = this.add.container(iso.x - 20, iso.y - 120);
+
+            // 箭头
+            const arrow = this.add.text(0, 0, '⬇️', { fontSize: '32px' }).setOrigin(0.5);
+
+            // 标签
+            const labelText = this.add.text(0, -35, '接收任务', {
+                fontSize: '16px',
+                fontFamily: FONTS.main,
+                color: '#ffffff',
+                backgroundColor: '#0068a7',
+                padding: { x: 8, y: 4 }
+            }).setOrigin(0.5);
+
+            // 提示背景 glow
+            const glow = this.add.graphics();
+            glow.fillStyle(0x0068a7, 0.3);
+            glow.fillCircle(0, -35, 40);
+
+            hintContainer.add([glow, arrow, labelText]);
+            this.worldContainer.add(hintContainer);
+            hintContainer.setDepth(iso.y + 20000); // 确保在最上层
+
+            // 上下浮动动画
+            this.tweens.add({
+                targets: hintContainer,
+                y: hintContainer.y - 15,
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // 光晕脉冲
+            this.tweens.add({
+                targets: glow,
+                alpha: 0.1,
+                scale: 1.2,
+                duration: 1200,
+                yoyo: true,
+                repeat: -1
+            });
+
+            // Make hint interactive (User Request: easier to click)
+            hintContainer.setInteractive(new Phaser.Geom.Rectangle(-40, -80, 80, 100), Phaser.Geom.Rectangle.Contains);
+            hintContainer.on('pointerdown', () => {
+                this.scene.launch('ComputerScene');
+                this.scene.pause();
+            });
+            hintContainer.on('pointerover', () => {
+                arrow.setScale(1.2);
+                document.body.style.cursor = 'pointer';
+            });
+            hintContainer.on('pointerout', () => {
+                arrow.setScale(1);
+                document.body.style.cursor = 'default';
+            });
+        }
     }
 
     private createIsoObject(worldX: number, worldY: number, type: string, id: string, name: string, description: string): void {
         const iso = this.cartToIso(worldX, worldY);
         const container = this.add.container(iso.x, iso.y);
 
-        // 影子
+        // 影子 (Reduced opacity to avoid black artifacts)
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.2);
+        shadow.fillStyle(0x000000, 0.1); // 0.2 -> 0.1
         shadow.fillEllipse(0, 0, 30, 15);
         container.add(shadow);
 
@@ -596,6 +666,12 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                 break;
             case 'comp': // 电脑 (作为独立物品时)
                 this.drawComputer(g);
+                // 添加交互：点击打开任务列表
+                container.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
+                container.on('pointerdown', () => {
+                    this.scene.launch('ComputerScene');
+                    this.scene.pause();
+                });
                 break;
             case 'cup': // 杯子
                 this.drawCup(g);
@@ -717,32 +793,38 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     /**
      * 创建状态栏
      */
+    /**
+     * 创建状态栏
+     */
     private createStatusPanel(): void {
-        // Move to Bottom Left (Fixed 2K coordinates: x=40, y=1440 - 240 - 40 = 1160)
-        this.statusPanel = this.add.container(40, 1160);
+        // Move to Bottom Left (Fixed 2K coordinates: x=40, y=1440 - 300 - 40 = 1100)
+        this.statusPanel = this.add.container(40, 1100);
 
-        const bg = this.add.rectangle(0, 0, 300, 240, COLORS.panel, 0.8);
+        // Increase size from 300x240 -> 400x300
+        const bg = this.add.rectangle(0, 0, 400, 300, COLORS.panel, 0.8);
         bg.setStrokeStyle(1, COLORS.primary, 0.3);
         bg.setOrigin(0, 0);
         applyGlassEffect(bg, 0.8);
         this.statusPanel.add(bg);
 
-        const title = this.add.text(15, 15, 'SYSTEM STATUS / 实时状态', {
-            fontSize: '12px',
+        // Increase title font size 12px -> 18px
+        const title = this.add.text(20, 20, 'SYSTEM STATUS / 实时状态', {
+            fontSize: '18px',
             fontFamily: FONTS.mono,
             color: '#4a90d9',
             fontStyle: 'bold'
         });
         this.statusPanel.add(title);
 
-        // 手机按钮
-        const phoneBtn = this.add.rectangle(250, 200, 80, 35, 0x00aa55, 1);
+        // 手机按钮 - Increase size and font
+        // Pos: 300, 250 (adjusted for wider panel)
+        const phoneBtn = this.add.rectangle(320, 250, 120, 50, 0x00aa55, 1);
         phoneBtn.setStrokeStyle(2, 0x00ff88, 1);
         phoneBtn.setInteractive({ useHandCursor: true });
         this.statusPanel.add(phoneBtn);
 
-        const phoneBtnText = this.add.text(250, 200, '📱手机', {
-            fontSize: '14px',
+        const phoneBtnText = this.add.text(320, 250, '📱手机', {
+            fontSize: '20px', // 14px -> 20px
             color: '#ffffff',
             fontFamily: FONTS.primary
         }).setOrigin(0.5);
@@ -771,10 +853,10 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     private updateStatusDisplay(): void {
         // 清除旧文本（但保留按钮相关元素）
         this.statusPanel.iterate((child: Phaser.GameObjects.GameObject) => {
-            if (child instanceof Phaser.GameObjects.Text && child.y > 35 && child.y < 180) {
+            if (child instanceof Phaser.GameObjects.Text && child.y > 40 && child.y < 240) {
                 child.destroy();
             }
-            if (child instanceof Phaser.GameObjects.Rectangle && child.y > 35 && child.y < 180) {
+            if (child instanceof Phaser.GameObjects.Rectangle && child.y > 40 && child.y < 240) {
                 child.destroy();
             }
         });
@@ -794,10 +876,10 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         ];
 
         stats.forEach((stat, index) => {
-            const y = 40 + index * 35;
+            const y = 60 + index * 45; // Spacing increased
 
-            const label = this.add.text(10, y, stat.label, {
-                fontSize: '13px',
+            const label = this.add.text(20, y, stat.label, {
+                fontSize: '18px', // 13px -> 18px
                 color: '#cccccc'
             });
             this.statusPanel.add(label);
@@ -805,8 +887,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             const valueText = stat.unit === '¥'
                 ? `${stat.unit}${stat.value.toLocaleString()}`
                 : `${stat.value}${stat.unit}`;
-            const value = this.add.text(90, y, valueText, {
-                fontSize: '13px',
+            const value = this.add.text(140, y, valueText, {
+                fontSize: '18px', // 13px -> 18px
                 color: stat.color,
                 fontStyle: 'bold'
             });
@@ -814,12 +896,12 @@ export class ImprovedOfficeScene extends Phaser.Scene {
 
             // 进度条（现金不显示进度条）
             if (stat.unit !== '¥') {
-                const barBg = this.add.rectangle(160, y + 6, 110, 10, 0x333333);
+                const barBg = this.add.rectangle(230, y + 10, 140, 14, 0x333333); // Wider, taller bar
                 barBg.setOrigin(0, 0.5);
                 this.statusPanel.add(barBg);
 
-                const barWidth = Math.min(stat.value / stat.max * 110, 110);
-                const bar = this.add.rectangle(160, y + 6, barWidth, 10, parseInt(stat.color.replace('#', '0x')));
+                const barWidth = Math.min(stat.value / stat.max * 140, 140);
+                const bar = this.add.rectangle(230, y + 10, barWidth, 14, parseInt(stat.color.replace('#', '0x')));
                 bar.setOrigin(0, 0.5);
                 this.statusPanel.add(bar);
             }
@@ -903,6 +985,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
             // 键盘锁定逻辑
             inputElement?.addEventListener('focus', () => {
                 this.input.keyboard!.enabled = false;
+                // 重置所有按键状态，防止角色持续移动
+                this.input.keyboard!.resetKeys();
                 console.log('[Input] Keyboard disabled (input focused)');
             });
             inputElement?.addEventListener('blur', () => {
@@ -946,31 +1030,34 @@ export class ImprovedOfficeScene extends Phaser.Scene {
     /**
      * 创建行为日志
      */
+    /**
+     * 创建行为日志
+     */
     private createActionLog(): void {
         // Bottom Right for 2K (2560x1440)
-        // Anchor Top-Right of the box at (2520, 1160)
-        // Height 240 to match Status Panel
-        const logBg = this.add.rectangle(2520, 1160, 320, 240, COLORS.panel, 0.6);
+        // Pos: x=2520, y=1100 (aligned with Status Panel top)
+        // Size: 420x300 (Increased from 320x240)
+        const logBg = this.add.rectangle(2520, 1100, 420, 300, COLORS.panel, 0.6);
         logBg.setStrokeStyle(1, 0xffffff, 0.1);
         logBg.setOrigin(1, 0); // Anchor Top-Right
         applyGlassEffect(logBg, 0.6);
 
-        // Text Position: Left edge = 2520 - 320 = 2200. Padding 15.
-        const textX = 2215;
-        const textY = 1175;
+        // Text Position: Left edge = 2520 - 420 = 2100. Padding 20.
+        const textX = 2120;
+        const textY = 1120;
 
         const logTitle = this.add.text(textX, textY, 'ACTION LOG / 行为日志', {
-            fontSize: '14px', // Slightly larger
+            fontSize: '18px', // 14px -> 18px
             fontFamily: FONTS.mono,
             color: '#666666'
         });
 
-        this.logDisplay = this.add.text(textX, textY + 30, '', {
-            fontSize: '14px', // Larger font
+        this.logDisplay = this.add.text(textX, textY + 40, '', {
+            fontSize: '18px', // 14px -> 18px
             fontFamily: FONTS.main,
             color: '#cccccc',
-            wordWrap: { width: 290 }, // Adjusted width
-            lineSpacing: 8
+            wordWrap: { width: 380 }, // Adjusted width for wider panel
+            lineSpacing: 10
         });
     }
 
@@ -1716,6 +1803,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
 
             input?.addEventListener('focus', () => {
                 this.input.keyboard!.enabled = false;
+                // 重置所有按键状态，防止角色持续移动
+                this.input.keyboard!.resetKeys();
             });
             input?.addEventListener('blur', () => {
                 this.input.keyboard!.enabled = true;

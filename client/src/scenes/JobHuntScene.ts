@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Application, Company, JobPosition } from '../JobHuntSystem';
 import { jobHuntSystem } from '../JobHuntSystem';
 import { notificationManager } from '../NotificationManager';
-import { applyGlassEffect, COLORS, createStyledButton, FONTS, Layout, TEXT_STYLES } from '../UIConfig';
+import { COLORS, FONTS, Layout, TEXT_STYLES, USER_PALETTE, applyGlassEffect, createModernStarBackground, createStyledButton } from '../UIConfig';
 
 /**
  * 求职主界面场景
@@ -16,6 +16,12 @@ export class JobHuntScene extends Phaser.Scene {
     private jobListPage: number = 0;
     private jobsPerPage: number = 4; // Use 4 to fit taller cards
     private layout!: Layout;
+
+    // 滚动相关
+    private scrollContainer!: Phaser.GameObjects.Container;
+    private scrollY: number = 0;
+    private maxScrollY: number = 0;
+    private scrollMask!: Phaser.GameObjects.Graphics;
 
     constructor() {
         super({ key: 'JobHuntScene' });
@@ -57,22 +63,11 @@ export class JobHuntScene extends Phaser.Scene {
             }
         });
 
-        // 现代背景 - 与模板一致
-        this.add.rectangle(centerX, centerY, width, height, COLORS.bg);
+        // 现代粒子星空背景
+        createModernStarBackground(this, width, height);
 
         // 网格背景
         this.createGridBackground();
-
-        // 渐变光晕 - Scale sizes
-        const topGlow = this.add.graphics();
-        topGlow.fillStyle(COLORS.primary, 0.06);
-        topGlow.fillCircle(width * 0.22, -60, 700);
-        topGlow.fillStyle(COLORS.secondary, 0.04);
-        topGlow.fillCircle(width * 0.74, 240, 560);
-
-        const bottomGlow = this.add.graphics();
-        bottomGlow.fillStyle(COLORS.accent, 0.03);
-        bottomGlow.fillCircle(width * 0.86, height + 60, 640);
 
         // 标题容器 - Scale position
         const header = this.add.container(centerX, 100);
@@ -145,7 +140,7 @@ export class JobHuntScene extends Phaser.Scene {
 
         // 状态栏背景 - 现代卡片风格
         const statusBg = this.add.graphics();
-        statusBg.fillStyle(COLORS.bgPanel, 0.85);
+        statusBg.fillStyle(COLORS.bgPanel, 0.5); // Reduced from 0.85
         statusBg.fillRoundedRect(0, 0, 2560, 160, 0);
         statusBg.lineStyle(2, 0xffffff, 0.05);
         statusBg.strokeRect(0, 158, 2560, 2);
@@ -182,28 +177,50 @@ export class JobHuntScene extends Phaser.Scene {
         this.statusPanel.add([dayLabel, daySub]);
 
         // 核心数据统计
-        const statsX = 1700;
-        this.createMiniStat(statsX, 60, 'APPLY', status.totalApplications);
-        this.createMiniStat(statsX + 200, 60, 'INTVW', status.totalInterviews);
-        this.createMiniStat(statsX + 400, 60, 'OFFER', status.totalOffers);
+        // Move left from 1700 to 1500 to ensure visibility on all aspects
+        const statsX = 1500;
+        this.createMiniStat(statsX, 60, 'APPLY', (status.totalApplications || 0));
+        this.createMiniStat(statsX + 160, 60, 'INTVW', (status.totalInterviews || 0));
+        this.createMiniStat(statsX + 320, 60, 'OFFER', (status.totalOffers || 0));
 
-        // 下一天按钮 (Styled)
-        const nextDayBtn = createStyledButton(this, 2360, 80, 320, 100, 'NEXT DAY ⏭️', () => this.advanceDay());
-        nextDayBtn.scale = 2; // Simple scale if createStyledButton generates complex container, OR rely on size args if simple. 
-        // Note: createStyledButton usually takes size args. I passed 320, 100 which is 2x 160, 50.
-        // But font size inside createStyledButton might be fixed. 
-        // If createStyledButton uses fixed font size, we need to scale the container.
-        // Assuming createStyledButton uses size correctly for bg but text might be small. 
-        // Let's add scale=2 just in case for text, or rely on size.
-        // Actually, createStyledButton returns a container. If I set scale=1 (default), the text might be small.
-        // Let's manually set scale to 1 but ensure I passed 2x dimensions. 
-        // Wait, if I pass 2x dimensions, but font is small, it looks weird.
-        // I'll check createStyledButton later. For now, let's assume I need to handle it.
-        // Safest is to not scale the button container but just pass larger dimensions if supported.
-        // However, I will comment out scale=2 and trust dimensions for now, or use a multiplier if needed.
-        // Re-reading: "160, 50" -> "320, 100". 
+        // 下一天按钮 (Styled - Coral Orange)
+        // USER_PALETTE[3] is Coral (#f18765)
+        // Pass 'danger' style or custom? createStyledButton supports: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger'
+        // Let's use 'danger' (red) or keep 'primary' but hacked?
+        // Better: createStyledButton implementation uses fixed colors. 
+        // Let's modify the button creation slightly or use 'danger' which is red/orange.
+        // Or update UIConfig to use Palette for 'danger'/'warning'?
+        // UIConfig already maps warning -> USER_PALETTE[3].
+        // But createStyledButton only takes specific string keys.
+        // Let's use 'primary' but since we changed primary to USER_PALETTE[0] (Blue), that's not what we want.
+        // Wait, I want "Next Day" to be Coral.
+        // Let's just create a custom button logic here or use 'danger' if it maps to something close.
+        // COLORS.danger is still red. COLORS.warning is USER_PALETTE[3].
+        // createStyledButton doesn't support 'warning'.
+        // I'll manually create the button here for maximum control or add 'warning' support to createStyledButton later.
+        // For now, let's just make a custom colored button here since it's just one button.
 
-        this.statusPanel.add(nextDayBtn);
+        const nextDayContainer = this.add.container(2360, 80);
+        const nextDayBg = this.add.rectangle(0, 0, 320, 100, USER_PALETTE[3], 1); // Coral
+        nextDayBg.setInteractive({ useHandCursor: true });
+
+        const nextDayText = this.add.text(0, 0, 'NEXT DAY ⏭️', {
+            fontSize: '32px',
+            fontFamily: FONTS.main,
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        nextDayContainer.add([nextDayBg, nextDayText]);
+
+        nextDayBg.on('pointerdown', () => {
+            this.tweens.add({ targets: nextDayContainer, scaleX: 0.95, scaleY: 0.95, duration: 50, yoyo: true });
+            this.advanceDay();
+        });
+        nextDayBg.on('pointerover', () => nextDayBg.setFillStyle(0xffa07a, 1)); // Lighter coral
+        nextDayBg.on('pointerout', () => nextDayBg.setFillStyle(USER_PALETTE[3], 1));
+
+        this.statusPanel.add(nextDayContainer);
     }
 
     private createStatusMeter(x: number, y: number, label: string, value: number, color: number): void {
@@ -237,24 +254,45 @@ export class JobHuntScene extends Phaser.Scene {
 
         // 导航背景 - 现代卡片风格
         const navBg = this.add.graphics();
-        navBg.fillStyle(COLORS.bgPanel, 0.6);
+        navBg.fillStyle(COLORS.bgPanel, 0.3); // Reduced from 0.6
         navBg.fillRoundedRect(40, 280, 360, 1040, 24);
         navBg.lineStyle(2, 0xffffff, 0.05);
         navBg.strokeRoundedRect(40, 280, 360, 1040, 24);
         this.navPanel.add(navBg);
 
-        navItems.forEach(item => {
+        navItems.forEach((item, index) => {
             const container = this.add.container(220, item.y);
             const isActive = this.currentTab === item.key;
+
+            // Map tab key to palette color
+            // jobs -> [0] Blue
+            // applications -> [1] Sky
+            // interviews -> [2] Muted
+            // offers -> [3] Coral
+            const tabColors: { [key: string]: number } = {
+                'jobs': USER_PALETTE[0],
+                'applications': USER_PALETTE[1],
+                'interviews': USER_PALETTE[2],
+                'offers': USER_PALETTE[3]
+            };
+            const itemColor = tabColors[item.key];
+
             const iconColor = isActive ? 0xffffff : 0x888888;
 
             const bg = this.add.graphics();
             if (isActive) {
-                bg.fillStyle(COLORS.primary, 0.2);
+                // Active: Full color background
+                bg.fillStyle(itemColor, 1);
                 bg.fillRoundedRect(-160, -50, 320, 100, 16);
-                bg.lineStyle(2, COLORS.primary, 0.4);
-                bg.strokeRoundedRect(-160, -50, 320, 100, 16);
+                // bg.lineStyle(2, itemColor, 0.4);
+            } else {
+                // Inactive: Transparent or faint
+                bg.fillStyle(0x000000, 0); // Transparent
+                // bg.fillRoundedRect(-160, -50, 320, 100, 16);
             }
+
+            // Actually, let's just complete the if/else properly.
+
 
             // 绘制图标
             const iconG = this.add.graphics();
@@ -326,9 +364,7 @@ export class JobHuntScene extends Phaser.Scene {
             this.scene.launch('StockScene');
         });
         this.createSecondaryNavBtn(220, 1080, '职场行动', 'briefcase', () => {
-            if (confirm('直接进入职场？')) {
-                this.scene.start('ImprovedOfficeScene');
-            }
+            this.scene.start('ImprovedOfficeScene');
         });
 
         // DEBUG 按钮
@@ -434,12 +470,13 @@ export class JobHuntScene extends Phaser.Scene {
         container.setDepth(10);
     }
 
-    private refreshContent(): void {
+    private refreshContent(preserveScroll: boolean = false): void {
+        const savedScrollY = preserveScroll ? this.scrollY : 0;
         this.mainContent.removeAll(true);
 
         switch (this.currentTab) {
             case 'jobs':
-                this.showJobList();
+                this.showJobList(savedScrollY);
                 break;
             case 'applications':
                 this.showApplications();
@@ -453,53 +490,79 @@ export class JobHuntScene extends Phaser.Scene {
         }
     }
 
-    private showJobList(): void {
+    private showJobList(restoreScrollY: number = 0): void {
         const jobs = jobHuntSystem.getJobPositions();
         const companies = jobHuntSystem.getCompanies();
+        const { height } = this.getLayoutInfo();
 
-        // 标题 - 下移以避开顶部状态栏 (Status Bar ends at ~360)
-        // mainContent at 760. y=-350 -> Abs 410.
+        // 标题 - 固定位置
         const title = this.add.text(0, -350, '热门职位', { ...TEXT_STYLES.h2, fontSize: '56px' });
         title.setOrigin(0.5, 0.5);
         this.mainContent.add(title);
 
-        const totalPages = Math.ceil(jobs.length / this.jobsPerPage);
-        const startIdx = this.jobListPage * this.jobsPerPage;
-        const pageJobs = jobs.slice(startIdx, startIdx + this.jobsPerPage);
+        // 创建可滚动区域的可视范围
+        const scrollAreaTop = -280;
+        const scrollAreaHeight = height - 500; // 留出顶部和底部空间
 
-        // 职位列表 - Bento Style
-        pageJobs.forEach((job, index) => {
+        // 创建滚动容器
+        this.scrollContainer = this.add.container(0, scrollAreaTop);
+        this.mainContent.add(this.scrollContainer);
+
+        // 创建遮罩
+        this.scrollMask = this.make.graphics({ x: 0, y: 0 }, false);
+        this.scrollMask.fillStyle(0xffffff);
+        // mainContent global pos is (1400, 760). Scroll start is -280 relative to that.
+        // So global Y start is 760 - 280 = 480.
+        // Wait, scrollAreaTop was -280.
+        // rect y = 760 + scrollAreaTop = 480.
+        this.scrollMask.fillRect(1400 - 900, 760 + scrollAreaTop, 1800, scrollAreaHeight);
+
+        // Use BitmapMask instead of GeometryMask to avoid input blocking issues
+        const mask = new Phaser.Display.Masks.BitmapMask(this, this.scrollMask);
+        this.scrollContainer.setMask(mask);
+
+        // 计算内容总高度
+        const cardHeight = 240;
+        const cardSpacing = 48;
+        const totalContentHeight = jobs.length * (cardHeight + cardSpacing);
+        this.maxScrollY = Math.max(0, totalContentHeight - scrollAreaHeight + 100);
+        // 恢复滚动位置，而不是重置为 0
+        this.scrollY = Phaser.Math.Clamp(restoreScrollY, 0, this.maxScrollY);
+        this.scrollContainer.y = scrollAreaTop - this.scrollY;
+
+        // 职位列表 - 显示所有职位
+        jobs.forEach((job, index) => {
             const company = companies.find(c => c.id === job.companyId);
             if (!company) return;
 
-            // Increase card height (120px -> 240px) and spacing (SPACING.cardGap -> 48px)
-            const cardHeight = 240;
-            // Start lower to avoid overlap. y=-200 -> Abs 560. Top edge = 560 - 120 = 440. Safe from Status Bar (360).
-            const y = -200 + index * (cardHeight + 48);
+            const y = index * (cardHeight + cardSpacing);
 
             // 职位卡片容器
             const cardContainer = this.add.container(0, y);
-            this.mainContent.add(cardContainer);
+            this.scrollContainer.add(cardContainer);
 
-            // 背景 (磨砂玻璃卡片 - Lighter for visibility)
-            const bg = this.add.rectangle(0, 0, 1680, cardHeight, COLORS.bgCard, 0.6);
-            bg.setStrokeStyle(3, COLORS.primary, 0.3); // Thicker, brighter border
+            // 背景 (彩色卡片 - 使用用户配色循环)
+            // #0068a7, #61b0d1, #6b84b4, #f18765
+            const cardColor = USER_PALETTE[index % USER_PALETTE.length];
+            const bg = this.add.rectangle(0, 0, 1680, cardHeight, cardColor, 0.8); // Higher opacity for color pop
 
-            // Stronger Shadow
-            const shadow = this.add.rectangle(12, 12, 1680, cardHeight, 0x000000, 0.6);
+            // Explicitly disable input on bg just in case
+            bg.disableInteractive();
+
+            const shadow = this.add.rectangle(12, 12, 1680, cardHeight, 0x000000, 0.2); // Softer shadow
             cardContainer.add(shadow);
             cardContainer.add(bg);
 
-            // 公司名 (Top Left)
+            // 公司名 - White
             const companyName = this.add.text(-780, -70, company.name.toUpperCase(), {
                 fontSize: '24px',
                 fontFamily: FONTS.mono,
-                color: '#06b6d4',
+                color: '#ffffff', // Was #06b6d4, now white for contrast
                 letterSpacing: 2
             });
             cardContainer.add(companyName);
 
-            // 职位名 (Main Title)
+            // 职位名
             const jobTitle = this.add.text(-780, -10, job.title, {
                 fontSize: '44px',
                 fontFamily: FONTS.main,
@@ -508,39 +571,39 @@ export class JobHuntScene extends Phaser.Scene {
             });
             cardContainer.add(jobTitle);
 
-            // 薪资 (Top Right)
+            // 薪资 - White
             const salary = this.add.text(780, -70,
                 `¥${(job.salaryRange[0] / 1000).toFixed(0)}k - ${(job.salaryRange[1] / 1000).toFixed(0)}k`, {
                 fontSize: '40px',
                 fontFamily: FONTS.mono,
-                color: '#10b981',
+                color: '#ffffff', // Was #10b981
                 fontStyle: 'bold'
-            }).setOrigin(1, 0); // Align Right
+            }).setOrigin(1, 0);
             cardContainer.add(salary);
 
-            // 要求 (Below Title)
+            // 要求 - White with slight opacity
             const reqs = this.add.text(-780, 50, `${job.experience}  •  ${job.education}`, {
                 fontSize: '28px',
                 fontFamily: FONTS.main,
-                color: '#c0c0c6'
+                color: '#ffffff' // Was #c0c0c6
             });
+            reqs.setAlpha(0.9);
             cardContainer.add(reqs);
 
-            // 标签系统 (Right Side, Bottom)
+            // 标签系统
             let tagX = 300;
             const createTag = (text: string, color: number) => {
-                const tagBg = this.add.rectangle(tagX, 50, 120, 48, color, 0.15);
-                tagBg.setStrokeStyle(2, color, 0.4);
+                // Tags on colored background -> use White transparent bg
+                const tagBg = this.add.rectangle(tagX, 50, 120, 48, 0xffffff, 0.2);
+                tagBg.setStrokeStyle(1, 0xffffff, 0.5);
                 const tagText = this.add.text(tagX, 50, text, {
                     fontSize: '22px',
                     fontFamily: FONTS.main,
                     color: '#ffffff',
                     padding: { x: 12, y: 6 }
                 }).setOrigin(0.5);
-
                 const tagWidth = Math.max(120, tagText.width + 32);
                 tagBg.width = tagWidth;
-
                 cardContainer.add([tagBg, tagText]);
                 tagX += tagWidth + 24;
             };
@@ -559,123 +622,99 @@ export class JobHuntScene extends Phaser.Scene {
                 'mid': '中型',
                 'state': '国企'
             };
+            // Note: colors param ignored in new white-tag design
             createTag(typeLabels[company.type], typeColors[company.type]);
 
             if (job.urgency !== 'normal') {
                 createTag(job.urgency === 'asap' ? '急招' : '紧急', COLORS.danger);
             }
 
-            // 投递按钮 (Absolute Right Bottom)
+            // 投递按钮
             const applications = jobHuntSystem.getApplications();
             const hasApplied = applications.some(app => app.jobId === job.id);
 
             const btnText = hasApplied ? '✓ 已投递' : '投递简历';
-            const btnColor = hasApplied ? COLORS.borderMedium : COLORS.primary;
+            // Button on colored card -> White bg with colored text OR Dark bg?
+            // Let's use White bg button for high contrast/pop
 
-            // Larger button target
-            const applyBtnBg = this.add.rectangle(700, 50, 240, 88, btnColor, hasApplied ? 0.2 : 1);
-            if (!hasApplied) applyBtnBg.setStrokeStyle(0); // Solid fill for action
+            const applyBtnBg = this.add.rectangle(700, 50, 240, 88, 0xffffff, hasApplied ? 0.3 : 1);
+            // if (!hasApplied) applyBtnBg.setStrokeStyle(0);
+            applyBtnBg.setName(`btn_apply_${job.id}`); // Name for debugging
 
             const applyBtnText = this.add.text(700, 50, btnText, {
                 fontSize: '30px',
                 fontFamily: FONTS.main,
-                color: hasApplied ? '#888888' : '#ffffff',
+                color: hasApplied ? '#eeeeee' : '#333333', // Black text on white button
                 fontStyle: 'bold'
             }).setOrigin(0.5);
+
+            if (hasApplied) {
+                applyBtnText.setColor('#ffffff');
+                applyBtnBg.setFillStyle(0xffffff, 0.3);
+            }
 
             cardContainer.add([applyBtnBg, applyBtnText]);
 
             if (!hasApplied) {
                 applyBtnBg.setInteractive({ useHandCursor: true });
-
                 applyBtnBg.on('pointerover', () => {
-                    applyBtnBg.setFillStyle(0x818cf8, 1); // Lighter Indigo
+                    applyBtnBg.setScale(1.05);
                     this.tweens.add({ targets: cardContainer, scaleX: 1.01, scaleY: 1.01, duration: 200, ease: 'Cubic.out' });
                 });
-
                 applyBtnBg.on('pointerout', () => {
-                    applyBtnBg.setFillStyle(COLORS.primary, 1);
+                    applyBtnBg.setScale(1);
                     this.tweens.add({ targets: cardContainer, scaleX: 1, scaleY: 1, duration: 200, ease: 'Cubic.out' });
                 });
-
                 applyBtnBg.on('pointerdown', () => {
-                    applyBtnText.setText('...');
-                    this.applyJob(job);
+                    console.log('Apply button clicked for job:', job.id);
+                    this.handleApplyJob(job);
                 });
             }
-
-            // 点击卡片背景查看详情
-            bg.setInteractive({ useHandCursor: true });
-            bg.on('pointerover', () => {
-                bg.setStrokeStyle(2, COLORS.primary, 0.6);
-            });
-            bg.on('pointerout', () => {
-                bg.setStrokeStyle(2, COLORS.borderLight, 1);
-            });
-            bg.on('pointerdown', () => this.showJobDetail(job, company));
         });
 
-        // 分页控制 (Moved down)
-        this.createPaginationControls(totalPages);
+
+        // 添加滚轮事件监听
+        this.setupScrollListener();
+
+        // 显示滚动提示
+        if (this.maxScrollY > 0) {
+            const scrollHint = this.add.text(0, scrollAreaHeight - 40, '↑ 滚动查看更多职位 ↓', {
+                fontSize: '24px',
+                fontFamily: FONTS.main,
+                color: '#666666'
+            }).setOrigin(0.5);
+            this.mainContent.add(scrollHint);
+
+            // 淡入淡出动画
+            this.tweens.add({
+                targets: scrollHint,
+                alpha: { from: 1, to: 0.3 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
     }
 
-    private createPaginationControls(totalPages: number): void {
-        const y = 560; // Scaled 280
-        const controlContainer = this.add.container(0, y);
-        this.mainContent.add(controlContainer);
+    private setupScrollListener(): void {
+        // 移除旧的监听器
+        this.input.off('wheel');
 
-        // 页码信息
-        const pageText = this.add.text(0, 0, `第 ${this.jobListPage + 1} / ${totalPages} 页`, {
-            fontSize: '28px',
-            fontFamily: FONTS.mono,
-            color: '#888888'
-        }).setOrigin(0.5);
-        controlContainer.add(pageText);
+        // 添加滚轮事件
+        this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number) => {
+            if (this.currentTab !== 'jobs' || !this.scrollContainer) return;
 
-        // 上一页
-        if (this.jobListPage > 0) {
-            const prevBtn = createStyledButton(this, -240, 0, 200, 60, 'PREV', () => {
-                this.jobListPage--;
-                this.refreshContent();
-            });
-            controlContainer.add(prevBtn);
-        }
+            // 检查指针是否在主内容区域
+            const { width, height } = this.getLayoutInfo();
+            if (pointer.x < 500 || pointer.x > width - 100) return; // 左侧导航区域不响应
 
-        // 下一页
-        if (this.jobListPage < totalPages - 1) {
-            const nextBtn = createStyledButton(this, 240, 0, 200, 60, 'NEXT', () => {
-                this.jobListPage++;
-                this.refreshContent();
+            // 更新滚动位置
+            this.scrollY += deltaY * 0.5;
+            this.scrollY = Phaser.Math.Clamp(this.scrollY, 0, this.maxScrollY);
 
-                // 预加载逻辑
-                const jobs = jobHuntSystem.getJobPositions();
-                const currentPoolEnd = (this.jobListPage + 1) * this.jobsPerPage;
-                if (currentPoolEnd >= jobs.length - 2) {
-                    jobHuntSystem.fetchMoreJobs();
-                }
-            });
-            controlContainer.add(nextBtn);
-        } else if (jobHuntSystem.isFetching()) {
-            const loadingText = this.add.text(240, 0, 'AI 生成中...', {
-                fontSize: '24px',
-                color: '#4a90d9'
-            }).setOrigin(0.5);
-            controlContainer.add(loadingText);
-        } else if (totalPages > 0) {
-            // 在最后一页也可以尝试触发加载更多（如果总数还很少）
-            const jobs = jobHuntSystem.getJobPositions();
-            if (jobs.length < 50) { // 设定一个合理的人工上限
-                const moreBtn = createStyledButton(this, 240, 0, 200, 60, 'REFRESH', async () => {
-                    // 显示加载状态
-                    this.refreshContent();
-                    // 等待 AI 生成完成
-                    await jobHuntSystem.fetchMoreJobs();
-                    // 刷新列表
-                    this.refreshContent();
-                });
-                controlContainer.add(moreBtn);
-            }
-        }
+            // 应用滚动
+            this.scrollContainer.y = -280 - this.scrollY;
+        });
     }
 
     private showApplications(): void {
@@ -962,6 +1001,18 @@ export class JobHuntScene extends Phaser.Scene {
             });
         } else {
             notificationManager.warning('投递失败', result.message, 5000);
+        }
+    }
+
+    private handleApplyJob(job: JobPosition): void {
+        const result = jobHuntSystem.applyJob(job.id);
+
+        if (result.success) {
+            notificationManager.success('投递成功', `已向 ${job.companyId} 投递简历`, 3000);
+            // 保持当前滚动位置刷新内容
+            this.refreshContent(true);
+        } else {
+            notificationManager.warning('投递失败', result.message, 3000);
         }
     }
 

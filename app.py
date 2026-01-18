@@ -79,6 +79,7 @@ class InterviewQuestionRequest(BaseModel):
     job_info: dict
     round_info: dict
     conversation_history: List[dict] = []
+    action: Optional[str] = "full"  # 'full' or 'analyze'
 
 # ========== FastAPI 端点 ==========
 
@@ -120,7 +121,8 @@ async def generate_interview_question(request: InterviewQuestionRequest):
             company_info=request.company_info,
             job_info=request.job_info,
             round_info=request.round_info,
-            conversation_history=request.conversation_history
+            conversation_history=request.conversation_history,
+            action=request.action
         )
         return result
     except Exception as e:
@@ -131,6 +133,44 @@ async def generate_interview_question(request: InterviewQuestionRequest):
             "type": "behavioral",
             "display_type": "职位理解"
         }
+
+# 流式输出版本 - 防止超时
+from fastapi.responses import StreamingResponse
+import asyncio
+
+@fastapi_app.post("/api/interview/question/stream")
+async def generate_interview_question_stream(request: InterviewQuestionRequest):
+    """AI 生成面试问题 - 流式输出版本"""
+    
+    async def generate():
+        if not qwen_service:
+            fallback = '{"question": "请简单介绍一下你自己。", "sample_answer": "面试官您好...", "type": "personal", "display_type": "自我介绍"}'
+            yield f"data: {fallback}\n\n"
+            return
+        
+        try:
+            result = await qwen_service.generate_interview_question_stream(
+                player_info=request.player_info,
+                company_info=request.company_info,
+                job_info=request.job_info,
+                round_info=request.round_info,
+                conversation_history=request.conversation_history
+            )
+            async for chunk in result:
+                yield f"data: {chunk}\n\n"
+        except Exception as e:
+            print(f"流式生成面试问题失败: {e}")
+            fallback = '{"question": "你为什么想加入我们公司？", "sample_answer": "贵公司的发展前景和企业文化让我非常感兴趣...", "type": "behavioral", "display_type": "求职动机"}'
+            yield f"data: {fallback}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
 
 @fastapi_app.get("/api/status")
 async def root():
@@ -193,6 +233,246 @@ async def chat_with_npc(request: ChatRequest):
     )
 
     return result
+
+
+# ========== 新增：玩家行动处理 ==========
+
+class ActionRequest(BaseModel):
+    action: str  # 玩家输入的行动描述
+    player_info: Optional[Player] = None
+    workplace_status: Optional[dict] = None
+    visible_objects: List[str] = []  # 场景中可见的物品
+    visible_npcs: List[str] = []  # 场景中可见的 NPC
+
+class AnimationCommand(BaseModel):
+    type: str  # throw, hit, debris, hurt, dodge, gather, flee, mood
+    target: Optional[str] = None  # 目标 NPC 或物品
+    params: dict = {}  # 额外参数
+
+class ActionResponse(BaseModel):
+    feasible: bool  # 行动是否可行
+    description: str  # 行动描述
+    animations: List[dict]  # 触发的动画序列
+    npc_reactions: dict  # NPC 反应 {npc_name: reaction_type}
+    state_changes: dict  # 状态变化
+    dialogue: Optional[str] = None  # NPC 的台词（如果有）
+
+@fastapi_app.post("/api/action")
+async def execute_action(request: ActionRequest):
+    """
+    处理玩家行动，返回动画指令和状态变化
+    AI 会判断行动是否可行，并返回应该播放的动画序列
+    """
+    if not qwen_service:
+        # 使用本地规则处理
+        return _process_action_locally(request)
+    
+    try:
+        result = await qwen_service.process_player_action(
+            action=request.action,
+            player_info=request.player_info.model_dump() if request.player_info else None,
+            workplace_status=request.workplace_status,
+            visible_objects=request.visible_objects,
+            visible_npcs=request.visible_npcs
+        )
+        return result
+    except Exception as e:
+        print(f"处理行动失败: {e}")
+        return _process_action_locally(request)
+
+
+def _process_action_locally(request: ActionRequest) -> dict:
+    """本地规则处理玩家行动（减少 AI 调用）"""
+    action = request.action.lower()
+    
+    animations = []
+    npc_reactions = {}
+    state_changes = {"mood": 0, "stress": 0, "work_progress": 0, "relationships": {}}
+    feasible = True
+    description = ""
+    dialogue = None
+    
+    # 投掷类行动
+    if any(word in action for word in ['砸', '扔', '投', '丢']):
+        # 解析目标
+        target_npc = None
+        thrown_object = None
+        
+        for obj in request.visible_objects:
+            if obj in action:
+                thrown_object = obj
+                break
+        if not thrown_object:
+            thrown_object = "水杯"  # 默认物品
+            
+        for npc in request.visible_npcs:
+            if npc in action:
+                target_npc = npc
+                break
+        if not target_npc and request.visible_npcs:
+            target_npc = request.visible_npcs[0]  # 默认第一个 NPC
+        
+        if target_npc:
+            description = f"你拿起{thrown_object}狠狠地砸向了{target_npc}！"
+            animations = [
+                {"type": "throw", "object": thrown_object, "target": target_npc, "duration": 500},
+                {"type": "hit", "target": target_npc, "delay": 500},
+                {"type": "debris", "object": thrown_object, "delay": 600},
+                {"type": "hurt", "target": target_npc, "delay": 600}
+            ]
+            # 其他 NPC 反应
+            for npc in request.visible_npcs:
+                if npc != target_npc:
+                    npc_reactions[npc] = random.choice(["gather", "flee", "shock"])
+            npc_reactions[target_npc] = "hurt"
+            
+            state_changes = {
+                "mood": -30,
+                "stress": +50,
+                "work_progress": -20,
+                "relationships": {target_npc: -50}
+            }
+            dialogue = f"{target_npc}捂着头大喊：你疯了吗！"
+        else:
+            feasible = False
+            description = "你找不到攻击目标。"
+    
+    # 攻击类行动
+    elif any(word in action for word in ['打', '揍', '踢', '攻击']):
+        target_npc = None
+        for npc in request.visible_npcs:
+            if npc in action:
+                target_npc = npc
+                break
+        
+        if target_npc:
+            description = f"你冲向{target_npc}挥出了拳头！"
+            animations = [
+                {"type": "charge", "target": target_npc, "duration": 300},
+                {"type": "hurt", "target": target_npc, "delay": 300}
+            ]
+            for npc in request.visible_npcs:
+                if npc != target_npc:
+                    npc_reactions[npc] = "gather"
+            npc_reactions[target_npc] = "hurt"
+            state_changes = {"mood": -40, "stress": +60, "relationships": {target_npc: -80}}
+            dialogue = f"{target_npc}倒退几步，震惊地看着你。"
+        else:
+            feasible = False
+            description = "你挥舞着拳头，但没有打中任何人。"
+    
+    # 工作类行动
+    elif any(word in action for word in ['工作', '代码', '写', '做', '完成']):
+        description = "你专注地开始工作..."
+        animations = [{"type": "work", "duration": 2000}]
+        state_changes = {"mood": -5, "stress": +10, "work_progress": +15}
+        
+    # 摸鱼类行动
+    elif any(word in action for word in ['摸鱼', '休息', '偷懒', '刷手机']):
+        description = "你偷偷摸起了鱼..."
+        animations = [{"type": "idle", "variant": "phone", "duration": 2000}]
+        state_changes = {"mood": +10, "stress": -10, "work_progress": -5}
+        
+        # 可能被发现
+        if random.random() < 0.3:
+            target_npc = random.choice(request.visible_npcs) if request.visible_npcs else "张经理"
+            npc_reactions[target_npc] = "notice"
+            dialogue = f"{target_npc}似乎注意到了你在摸鱼..."
+    
+    # 对话类行动
+    elif any(word in action for word in ['说', '问', '聊', '告诉']):
+        target_npc = None
+        for npc in request.visible_npcs:
+            if npc in action:
+                target_npc = npc
+                break
+        
+        if target_npc:
+            description = f"你走向{target_npc}开始交谈。"
+            animations = [{"type": "walk", "target": target_npc, "duration": 500}]
+            npc_reactions[target_npc] = "talk"
+        else:
+            description = "你自言自语了几句。"
+            
+    # 默认行动
+    else:
+        description = f"你尝试{action}..."
+        animations = [{"type": "generic", "duration": 1000}]
+    
+    return {
+        "feasible": feasible,
+        "description": description,
+        "animations": animations,
+        "npc_reactions": npc_reactions,
+        "state_changes": state_changes,
+        "dialogue": dialogue
+    }
+
+
+# ========== 新增：职场事件生成 ==========
+
+class EventRequest(BaseModel):
+    player_info: Optional[Player] = None
+    workplace_status: Optional[dict] = None
+    event_type: str = "random"  # random, politics, bullying, opportunity, crisis
+
+@fastapi_app.post("/api/event")
+async def generate_event(request: EventRequest):
+    """生成职场随机事件"""
+    if not qwen_service:
+        return _generate_mock_event(request.event_type)
+    
+    try:
+        result = await qwen_service.generate_workplace_event(
+            player_info=request.player_info.model_dump() if request.player_info else {},
+            workplace_status=request.workplace_status or {},
+            event_type=request.event_type
+        )
+        return result
+    except Exception as e:
+        print(f"生成事件失败: {e}")
+        return _generate_mock_event(request.event_type)
+
+
+def _generate_mock_event(event_type: str) -> dict:
+    """模拟职场事件"""
+    events = {
+        "politics": {
+            "title": "派系拉拢",
+            "description": "张经理私下找到你，暗示如果你支持他的方案，可能会有好处...",
+            "type": "politics",
+            "choices": [
+                {"text": "表示支持", "effects": {"kpi": 5, "reputation": -10, "relationship": {"张经理": 20}}},
+                {"text": "保持中立", "effects": {"kpi": 0, "reputation": 5}},
+                {"text": "婉拒并告密", "effects": {"kpi": -10, "reputation": 15, "relationship": {"张经理": -30}}}
+            ]
+        },
+        "bullying": {
+            "title": "功劳被抢",
+            "description": "李同事在会议上把你的方案说成是他的想法，大家都在看着你...",
+            "type": "bullying",
+            "choices": [
+                {"text": "当场揭穿", "effects": {"stress": 20, "reputation": 10, "relationship": {"李同事": -40}}},
+                {"text": "忍气吞声", "effects": {"stress": 30, "reputation": -5}},
+                {"text": "会后私下沟通", "effects": {"stress": 10, "relationship": {"李同事": -10}}}
+            ]
+        },
+        "opportunity": {
+            "title": "晋升机会",
+            "description": "公司有一个管理岗位空缺，你被列入候选名单！",
+            "type": "opportunity",
+            "choices": [
+                {"text": "积极争取", "effects": {"stress": 20, "kpi": 10}},
+                {"text": "顺其自然", "effects": {"stress": 0}},
+                {"text": "主动让贤", "effects": {"stress": -10, "reputation": 5}}
+            ]
+        }
+    }
+    
+    if event_type == "random":
+        event_type = random.choice(list(events.keys()))
+    
+    return events.get(event_type, events["opportunity"])
 
 @fastapi_app.get("/api/market")
 async def get_market_data():
