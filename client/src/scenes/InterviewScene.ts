@@ -64,8 +64,14 @@ export class InterviewScene extends Phaser.Scene {
         // 重置状态
         this.isWaitingForAI = false;
         this.interviewHistory = [];
+
+        // 重置计时器对象引用（确保在 create 中重新创建）
+        this.timerBar = undefined;
+        this.timerText = undefined;
+        this.timerEvent = undefined;
         this.resetTimerState();
     }
+
 
     // Timer Properties
     private timerEvent?: Phaser.Time.TimerEvent;
