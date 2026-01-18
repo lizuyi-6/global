@@ -127,6 +127,12 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         this.events.on('startChat', (npcName: string) => {
             this.showChatDialog(npcName);
         });
+
+        // 监听胜利事件
+        gameState.on('game_win', (data: any) => {
+            console.log('[Office] Game Win Triggered:', data);
+            this.scene.start('GameOverScene', { success: true, reason: data.reason });
+        });
     }
 
     /**
@@ -645,14 +651,8 @@ export class ImprovedOfficeScene extends Phaser.Scene {
                 // 添加交互：点击打开任务列表
                 container.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
                 container.on('pointerdown', () => {
-                    this.scene.launch('PhoneScene');
+                    this.scene.launch('ComputerScene');
                     this.scene.pause();
-                    this.time.delayedCall(100, () => {
-                        const phoneScene = this.scene.get('PhoneScene') as any;
-                        if (phoneScene && phoneScene.showTasks) {
-                            phoneScene.showTasks();
-                        }
-                    });
                 });
                 break;
             case 'cup': // 杯子
