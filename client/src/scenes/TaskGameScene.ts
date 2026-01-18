@@ -337,7 +337,7 @@ export class TaskGameScene extends Phaser.Scene {
             const col = index % 3;
             const row = Math.floor(index / 3);
             const x = 880 + col * 400; // 880, 1280, 1680
-            const y = 560 + row * 260; // 560, 820, 1080
+            const y = 400 + row * 260; // 400, 660, 920 (Moved up from 560 to avoid bottom overlap)
 
             const numBtn = this.add.text(x, y, num.toString(), {
                 fontSize: '96px',
@@ -395,12 +395,9 @@ export class TaskGameScene extends Phaser.Scene {
     }
 
     private generateMemoryCards(): void {
-        // 清除旧卡片
-        // 清除旧卡片
-        const oldCards = this.gameContainer.list.filter(child =>
-            child.getData && child.getData('type') === 'memoryCard'
-        );
-        oldCards.forEach(child => child.destroy());
+        // 清除旧卡片 - 彻底清空容器中所有 'memoryCard' 类型的对象
+        const childrenToRemove = this.gameContainer.list.filter(child => child.getData && child.getData('type') === 'memoryCard');
+        childrenToRemove.forEach(c => c.destroy());
 
         // 生成配对数字（6对）
         // 生成配对数字（6对）
@@ -527,21 +524,22 @@ export class TaskGameScene extends Phaser.Scene {
         target.setData('type', 'target');
         this.gameContainer.add(target);
 
-        // 点击得分
-        target.on('pointerdown', () => {
-            if (!this.isGameActive) return;
-            this.updateScore(this.score + Math.floor(120 / size * 5));
-            target.destroy();
-            this.showFeedback(true);
-            this.spawnTarget();
-        });
-
-        // 超时消失
-        this.time.delayedCall(1500, () => {
+        // 超时消失计时器
+        const timer = this.time.delayedCall(1500, () => {
             if (target.active) {
                 target.destroy();
                 this.spawnTarget();
             }
+        });
+
+        // 点击得分
+        target.on('pointerdown', () => {
+            if (!this.isGameActive) return;
+            timer.remove(); // 关键：取消超时计时器，防止重复生成
+            this.updateScore(this.score + Math.floor(120 / size * 5));
+            target.destroy();
+            this.showFeedback(true);
+            this.spawnTarget();
         });
     }
 

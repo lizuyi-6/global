@@ -14,6 +14,7 @@ import { workplaceSystem } from '../WorkplaceSystem';
  */
 export class ImprovedOfficeScene extends Phaser.Scene {
     private commandInput!: Phaser.GameObjects.DOMElement;
+    private commandInputDOM: HTMLElement | null = null; // New property to track raw DOM
     private actionLog: string[] = [];
     private logDisplay!: Phaser.GameObjects.Text;
 
@@ -132,9 +133,11 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         // 监听暂停/恢复事件，隐藏/显示 DOM (防止文字穿透)
         this.events.on('pause', () => {
             if (this.commandInput) this.commandInput.setVisible(false);
+            if (this.commandInputDOM) this.commandInputDOM.style.display = 'none';
         });
         this.events.on('resume', () => {
             if (this.commandInput) this.commandInput.setVisible(true);
+            if (this.commandInputDOM) this.commandInputDOM.style.display = 'flex';
         });
     }
 
@@ -918,6 +921,7 @@ export class ImprovedOfficeScene extends Phaser.Scene {
         // Create a dedicated container for the command input attached to document.body
         // This ensures it bypasses any Phaser canvas transformations and stays fixed to the viewport
         const container = document.createElement('div');
+        this.commandInputDOM = container; // Track it
         container.id = 'command-input-container';
 
         // Responsive CSS using VW/VH units
