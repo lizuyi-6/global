@@ -151,12 +151,10 @@ export class PhoneScene extends Phaser.Scene {
 
     /** 清除应用内容 */
     private clearAppContent(): void {
-        this.phoneContainer.list.forEach((child: Phaser.GameObjects.GameObject) => {
-            if (child.getData && child.getData('appIcon')) child.destroy();
-        });
-        this.phoneContainer.list.forEach((child: Phaser.GameObjects.GameObject) => {
-            if (child.getData && child.getData('appContent')) child.destroy();
-        });
+        const toDestroy = this.phoneContainer.list.filter(child =>
+            child.getData && (child.getData('appIcon') || child.getData('appContent'))
+        );
+        toDestroy.forEach(child => child.destroy());
     }
 
     /** 显示联系人 */
