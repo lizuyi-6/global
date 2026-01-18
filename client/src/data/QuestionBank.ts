@@ -69,13 +69,41 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '我会用数据说话。我会快速评估出实现该需求需要的人天，比如需要3天，然后反问：这个功能值得投入全组20%的资源吗？同时我会给出替代方案，比如用{{skill_2}}实现一个低成本的类似功能，先验证MVP，这才是创业公司该有的敏捷思维。',
                 type: 'behavioral',
                 display_type: '需求管理'
+            },
+            {
+                id: 's_tech_5',
+                question: '描述一下你是如何学习一门新技术的？给个具体例子。',
+                sample_answer: '我学习新技术的方式是"先跑通再深入"。比如学习{{skill_2}}时，我先花半天做了一个最小可运行的Demo，体验核心概念。然后阅读官方文档理解原理，最后在{{project_1}}中实际应用。遇到问题会查阅GitHub Issues和StackOverflow，边用边学效率最高。',
+                type: 'behavioral',
+                display_type: '学习方法'
+            },
+            {
+                id: 's_tech_6',
+                question: '你写过什么你觉得特别巧妙的代码？讲讲思路。',
+                sample_answer: '在{{project_1}}中，我写过一个通用的数据转换器，使用了策略模式和装饰器模式的组合。它能把各种格式的数据源统一转换成标准格式，添加新数据源只需新增一个策略类，完全符合开闭原则。这个设计让后续的维护成本降低了很多。',
+                type: 'technical',
+                display_type: '代码设计'
+            },
+            {
+                id: 's_tech_7',
+                question: '你怎么看待Test-Driven Development（TDD）？你在项目里用过吗？',
+                sample_answer: '我认为TDD是一种很好的开发方法论，特别适合需求明确的核心模块。但在创业公司节奏快、需求常变的环境下，我更倾向于先实现核心逻辑，再补充关键路径的单元测试。在{{project_1}}中，我为支付和订单模块写了完整的测试用例，保证核心功能的稳定性。',
+                type: 'technical',
+                display_type: '测试理念'
+            },
+            {
+                id: 's_tech_8',
+                question: '如果让你带一个新人，你会怎么带他上手？',
+                sample_answer: '我会先帮他梳理项目结构和核心模块，给他一份入门文档。第一周安排一些简单的Bug修复任务，让他熟悉代码流程。第二周开始分配小功能模块，通过Code Review给予反馈。我认为最好的学习方式是实践中学习，在{{project_1}}中我就是这样快速成长起来的。',
+                type: 'behavioral',
+                display_type: '带人能力'
             }
         ],
         部门主管: [
             {
                 id: 's_mgr_1',
                 question: '我直说了，你现在的能力还达不到我们的期望，但我们急需用人。你觉得自己多久能补上这个差距？',
-                sample_answer: '感谢您的坦诚。我知道因该是指我在XX方面的经验不足。但我学习能力很强，在{{project_1}}中，我只用了一周就掌握了新技术并投入实战。如果有幸加入，我会在第一个月每天多花2小时业余时间补课，保证第二个月能独立负责模块。',
+                sample_answer: '感谢您的坦诚。我知道应该是指我在XX方面的经验不足。但我学习能力很强，在{{project_1}}中，我只用了一周就掌握了新技术并投入实战。如果有幸加入，我会在第一个月每天多花2小时业余时间补课，保证第二个月能独立负责模块。',
                 type: 'stress',
                 display_type: '自我认知'
             },
@@ -85,6 +113,48 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '我不会直接给方案，而是先问清楚：核心目标是什么。利用我过往做{{project_1}}的经验，我会在2天内给出一份包含核心路径的产品原型和技术可行性分析，而不是闭门造车。',
                 type: 'behavioral',
                 display_type: '需求分析'
+            },
+            {
+                id: 's_mgr_3',
+                question: '你觉得自己值多少钱？为什么？',
+                sample_answer: '基于我{{experience}}年的经验和对{{skill_1}}的掌握程度，结合市场行情，我期望的薪资范围是XX-XX。在{{project_1}}中，我创造的价值包括提升系统性能50%、减少运维成本。我相信加入贵公司后，我的贡献会远超我的薪资成本。',
+                type: 'stress',
+                display_type: '薪资谈判'
+            },
+            {
+                id: 's_mgr_4',
+                question: '如果团队里有个老员工总是对你的建议冷嘲热讽，你怎么办？',
+                sample_answer: '我会先反思自己的沟通方式是否得当。然后私下找他了解，是否有我不了解的历史背景或技术顾虑。在{{project_1}}时也遇到过类似情况，我通过主动请教他的强项领域，逐渐建立了信任。如果实在无法调和，我会如实向您反馈，寻求团队层面的解决方案。',
+                type: 'behavioral',
+                display_type: '人际关系'
+            },
+            {
+                id: 's_mgr_5',
+                question: '我们公司可能半年后就没钱了，你怕不怕？',
+                sample_answer: '创业本就是高风险高回报的事业。我加入创业公司，本就做好了和公司共进退的准备。在这半年里，我会全力以赴帮公司创造价值，争取下一轮融资。哪怕最坏的情况发生，积累的{{skill_1}}和{{skill_2}}经验、以及创业团队的历练，都会成为我宝贵的资产。',
+                type: 'stress',
+                display_type: '风险承受'
+            },
+            {
+                id: 's_mgr_6',
+                question: '你简历上写的这些项目，真的都是你主导的吗？还是跟着别人做的？',
+                sample_answer: '{{project_1}}确实是我主导的，从技术选型到架构设计再到核心模块开发，我都全程负责。当然团队协作也很重要，在过程中我也学到了很多。我可以详细给您讲解其中任何一个技术难点的解决思路，您随时可以深挖验证。',
+                type: 'stress',
+                display_type: '能力验证'
+            },
+            {
+                id: 's_mgr_7',
+                question: '如果入职后发现实际工作内容和面试时说的完全不一样，你怎么办？',
+                sample_answer: '首先我会评估这种"不一样"是临时调整还是常态。创业公司变化快，我能接受合理的职责调整。但如果长期偏离，我会主动和您沟通，了解公司的真实需求和我的成长路径。我相信健康的团队是建立在坦诚沟通基础上的。',
+                type: 'behavioral',
+                display_type: '适应变化'
+            },
+            {
+                id: 's_mgr_8',
+                question: '你觉得我们今天的面试流程有什么问题吗？直说。',
+                sample_answer: '我觉得整体流程很高效，能看出公司重视效率。如果说有一点可以优化，可能是可以提前发一份技术栈说明，让候选人能更有针对性地准备。不过我也理解创业公司HR资源有限，这只是一个小建议。',
+                type: 'behavioral',
+                display_type: '反馈能力'
             }
         ]
     },
@@ -163,6 +233,48 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '降本方面，可以通过优化服务器资源利用率；增效方面，我会致力于建设内部工具平台。结合我对{{skill_1}}和{{skill_2}}的理解，我可以开发一些自动化脚本或脚手架，减少重复劳动力，提升团队整体的研发效能。',
                 type: 'technical',
                 display_type: '业务价值'
+            },
+            {
+                id: 'b_mgr_3',
+                question: '你在之前的工作中有什么遗憾或者做得不好的地方吗？',
+                sample_answer: '在{{project_1}}早期，我过于关注技术实现，忽视了与产品经理的需求对齐，导致后期部分功能需要返工。这件事让我意识到，技术不仅仅是写代码，更重要的是理解业务全局。后来我主动参加产品评审会，提前了解需求背景，显著减少了返工率。',
+                type: 'behavioral',
+                display_type: '自我反思'
+            },
+            {
+                id: 'b_mgr_4',
+                question: '如果给你一个跨部门项目，但另一个部门的Leader不配合，你怎么推进？',
+                sample_answer: '我会先尝试理解对方的顾虑和难处，找到共同利益点。如果沟通无效，我会向上汇报，请双方的共同上级来协调资源和优先级。在{{project_1}}中，我也遇到过类似情况，最终通过定期同步会和明确责任边界解决了问题。',
+                type: 'behavioral',
+                display_type: '跨部门协作'
+            },
+            {
+                id: 'b_mgr_5',
+                question: '你怎么看待"35岁危机"？你觉得自己能在公司做多久？',
+                sample_answer: '我认为"35岁危机"的本质是能力与岗位要求的不匹配。我计划持续深耕{{skill_1}}领域，同时培养管理和架构能力。在贵公司，我看到了清晰的技术晋升路径，这让我对长期发展很有信心。我希望能在这里工作至少5-10年，成为领域专家或技术管理者。',
+                type: 'personal',
+                display_type: '长期规划'
+            },
+            {
+                id: 'b_mgr_6',
+                question: '你简历上有一段空窗期，这期间你在做什么？',
+                sample_answer: '那段时间我主要在充电学习，系统性地提升了{{skill_2}}方面的能力，并考取了相关认证。同时也做了一些开源项目贡献，保持技术手感。我认为适时的沉淀和反思对职业发展是有益的，现在我更加清晰自己的职业方向。',
+                type: 'personal',
+                display_type: '经历说明'
+            },
+            {
+                id: 'b_mgr_7',
+                question: '如果你带的新人成长很慢，拖累了项目进度，你会怎么处理？',
+                sample_answer: '我会先分析原因：是任务分配不当、还是新人能力确实不足。如果是前者，我会调整任务拆分粒度，给他可完成的小目标；如果是后者，我会安排结对编程和代码Review，帮助他提升。在{{project_1}}中，我就通过这种方式让一个新人在3个月内能独立负责模块。',
+                type: 'behavioral',
+                display_type: '团队培养'
+            },
+            {
+                id: 'b_mgr_8',
+                question: '你期望什么样的领导风格？如果和我的管理风格不匹配怎么办？',
+                sample_answer: '我适应能力较强，能配合不同风格的领导。我比较喜欢目标导向、给予充分授权的风格。如果遇到风格差异，我会主动沟通，了解领导的期望和关注点，调整自己的工作汇报方式和节奏。我相信只要目标一致，风格差异是可以磨合的。',
+                type: 'behavioral',
+                display_type: '向上管理'
             }
         ]
     },
@@ -215,18 +327,60 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
         ],
         部门主管: [
             {
-                id: 'g_mgr_1',
+                id: 'soe_mgr_1',
                 question: '如果是领导安排的任务，但是你觉得不合理，你会直接指出来吗？',
                 sample_answer: '在私下场合，我会委婉地向领导请教，表达我的顾虑，供领导参考。但一旦领导拍板，在执行层面我会坚决执行，同时做好风险预案。我有{{experience}}年经验，懂得如何在尊重层级和技术良知之间找到平衡。',
                 type: 'behavioral',
                 display_type: '职场情商'
             },
             {
-                id: 'g_mgr_2',
+                id: 'soe_mgr_2',
                 question: '你未来5年有考公务员或者回老家的打算吗？',
                 sample_answer: '目前没有。既然选择了在XX城市发展并加入了贵单位，我就已经做好了长期扎根的准备。我的家人也支持我在这里安家立业，我希望能在单位长期贡献力量。',
                 type: 'personal',
                 display_type: '稳定性'
+            },
+            {
+                id: 'soe_mgr_3',
+                question: '你觉得在体制内工作最重要的品质是什么？',
+                sample_answer: '我认为是责任心和执行力。在体制内，每一项工作都关系到国家和人民的利益，容不得马虎。同时也需要有耐心，很多工作需要长期坚持才能看到成效。我在{{project_1}}中就养成了认真负责、注重细节的习惯。',
+                type: 'personal',
+                display_type: '价值观'
+            },
+            {
+                id: 'soe_mgr_4',
+                question: '如果有同事向你反映领导的问题，你会怎么处理？',
+                sample_answer: '我会先倾听同事的诉求，了解具体情况。如果是工作方法的分歧，我会建议他找合适的机会和领导沟通。如果涉及原则问题，我会建议通过正规渠道反映。我不会在背后议论，也不会轻易站队。在单位，团结稳定是大局。',
+                type: 'behavioral',
+                display_type: '处事原则'
+            },
+            {
+                id: 'soe_mgr_5',
+                question: '你对加班有什么看法？我们这边有时候会有专项任务需要加班。',
+                sample_answer: '我完全理解，国企承担着很多重要的国家任务，关键时刻需要集体奉献。在之前的工作中，遇到{{project_1}}上线等关键节点，我也会主动加班确保任务完成。当然，我也会注意提高工作效率，争取在正常工作时间内完成日常任务。',
+                type: 'behavioral',
+                display_type: '工作态度'
+            },
+            {
+                id: 'soe_mgr_6',
+                question: '你对我们单位了解多少？为什么选择这里而不是其他单位？',
+                sample_answer: '我对贵单位做过深入研究。贵单位在行业内属于龙头，承担着国家重要项目。我选择这里是因为三点：一是平台稳定、发展空间大；二是能参与有社会价值的工作；三是贵单位的技术积累和培养体系很完善。这与我的职业规划高度匹配。',
+                type: 'personal',
+                display_type: '求职动机'
+            },
+            {
+                id: 'soe_mgr_7',
+                question: '你在之前的工作中有没有犯过错误？是怎么处理的？',
+                sample_answer: '有的。在{{project_1}}初期，我对需求理解不够透彻，导致部分功能需要返工。我第一时间向领导汇报，主动承担责任，加班加点完成了整改。这件事让我学会了遇事先确认清楚再动手，有问题及时暴露、不隐瞒。',
+                type: 'behavioral',
+                display_type: '错误处理'
+            },
+            {
+                id: 'soe_mgr_8',
+                question: '如果入职后发现工作内容很枯燥，和你想象的不一样，你会怎么做？',
+                sample_answer: '我认为任何工作都有其价值，关键是找到意义感。即使是基础性工作，也是单位运转的重要一环。我会把它当作熟悉业务、积累经验的机会。同时我相信，只要把本职工作做好，未来会有更多发展机会。',
+                type: 'behavioral',
+                display_type: '心态调整'
             }
         ]
     },
@@ -272,18 +426,60 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
         ],
         部门主管: [
             {
-                id: 'g_mgr_1',
+                id: 'gen_mgr_1',
                 question: '你对未来3年的职业规划是什么？',
                 sample_answer: '我希望在技术上继续深耕，成为{{skill_1}}领域的专家。同时也能承担更多的业务责任，带领小团队完成像{{project_1}}这样有挑战的项目，为公司创造更大的价值。',
                 type: 'personal',
                 display_type: '职业规划'
             },
             {
-                id: 'g_mgr_2',
+                id: 'gen_mgr_2',
                 question: '你觉得什么样的团队氛围最适合你？',
-                sample_answer: '我喜欢开放、透明、就事论事的团队氛围。大家为了同一个目标努力，技术上能互相Print Code、互相成长，像我在做{{project_1}}时那样。',
+                sample_answer: '我喜欢开放、透明、就事论事的团队氛围。大家为了同一个目标努力，技术上能互相Code Review、互相成长，像我在做{{project_1}}时那样。',
                 type: 'behavioral',
                 display_type: '团队文化'
+            },
+            {
+                id: 'gen_mgr_3',
+                question: '如果给你一个紧急项目，但资源不足，你会怎么做？',
+                sample_answer: '我会首先和领导确认最核心的交付目标，砍掉非必要的功能。然后评估现有资源，看能否通过加班或借调人员来补充。在{{project_1}}紧急上线时，我就是通过聚焦核心MVP，成功在有限时间内完成了交付。',
+                type: 'behavioral',
+                display_type: '资源管理'
+            },
+            {
+                id: 'gen_mgr_4',
+                question: '你怎么评价你自己的沟通能力？',
+                sample_answer: '我觉得我的沟通能力中等偏上。技术沟通方面，我能把复杂的技术问题用通俗的语言解释给非技术人员。跨部门协作方面，在{{project_1}}中我经常和产品、测试对接，确保信息同步。我还在持续提升，比如学习如何更好地向上汇报。',
+                type: 'personal',
+                display_type: '自我评价'
+            },
+            {
+                id: 'gen_mgr_5',
+                question: '你最近在学习什么新技术或新知识？',
+                sample_answer: '最近我在学习{{skill_2}}相关的内容，因为感觉它对提升开发效率很有帮助。我每周会花几个小时看文档和做小项目练手。我认为持续学习是技术人员的生存之道，市场变化太快，不进步就会被淘汰。',
+                type: 'personal',
+                display_type: '学习能力'
+            },
+            {
+                id: 'gen_mgr_6',
+                question: '如果入职后和同事产生技术分歧，你会怎么处理？',
+                sample_answer: '我会先倾听对方的观点，理解他的考虑。然后用数据和事实来讨论，比如做性能对比测试、查阅业界最佳实践。如果分歧依然存在，可以拉上更资深的同事或领导来仲裁。在{{project_1}}中我也遇到过类似情况，最终通过AB测试验证了我的方案。',
+                type: 'behavioral',
+                display_type: '冲突处理'
+            },
+            {
+                id: 'gen_mgr_7',
+                question: '你期望的薪资是多少？怎么考虑的？',
+                sample_answer: '基于我{{experience}}年的经验、{{skill_1}}的技术能力，以及当前市场行情，我期望的薪资范围是XX-XX。当然，这不是一个硬性要求，我更看重的是与公司一起成长的机会。如果能有好的发展平台和学习空间，我愿意在薪资上有一定的灵活空间。',
+                type: 'personal',
+                display_type: '薪资期望'
+            },
+            {
+                id: 'gen_mgr_8',
+                question: '你有什么想问我的吗？',
+                sample_answer: '有几个问题想请教：第一，团队目前的技术栈和主要业务方向是什么？第二，这个岗位的核心职责和考核标准是什么？第三，团队对新人有什么样的培养机制？我想更好地评估自己能否胜任这个岗位并快速融入团队。',
+                type: 'behavioral',
+                display_type: '反问面试官'
             }
         ]
     }
