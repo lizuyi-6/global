@@ -55,12 +55,18 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     create(): void {
+        // 2K 设计尺寸 (2560x1440)
+        const DESIGN_WIDTH = 2560;
+        const DESIGN_HEIGHT = 1440;
+        const centerX = DESIGN_WIDTH / 2;
+        const centerY = DESIGN_HEIGHT / 2;
+
         // 现代粒子星空背景
-        createModernStarBackground(this, 1280, 720);
+        createModernStarBackground(this, DESIGN_WIDTH, DESIGN_HEIGHT);
 
         // 装饰性光晕
         const glowColor = this.isVictory ? COLORS.success : COLORS.danger;
-        const glow = this.add.circle(640, 360, 300, glowColor, 0.05);
+        const glow = this.add.circle(centerX, centerY, 600, glowColor, 0.05);
         this.tweens.add({
             targets: glow,
             scaleX: 1.5,
@@ -84,32 +90,34 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     private createVictoryScreen(): void {
+        const centerX = 1280;
+
         // 胜利标题
-        const title = this.add.text(640, 100, '🎉 MISSION ACCOMPLISHED', {
-            fontSize: '40px',
+        const title = this.add.text(centerX, 200, '🎉 MISSION ACCOMPLISHED', {
+            fontSize: '80px',
             fontFamily: FONTS.mono,
             color: '#00ff88',
             fontStyle: 'bold',
-            letterSpacing: 4
+            letterSpacing: 8
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
             targets: title,
             alpha: 1,
-            y: 120,
+            y: 240,
             duration: 800,
             ease: 'Power2'
         });
 
         // 公司信息
-        const companyText = this.add.text(640, 200, `已获得 ${this.companyName} 录用确认`, {
-            fontSize: '24px',
+        const companyText = this.add.text(centerX, 400, `已获得 ${this.companyName} 录用确认`, {
+            fontSize: '48px',
             fontFamily: FONTS.main,
             color: '#ffffff'
         }).setOrigin(0.5).setAlpha(0);
 
-        const salaryText = this.add.text(640, 245, `ESTIMATED ANNUAL INCOME: ¥${(this.salary * 12).toLocaleString()}`, {
-            fontSize: '18px',
+        const salaryText = this.add.text(centerX, 490, `ESTIMATED ANNUAL INCOME: ¥${(this.salary * 12).toLocaleString()}`, {
+            fontSize: '36px',
             fontFamily: FONTS.mono,
             color: '#ffaa00'
         }).setOrigin(0.5).setAlpha(0);
@@ -122,17 +130,17 @@ export class GameOverScene extends Phaser.Scene {
         });
 
         // 求职历程统计
-        this.createStatsPanel(320, true);
+        this.createStatsPanel(640, true);
 
         // 评价
         const evaluation = this.getVictoryEvaluation();
-        const evalText = this.add.text(640, 580, evaluation, {
-            fontSize: '15px',
+        const evalText = this.add.text(centerX, 1160, evaluation, {
+            fontSize: '30px',
             fontFamily: FONTS.main,
             color: '#888888',
             align: 'center',
-            wordWrap: { width: 600 },
-            lineSpacing: 8
+            wordWrap: { width: 1200 },
+            lineSpacing: 16
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -144,26 +152,28 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     private createDefeatScreen(): void {
+        const centerX = 1280;
+
         // 失败标题
-        const title = this.add.text(640, 100, '💀 SYSTEM TERMINATED', {
-            fontSize: '40px',
+        const title = this.add.text(centerX, 200, '💀 SYSTEM TERMINATED', {
+            fontSize: '80px',
             fontFamily: FONTS.mono,
             color: '#ff4444',
             fontStyle: 'bold',
-            letterSpacing: 4
+            letterSpacing: 8
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
             targets: title,
             alpha: 1,
-            y: 120,
+            y: 240,
             duration: 800,
             ease: 'Power2'
         });
 
         // 失败原因
-        const reasonText = this.add.text(640, 200, this.endReason, {
-            fontSize: '24px',
+        const reasonText = this.add.text(centerX, 400, this.endReason, {
+            fontSize: '48px',
             fontFamily: FONTS.main,
             color: '#ffaaaa'
         }).setOrigin(0.5).setAlpha(0);
@@ -176,17 +186,17 @@ export class GameOverScene extends Phaser.Scene {
         });
 
         // 求职历程统计
-        this.createStatsPanel(280, false);
+        this.createStatsPanel(560, false);
 
         // 建议
         const advice = this.getDefeatAdvice();
-        const adviceText = this.add.text(640, 580, advice, {
-            fontSize: '15px',
+        const adviceText = this.add.text(centerX, 1160, advice, {
+            fontSize: '30px',
             fontFamily: FONTS.main,
             color: '#888888',
             align: 'center',
-            wordWrap: { width: 600 },
-            lineSpacing: 8
+            wordWrap: { width: 1200 },
+            lineSpacing: 16
         }).setOrigin(0.5).setAlpha(0);
 
         this.tweens.add({
@@ -198,21 +208,21 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     private createStatsPanel(startY: number, isVictory: boolean): void {
-        const panel = this.add.container(640, startY);
+        const panel = this.add.container(1280, startY);
         panel.setAlpha(0);
 
         // 背景
-        const bg = this.add.rectangle(0, 0, 700, 250, COLORS.panel, 0.5);
-        bg.setStrokeStyle(1, isVictory ? COLORS.success : COLORS.danger, 0.3);
+        const bg = this.add.rectangle(0, 0, 1400, 500, COLORS.panel, 0.5);
+        bg.setStrokeStyle(2, isVictory ? COLORS.success : COLORS.danger, 0.3);
         applyGlassEffect(bg, 0.5);
         panel.add(bg);
 
         // 标题
-        const panelTitle = this.add.text(0, -100, 'HISTORICAL DATA / 历史记录', {
-            fontSize: '14px',
+        const panelTitle = this.add.text(0, -200, 'HISTORICAL DATA / 历史记录', {
+            fontSize: '28px',
             fontFamily: FONTS.mono,
             color: '#ffffff',
-            letterSpacing: 2
+            letterSpacing: 4
         }).setOrigin(0.5);
         panel.add(panelTitle);
 
@@ -228,17 +238,17 @@ export class GameOverScene extends Phaser.Scene {
 
         stats.forEach((stat, index) => {
             const isLeft = index < 3;
-            const x = isLeft ? -300 : 50;
-            const y = -50 + (index % 3) * 45;
+            const x = isLeft ? -600 : 100;
+            const y = -100 + (index % 3) * 90;
 
-            const icon = this.add.text(x, y, stat.icon, { fontSize: '18px' }).setOrigin(0, 0.5);
-            const label = this.add.text(x + 35, y - 10, stat.label, {
-                fontSize: '10px',
+            const icon = this.add.text(x, y, stat.icon, { fontSize: '36px' }).setOrigin(0, 0.5);
+            const label = this.add.text(x + 70, y - 20, stat.label, {
+                fontSize: '20px',
                 fontFamily: FONTS.mono,
                 color: '#666666'
             }).setOrigin(0, 0.5);
-            const value = this.add.text(x + 35, y + 10, stat.value, {
-                fontSize: '16px',
+            const value = this.add.text(x + 70, y + 20, stat.value, {
+                fontSize: '32px',
                 fontFamily: FONTS.mono,
                 color: '#ffffff',
                 fontStyle: 'bold'
@@ -287,17 +297,18 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     private createButtons(): void {
-        const buttonY = 660;
+        const buttonY = 1320;
+        const centerX = 1280;
 
         // 重新开始
-        const restartBtn = createStyledButton(this, 540, buttonY, 180, 50, '🔄 RELOAD SYSTEM', () => this.restartGame());
+        const restartBtn = createStyledButton(this, centerX - 200, buttonY, 360, 100, '🔄 RELOAD SYSTEM', () => this.restartGame());
 
         // 继续游戏（仅胜利时显示）
         if (this.isVictory) {
-            const continueBtn = createStyledButton(this, 740, buttonY, 180, 50, '➡️ ENTER OFFICE', () => this.continueToOffice());
+            const continueBtn = createStyledButton(this, centerX + 200, buttonY, 360, 100, '➡️ ENTER OFFICE', () => this.continueToOffice());
         } else {
             // 失败时按钮居中
-            restartBtn.setX(640);
+            restartBtn.setX(centerX);
         }
     }
 

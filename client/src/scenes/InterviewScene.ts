@@ -371,7 +371,7 @@ export class InterviewScene extends Phaser.Scene {
 
         } catch (error) {
             console.error('Failed to start interview:', error);
-            // 本地兜底逻辑（极少触发）
+            // 本地兜底逻辑（极少触发）- 使用完整的示例回答
             const openings = [
                 '你好，请先做一个自我介绍吧。',
                 '欢迎参加面试，能先介绍一下你的经历吗？'
@@ -379,7 +379,8 @@ export class InterviewScene extends Phaser.Scene {
             const opening = openings[Math.floor(Math.random() * openings.length)];
 
             this.currentQuestion = opening;
-            this.currentSampleAnswer = `您好，我叫${resume.name}...`;
+            // 完整的示例回答，避免简短的"我叫面试者..."
+            this.currentSampleAnswer = `面试官您好，我叫${resume.name}，毕业于${resume.school || 'XX大学'}。我有${resume.experience || 1}年的工作经验，主要技术栈是${(resume.skills || ['编程']).join('、')}。在之前的经历中，我参与了${resume.projects?.[0] || '核心业务系统'}的开发，负责了架构设计和核心模块的实现。我是一个对技术充满热情的人，喜欢钻研底层原理，同时也注重业务落地。今天很高兴有机会来贵公司面试。`;
 
             this.responseText.setText(`${this.currentRound.interviewerName}:\n\n"${opening}"`);
             this.interviewHistory.push({ role: 'assistant', content: opening });
