@@ -29,6 +29,9 @@ export class TaskGameScene extends Phaser.Scene {
     }
 
     create(): void {
+        // 黑色背景遮罩 (防止与办公室场景重叠导致看不清)
+        this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.95).setDepth(-100);
+
         // 现代粒子星空背景
         createModernStarBackground(this, 1280, 720);
 
