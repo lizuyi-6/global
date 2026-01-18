@@ -177,10 +177,11 @@ export class JobHuntScene extends Phaser.Scene {
         this.statusPanel.add([dayLabel, daySub]);
 
         // 核心数据统计
-        const statsX = 1700;
-        this.createMiniStat(statsX, 60, 'APPLY', status.totalApplications);
-        this.createMiniStat(statsX + 200, 60, 'INTVW', status.totalInterviews);
-        this.createMiniStat(statsX + 400, 60, 'OFFER', status.totalOffers);
+        // Move left from 1700 to 1500 to ensure visibility on all aspects
+        const statsX = 1500;
+        this.createMiniStat(statsX, 60, 'APPLY', (status.totalApplications || 0));
+        this.createMiniStat(statsX + 160, 60, 'INTVW', (status.totalInterviews || 0));
+        this.createMiniStat(statsX + 320, 60, 'OFFER', (status.totalOffers || 0));
 
         // 下一天按钮 (Styled - Coral Orange)
         // USER_PALETTE[3] is Coral (#f18765)

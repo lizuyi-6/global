@@ -39,17 +39,30 @@ export class InterviewScene extends Phaser.Scene {
         return text.substring(0, maxLen) + '...';
     }
 
+    // 同步已用问题ID到Application对象（跨轮次持久化）
+    private syncUsedQuestionIds(): void {
+        if (this.application) {
+            this.application.usedQuestionIds = Array.from(this.usedQuestionIds);
+        }
+    }
+
     init(data: { application: Application }): void {
         this.application = data.application;
         this.currentRound = this.application.interviewRounds.find(r => r.status === 'scheduled')!;
         this.questionCount = 0;
         this.askedQuestions = [];
-        this.usedQuestionIds.clear(); // Clear used questions for a new interview round
 
-        // 压力面判断
-        this.isPressureInterview =
-            this.currentRound.interviewerRole === '部门主管' ||
-            this.currentRound.round >= 3;
+        // 从 Application 中恢复已用问题ID（跨轮次持久化）
+        if (this.application.usedQuestionIds) {
+            this.usedQuestionIds = new Set(this.application.usedQuestionIds);
+        } else {
+            this.usedQuestionIds = new Set();
+            this.application.usedQuestionIds = [];
+        }
+
+        // 压力面判断：只有部门主管才是压力面（不再根据轮次判断）
+        // 这样避免了技术面+部门主管都变成压力面的问题
+        this.isPressureInterview = this.currentRound.interviewerRole === '部门主管';
 
         if (this.isPressureInterview) {
             this.performance = 40;
@@ -71,6 +84,7 @@ export class InterviewScene extends Phaser.Scene {
         this.timerEvent = undefined;
         this.resetTimerState();
     }
+
 
 
     // Timer Properties
@@ -356,6 +370,7 @@ export class InterviewScene extends Phaser.Scene {
                 throw new Error('No questions available');
             }
             this.usedQuestionIds.add(localQ.id); // Add the ID of the selected question
+            this.syncUsedQuestionIds(); // Persist to Application
 
             const data = {
                 question: localQ.question,
@@ -758,6 +773,7 @@ export class InterviewScene extends Phaser.Scene {
             let questionToAsk: { question: string; sample_answer: string; display_type: string; type: string };
             if (localQ) {
                 this.usedQuestionIds.add(localQ.id);
+                this.syncUsedQuestionIds(); // Persist to Application
                 questionToAsk = {
                     question: localQ.question,
                     sample_answer: formatAnswer(localQ.sample_answer, resume),

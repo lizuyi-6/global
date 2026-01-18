@@ -38,6 +38,7 @@ export class PhoneScene extends Phaser.Scene {
         // 手机容器 - 1280, 720 center
         this.phoneContainer = this.add.container(1280, 720);
         this.phoneContainer.setDepth(50100);
+        this.phoneContainer.setScale(1.3); // Scale up by 30%
 
         // 绘制手机外壳
         this.drawPhone();

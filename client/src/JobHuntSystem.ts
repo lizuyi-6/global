@@ -64,6 +64,7 @@ export interface Application {
     interviewRounds: InterviewRound[];  // 面试轮次
     rejectionReason?: string;     // 拒绝原因
     offerDetails?: OfferDetails;  // offer详情
+    usedQuestionIds?: string[];   // 跨轮次已使用的问题ID（避免重复）
 }
 
 /** 面试轮次 */

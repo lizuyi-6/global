@@ -39,8 +39,65 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '完全没问题。由于我有{{skill_2}}和{{skill_3}}的自学背景，我已经习惯了阅读源码和社区文档来解决问题。文档不完善恰恰是我建立影响力的机会，我会在上手过程中主动梳理文档，为团队留下资产。',
                 type: 'behavioral',
                 display_type: '自驱力'
+            },
+            {
+                id: 's_hr_5',
+                question: '你之前做的项目和我们的业务方向差距挺大的，你觉得你能快速上手吗？',
+                sample_answer: '虽然业务领域不同，但核心的{{skill_1}}技术和解决问题的方法论是相通的。在{{project_1}}中，我也是从零开始学习业务知识的，一周内就能独立承担模块开发。我相信凭借我的学习能力，可以在一个月内对贵司业务有深入理解。',
+                type: 'behavioral',
+                display_type: '学习能力'
+            },
+            {
+                id: 's_hr_6',
+                question: '创业公司福利比不上大厂，你怎么看待这个薪资差距？',
+                sample_answer: '我理解创业公司的资源有限。对我来说，现阶段最重要的是能力的快速成长和做有影响力的事情。在{{project_1}}的经历让我明白，早期的付出会在未来获得回报。而且我相信如果公司发展好了，薪资和期权的收益会超过大厂。',
+                type: 'personal',
+                display_type: '薪资期望'
+            },
+            {
+                id: 's_hr_7',
+                question: '你有没有自己创业或者做Side Project的经历？',
+                sample_answer: '有的。我在业余时间做过{{project_1}}，从需求分析、技术选型到开发部署都是自己负责。虽然规模不大，但让我体验了完整的产品周期，也锻炼了我的产品思维和项目管理能力。这个经历让我更理解创业公司的运作方式。',
+                type: 'personal',
+                display_type: '创业经历'
+            },
+            {
+                id: 's_hr_8',
+                question: '如果团队内部对技术方案有分歧，你倾向于怎么处理？',
+                sample_answer: '我会先确保理解各方观点的背景和考量。然后用数据和事实来支撑讨论，比如性能测试、可维护性对比等。在{{project_1}}中遇到过类似情况，我们最终通过做技术原型对比得出了结论。如果实在无法达成一致，我会尊重团队负责人的决定。',
+                type: 'behavioral',
+                display_type: '团队协作'
+            },
+            {
+                id: 's_hr_9',
+                question: '你期望的工作环境是什么样的？',
+                sample_answer: '我希望是一个开放、高效、能让我快速成长的环境。具体来说：信息透明，不搞办公室政治；结果导向，不卡流程；有机会接触核心业务。在{{project_1}}最让我享受的就是从提出想法到上线只需要几天而不是几个月。',
+                type: 'personal',
+                display_type: '文化匹配'
+            },
+            {
+                id: 's_hr_10',
+                question: '你怎么平衡工作和生活？创业公司加班是常态，你能接受吗？',
+                sample_answer: '我理解创业阶段需要投入更多精力。在{{project_1}}的冲刺阶段，我也经常加班到深夜。但我会通过提高工作效率来减少低效加班，比如合理规划任务、减少无效会议。同时我也会注意身体，毕竟健康才是持久战的基础。',
+                type: 'behavioral',
+                display_type: '工作态度'
+            },
+            {
+                id: 's_hr_11',
+                question: '你对我们公司了解多少？为什么选择投递我们？',
+                sample_answer: '我了解到贵司专注于XX领域，最近完成了XX轮融资，技术栈用的是{{skill_1}}。吸引我的是贵司的创新方向和技术氛围。在{{project_1}}中我积累的经验正好可以发挥价值，我希望能和团队一起把产品做大做强。',
+                type: 'personal',
+                display_type: '公司了解'
+            },
+            {
+                id: 's_hr_12',
+                question: '如果入职后发现实际工作和预期差距很大，你会怎么办？',
+                sample_answer: '我会先调整心态，理解期望差距是正常的。然后主动和leader沟通，了解当前工作对团队的价值和我的成长路径。在{{project_1}}时也有过类似调整期，我发现很多看似无聊的工作其实是在打地基，坚持下来后收获很大。',
+                type: 'behavioral',
+                display_type: '心态调整'
             }
         ],
+
         技术面试官: [
             {
                 id: 's_tech_1',
@@ -187,6 +244,48 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '上一家公司给予了我{{experience}}年的成长，特别是在{{skill_1}}方面。但随着业务稳定，我希望能接触更大流量、更复杂架构的挑战，而贵公司的业务体量正好能提供这样的平台，让我能发挥更大的价值。',
                 type: 'personal',
                 display_type: '离职原因'
+            },
+            {
+                id: 'b_hr_5',
+                question: '面对紧迫的项目截止日期，你是如何管理时间并确保按时交付的？',
+                sample_answer: '我会首先基于任务的重要紧急矩阵进行排期，辨识出关键路径。在{{project_1}}中，为了赶Deadline，我主动砍掉了非核心的UI动效，优先保证核心流程的稳定性，并及时向主管汇报风险。最终我们在没有严重加班的情况下按时上线了MVP版本。',
+                type: 'behavioral',
+                display_type: '时间管理'
+            },
+            {
+                id: 'b_hr_6',
+                question: '举一个你主动发现并解决潜在问题的例子。',
+                sample_answer: '在日常开发中，我发现旧系统的图片加载非常慢，虽然没有用户反馈，但我认为这影响体验。我利用业余时间研究了WebP格式和CDN缓存策略，在组会上提出优化方案并获批实施，最终使首屏加载速度提升了40%。',
+                type: 'behavioral',
+                display_type: '主动性'
+            },
+            {
+                id: 'b_hr_7',
+                question: '你对加班怎么看？我们在项目冲刺期可能需要996。',
+                sample_answer: '我理解互联网行业的节奏。如果是为了项目上线或应对突发故障，我完全可以接受加班，这是一种责任心。但我更推崇高效工作，通过提升代码质量和自动化程度来避免无意义的加班。在之前的经历中，我也是这样平衡效率和工作时长的。',
+                type: 'behavioral',
+                display_type: '价值观'
+            },
+            {
+                id: 'b_hr_8',
+                question: '你平时怎么学习新技术的？最近在一个新的技术栈上花了多少时间？',
+                sample_answer: '我习惯通过官方文档和GitHub源码学习。最近我在研究{{skill_2}}，大概利用了两周的业余时间，做了一个简单的Demo并阅读了核心源码。我认为保持技术敏感度是工程师的本职工作，大厂完善的技术分享氛围也是吸引我的原因之一。',
+                type: 'personal',
+                display_type: '学习能力'
+            },
+            {
+                id: 'b_hr_9',
+                question: '如果在项目中你不同意Leader的技术方案，你会怎么做？',
+                sample_answer: '我会先私下进行验证，准备好数据或Demo来支撑我的观点。然后在一个合适的时机，比如技术评审会上，客观地提出我的顾虑和替代方案。如果最终Leader还是坚持原方案，我会尊重并全力执行，因为技术决策往往也要考虑业务和时间成本。',
+                type: 'behavioral',
+                display_type: '向上管理'
+            },
+            {
+                id: 'b_hr_10',
+                question: '你有什么爱好？平时周末都做什么？',
+                sample_answer: '我平时喜欢打羽毛球和摄影。运动能让我保持充沛的精力，摄影培养了我的耐心和对细节的观察力。我觉得丰富的生活能让我更好地调整工作状态，避免职业倦怠。',
+                type: 'personal',
+                display_type: '生活状态'
             }
         ],
         技术面试官: [
@@ -217,6 +316,34 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '这是一个经典网络问题。三次握手是为了确认双方的收发能力。四次挥手是因为TCP是全双工的，客户端发送FIN只代表它不再发送数据，服务端收到后先回ACK，处理完剩余数据后再发FIN。作为熟悉{{skill_2}}的开发者，理解底层协议对排查网络问题很有帮助。',
                 type: 'technical',
                 display_type: '计算机网络'
+            },
+            {
+                id: 'b_tech_5',
+                question: '如果你发现线上数据库CPU突然飙升到100%，你会怎么处理？',
+                sample_answer: '第一步先看监控，确定是哪个实例、哪张表的问题。第二步，查看慢查询日志(Slow Query Log)，定位是哪些SQL导致。如果是全表扫描，紧急加索引。如果是并发过高，考虑先限流。处理完后，再详细分析根因并优化代码。',
+                type: 'technical',
+                display_type: '线上排障'
+            },
+            {
+                id: 'b_tech_6',
+                question: '你在使用{{skill_1}}开发时，遇到过最复杂的内存泄漏问题是什么？怎么解决的？',
+                sample_answer: '遇到过一次因为闭包引用导致的内存泄漏。页面切换后DOM没释放。我利用Chrome DevTools的Memory面板，拍摄堆快照(Heap Snapshot)，对比查找Detached DOM树，最终定位到是一个全局事件监听器没有在组件卸载时移除。',
+                type: 'technical',
+                display_type: '内存优化'
+            },
+            {
+                id: 'b_tech_7',
+                question: '请手写一个防抖(Debounce)函数，并解释它的应用场景。',
+                sample_answer: '防抖主要用于减少高频事件的触发频率，如搜索框输入。核心逻辑是：设一个定时器，每次触发事件都清除上一个定时器并重设。如果指定时间内没有再次触发，才执行函数。我可以现场在白板上写一下...',
+                type: 'technical',
+                display_type: '手写代码'
+            },
+            {
+                id: 'b_tech_8',
+                question: '你对HTTPS的加密原理了解吗？SSL/TLS握手是如何保证安全的？',
+                sample_answer: '了解。它结合了非对称加密和对称加密。握手阶段使用非对称加密交换密钥（Session Key），传输数据阶段使用对称加密。证书机制（CA）保证了公钥的真实性，防止中间人攻击。',
+                type: 'technical',
+                display_type: '安全原理'
             }
         ],
         部门主管: [
@@ -300,6 +427,48 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '我的父母非常支持，他们认为能在贵单位工作通过是非常体面和稳定的。对于户口，既然选择来建设，我肯定希望能长期扎根，但也会服从单位的安排和政策，先把工作做好。',
                 type: 'personal',
                 display_type: '家庭背景'
+            },
+            {
+                id: 'g_hr_4',
+                question: '你对"无私奉献"怎么理解？',
+                sample_answer: '奉献是在保障集体利益的前提下，不计较个人得失。比如在项目攻坚期，需要牺牲个人时间，我会毫不犹豫。在{{project_1}}中，为了保证系统在节假日平稳运行，我主动申请了值班。只有集体好了，个人才能好。',
+                type: 'behavioral',
+                display_type: '价值观'
+            },
+            {
+                id: 'g_hr_5',
+                question: '如果单位派你去偏远地区出差几个月，你能接受吗？',
+                sample_answer: '我可以接受。既然选择了这份工作，就是选择了责任。年轻的时候多吃点苦，多去一线锻炼，对我个人的成长也是有好处的。只要是工作需要，我会克服困难。',
+                type: 'behavioral',
+                display_type: '服从安排'
+            },
+            {
+                id: 'g_hr_6',
+                question: '你认为自己在党建团建活动这方面有什么特长吗？',
+                sample_answer: '我在大学期间曾担任过学生会干部，组织过多场集体活动。如果有需要，我可以协助部门组织团建，活跃团队气氛。我觉得这也是增强团队凝聚力、更好地开展工作的一部分。',
+                type: 'personal',
+                display_type: '综合素质'
+            },
+            {
+                id: 'g_hr_7',
+                question: '你对这几年的薪资涨幅有什么预期？国企涨薪可能比较慢。',
+                sample_answer: '我通过调查了解到，贵单位的福利保障体系非常完善，比如公积金和医疗等，这些其实是隐形薪资。相比于短期的高薪，我更看重这些长期保障和稳定的职业发展路径。我对起薪和涨幅没有过高的不切实际的期望。',
+                type: 'personal',
+                display_type: '薪资期望'
+            },
+            {
+                id: 'g_hr_8',
+                question: '如果领导批评了你，但你觉得自己没错，会怎么做？',
+                sample_answer: '我会先虚心接受批评，冷静下来反思。领导站得高看得远，批评我可能不仅仅是因为具体的事情，也可能是因为态度或者方法。等冷静后，找合适的机会，带着解决方案和数据向领导汇报，委婉地说明情况，最后听领导指示。',
+                type: 'behavioral',
+                display_type: '抗压能力'
+            },
+            {
+                id: 'g_hr_9',
+                question: '你最近看过什么书？平时关注时事政治吗？',
+                sample_answer: '我平时会通过新闻联播和学习强国关注国家大事，了解行业政策导向。最近在看《大国工匠》，感受到了那种精益求精的精神，对我做技术、写代码也有很大启发。',
+                type: 'personal',
+                display_type: '政治素养'
             }
         ],
         技术面试官: [
@@ -323,6 +492,27 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '我有一定了解。现在国家强调自主可控，我关注过国产操作系统和数据库的适配。虽然我之前主要使用{{skill_1}}，但我相信技术是通用的，通过阅读文档和测试，我能很快完成向国产化环境的迁移和适配工作。',
                 type: 'technical',
                 display_type: '信创了解'
+            },
+            {
+                id: 'g_tech_4',
+                question: '从外网引入开源组件时，你需要注意什么？',
+                sample_answer: '首先是安全性，必须扫描是否有已知漏洞；其次是许可证（License）兼容性，确保不违反开源协议，避免法律风险；最后是可维护性，优先选择社区活跃、长期维护的项目。在正式引入前，我会在内网搭建镜像或私服进行管控。',
+                type: 'technical',
+                display_type: '合规意识'
+            },
+            {
+                id: 'g_tech_5',
+                question: '如果发现某个核心服务偶尔出现请求超时，但很难复现，你打算怎么排查？',
+                sample_answer: '这种偶发问题最难查。我会先加强监控粒度，埋点记录请求的全链路TraceID。分析超时发生的时间规律，是否与GC、网络抖动或特定业务操作有关。同时检查系统资源（CPU、内存、IO）在那个时间点的状态。',
+                type: 'technical',
+                display_type: '故障排查'
+            },
+            {
+                id: 'g_tech_6',
+                question: '请简述一下你对高可用架构（HA）的理解。',
+                sample_answer: '高可用就是通过冗余设计消除单点故障。比如应用服务多节点集群部署，数据库主从热备，前端使用负载均衡（如Nginx）。同时还要有完善的监控告警和自动故障转移（Failover）机制。',
+                type: 'technical',
+                display_type: '架构设计'
             }
         ],
         部门主管: [
@@ -406,6 +596,55 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '我会把大压力拆解成小的可执行项，逐个击破。同时也会通过运动和阅读来放松心态。在{{project_1}}上线期间，我就是通过这种方式保持高效的。',
                 type: 'behavioral',
                 display_type: '抗压能力'
+            },
+            {
+                id: 'g_hr_4',
+                question: '你为什么会选择离职？',
+                sample_answer: '主要是职业发展原因。上一家公司给予了我很多成长，但目前业务发展比较平缓，我希望能接触更有挑战性的项目，在技术深度和广度上寻求新的突破。',
+                type: 'personal',
+                display_type: '离职原因'
+            },
+            {
+                id: 'g_hr_5',
+                question: '你对自己未来3年的职业规划是什么？',
+                sample_answer: '我希望不仅能胜任当下的技术工作，还能在系统架构上有更深的理解。希望能成为团队的技术骨干，负责核心模块的设计和开发。',
+                type: 'personal',
+                display_type: '职业规划'
+            },
+            {
+                id: 'g_hr_6',
+                question: '你平时有写技术博客或参与开源项目的习惯吗？',
+                sample_answer: '有的，我会定期总结工作中的技术心得，发表在博客上。虽然开源贡献还不多，但我经常阅读优秀开源项目的源码来提升自己。',
+                type: 'personal',
+                display_type: '学习习惯'
+            },
+            {
+                id: 'g_hr_7',
+                question: '如果在工作中和同事意见不合，你会怎么做？',
+                sample_answer: '我会先倾听对方的理由，尝试理解其背后的逻辑。然后用事实和数据来说明我的观点。如果是为了项目好，我相信大家最终能达成共识。',
+                type: 'behavioral',
+                display_type: '沟通协作'
+            },
+            {
+                id: 'g_hr_8',
+                question: '你期望的薪资是多少？',
+                sample_answer: '基于我的经验和市场水平，我期望的范围是XX到XX。但我更看重公司的发展前景和个人成长空间，这方面如果有优势，薪资可以协商。',
+                type: 'personal',
+                display_type: '薪资期望'
+            },
+            {
+                id: 'g_hr_9',
+                question: '你最失败的一次经历是什么？学到了什么？',
+                sample_answer: '在{{project_1}}初期，我因为对需求评估不足导致延期。这让我学到了详细设计和风险预估的重要性，之后我都坚持做好前期规划。',
+                type: 'behavioral',
+                display_type: '抗挫折'
+            },
+            {
+                id: 'g_hr_10',
+                question: '我们公司经常需要快速响应，你适应这种节奏吗？',
+                sample_answer: '我有信心适应。在之前的项目中，我也经历过敏捷开发和快速迭代的节奏，知道如何在保证质量的前提下提高效率。',
+                type: 'behavioral',
+                display_type: '适应性'
             }
         ],
         技术面试官: [
@@ -422,6 +661,34 @@ export const QuestionBank: Record<CompanyType, Record<InterviewerRole, QuestionI
                 sample_answer: '回顾{{project_1}}，我觉得在模块解耦上还有优化空间。当时为了赶进度，部分代码耦合度较高。如果重来，我会引入通过领域驱动设计(DDD)来划分边界，并更早引入自动化测试。',
                 type: 'technical',
                 display_type: '架构反思'
+            },
+            {
+                id: 'g_tech_3',
+                question: '你熟悉的{{skill_1}}有哪些优缺点？适用什么场景？',
+                sample_answer: '{{skill_1}}的优点是生态丰富、开发效率高，适合快速迭代的Web应用。缺点是类型系统较弱（如果讲JS），但在大型项目中可能会有维护成本。所以现在我们更多使用TypeScript来弥补。',
+                type: 'technical',
+                display_type: '技术深度'
+            },
+            {
+                id: 'g_tech_4',
+                question: '在前端/后端性能优化方面，你有哪些实践经验？',
+                sample_answer: '在前端，我做过代码分割、资源懒加载和CDN优化。在后端，我主要关注数据库查询优化、缓存策略以及异步处理。在{{project_1}}中，这些手段帮助我们显著降低了响应时间。',
+                type: 'technical',
+                display_type: '性能优化'
+            },
+            {
+                id: 'g_tech_5',
+                question: '遇到一个棘手的Bug，你通常是如何定位和解决的？',
+                sample_answer: '首先是复现问题，收集错误日志。利用调试工具断点分析，或者通过二分法定位代码范围。如果是线上问题，会先回滚或降级止损，再拉取日志分析。解决后会补充对应的单元测试防止回归。',
+                type: 'technical',
+                display_type: '排错能力'
+            },
+            {
+                id: 'g_tech_6',
+                question: '你对微服务架构有什么理解？',
+                sample_answer: '微服务将大单体拆分为独立部署的小服务，优点是灵活扩展、技术栈解耦。但同时也带来了分布式一致性、服务治理和运维复杂度的挑战。在{{project_1}}中我们采用了微服务，通过Docker和K8s进行管理。',
+                type: 'technical',
+                display_type: '架构设计'
             }
         ],
         部门主管: [
