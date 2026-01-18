@@ -109,11 +109,19 @@ export class TaskGameScene extends Phaser.Scene {
         });
 
         // 返回按钮
+        // 返回按钮
         const backBtn = this.add.text(100, 60, '←', {
             fontSize: '56px',
-            color: '#ff4444'
-        }).setInteractive({ useHandCursor: true });
-        backBtn.on('pointerdown', () => this.exitGame(false));
+            color: '#ff4444',
+            padding: { x: 20, y: 10 }
+        })
+            .setInteractive({ useHandCursor: true })
+            .setDepth(2000); // 确保在最上层
+
+        backBtn.on('pointerdown', () => {
+            console.log('Back button clicked');
+            this.exitGame(false);
+        });
 
         // 分数显示 Center X = 1280
         this.add.text(1280, 50, 'SCORE / 分数', {
@@ -218,9 +226,9 @@ export class TaskGameScene extends Phaser.Scene {
 
         // 生成单词列表
         this.typingWords = [
-            '报告', '会议', '项目', '客户', '数据', '分析', '方案', '审核',
-            '提交', '审批', '邮件', '回复', '确认', '完成', '计划', '预算',
-            '销售', '利润', '成本', '收入', '支出', '统计', '汇报', '协调'
+            'REPORT', 'MEETING', 'PROJECT', 'CLIENT', 'DATA', 'ANALYSIS', 'PLAN',
+            'SUBMIT', 'EMAIL', 'REPLY', 'CONFIRM', 'DONE', 'BUDGET', 'SALES',
+            'PROFIT', 'COST', 'INCOME', 'GROWTH', 'TEAM', 'WORK', 'KPI'
         ];
         this.shuffleArray(this.typingWords);
         this.currentWordIndex = 0;
@@ -254,7 +262,7 @@ export class TaskGameScene extends Phaser.Scene {
             if (event.key === 'Backspace') {
                 this.inputText = this.inputText.slice(0, -1);
             } else if (event.key.length === 1) {
-                this.inputText += event.key;
+                this.inputText += event.key.toUpperCase();
             }
 
             // 更新输入显示
@@ -312,11 +320,11 @@ export class TaskGameScene extends Phaser.Scene {
 
     private generateSortingRound(): void {
         // 清除旧的数字
-        this.gameContainer.list.forEach((child: Phaser.GameObjects.GameObject) => {
-            if (child.getData && child.getData('type') === 'sortNumber') {
-                child.destroy();
-            }
-        });
+        // 清除旧的数字
+        const oldNumbers = this.gameContainer.list.filter(child =>
+            child.getData && child.getData('type') === 'sortNumber'
+        );
+        oldNumbers.forEach(child => child.destroy());
 
         // 生成新的数字（1-9）
         this.sortingNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -388,15 +396,17 @@ export class TaskGameScene extends Phaser.Scene {
 
     private generateMemoryCards(): void {
         // 清除旧卡片
-        this.gameContainer.list.forEach((child: Phaser.GameObjects.GameObject) => {
-            if (child.getData && child.getData('type') === 'memoryCard') {
-                child.destroy();
-            }
-        });
+        // 清除旧卡片
+        const oldCards = this.gameContainer.list.filter(child =>
+            child.getData && child.getData('type') === 'memoryCard'
+        );
+        oldCards.forEach(child => child.destroy());
 
+        // 生成配对数字（6对）
         // 生成配对数字（6对）
         const pairs = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6];
         this.shuffleArray(pairs);
+        console.log('[TaskGameScene] Generated Memory Pairs:', pairs);
 
         this.memoryCards = pairs.map(v => ({ value: v, flipped: false, matched: false }));
         this.firstCard = null;
