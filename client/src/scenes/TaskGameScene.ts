@@ -576,9 +576,10 @@ export class TaskGameScene extends Phaser.Scene {
             this.timerEvent.destroy();
         }
 
-        // 计算任务完成度
-        const completion = Math.min(100, this.score);
-        const passed = this.score >= 100;
+        // 计算任务完成度 (按比例)
+        const targetScore = 100;
+        const rewardRatio = Math.min(1.5, Math.max(0, this.score / targetScore));
+        const actualReward = Math.floor((this.currentTask?.reward || 0) * rewardRatio);
 
         // 显示结果 - Upscaled
         const overlay = this.add.rectangle(1280, 720, 2560, 1440, 0x000000, 0.85);
@@ -590,10 +591,10 @@ export class TaskGameScene extends Phaser.Scene {
         applyGlassEffect(resultBg);
         resultContainer.add(resultBg);
 
-        const resultTitle = this.add.text(0, -200, passed ? 'TASK COMPLETED' : 'TASK FAILED', {
+        const resultTitle = this.add.text(0, -200, 'TASK COMPLETED', {
             fontSize: '64px',
             fontFamily: FONTS.main,
-            color: passed ? '#00ff88' : '#ff4444',
+            color: '#00ff88',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         resultContainer.add(resultTitle);
@@ -605,8 +606,8 @@ export class TaskGameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         resultContainer.add(scoreResult);
 
-        if (passed && this.currentTask) {
-            const rewardText = this.add.text(0, 60, `REWARD: ¥${this.currentTask.reward}`, {
+        if (this.currentTask) {
+            const rewardText = this.add.text(0, 60, `REWARD: ¥${actualReward}`, {
                 fontSize: '36px',
                 fontFamily: FONTS.mono,
                 color: '#ffcc00'
@@ -614,7 +615,7 @@ export class TaskGameScene extends Phaser.Scene {
             resultContainer.add(rewardText);
         }
 
-        const exitBtn = createStyledButton(this, 0, 220, 480, 100, '返回办公室', () => this.exitGame(passed));
+        const exitBtn = createStyledButton(this, 0, 220, 480, 100, '返回办公室', () => this.exitGame(actualReward));
         resultContainer.add(exitBtn);
 
         // 动画
@@ -629,17 +630,28 @@ export class TaskGameScene extends Phaser.Scene {
         });
     }
 
-    private exitGame(completed: boolean): void {
+    private exitGame(reward: number | boolean): void {
         if (this.timerEvent) {
             this.timerEvent.destroy();
         }
 
-        // 更新任务进度
-        if (completed && this.currentTask) {
+        // 更新任务进度 (Fixed: Always succeeds with proportional reward if pending)
+        if (typeof reward === 'number' && this.currentTask) {
+            // Override the updateTaskProgress to accept money directly or handle it there
+            gameState.addFunds(reward);
+            gameState.updateTaskProgress(this.currentTask.id, 100);
+            gameState.emit('task_completed', { task: this.currentTask, reward: reward });
+        } else if (typeof reward === 'boolean' && reward && this.currentTask) {
+            // Fallback for boolean (legacy)
             gameState.updateTaskProgress(this.currentTask.id, 100);
         }
 
         this.scene.stop();
         this.scene.resume('ImprovedOfficeScene');
+        // Ensure input is visible again
+        const officeScene = this.scene.get('ImprovedOfficeScene') as any;
+        if (officeScene && officeScene.commandInput) {
+            officeScene.commandInput.setVisible(true);
+        }
     }
 }

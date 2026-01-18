@@ -160,7 +160,7 @@ export class ComputerScene extends Phaser.Scene {
                                 : task.type === 'report' ? 'memory'
                                     : 'clicking'
                     });
-                    this.closeComputer(); // Close computer when starting task
+                    this.closeComputer(false); // Do not resume office immediately
                     this.scene.pause('ImprovedOfficeScene');
                 });
             });
@@ -233,8 +233,10 @@ export class ComputerScene extends Phaser.Scene {
         });
     }
 
-    private closeComputer(): void {
+    private closeComputer(resumeOffice: boolean = true): void {
         this.scene.stop();
-        this.scene.resume('ImprovedOfficeScene');
+        if (resumeOffice) {
+            this.scene.resume('ImprovedOfficeScene');
+        }
     }
 }
