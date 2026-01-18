@@ -8,6 +8,14 @@ const API_BASE_URL = import.meta.env.MODE === 'development'
     ? 'http://localhost:7860'
     : '';  // 生产环境使用相对路径
 
+export interface InterviewQuestion {
+    analysis?: string;
+    question: string;
+    sample_answer: string;
+    type: string;
+    display_type: string;
+}
+
 export interface ChatRequest {
     npc_name: string;
     player_message: string;
@@ -160,29 +168,38 @@ class APIService {
     }
 
     /**
-     * 生成面试问题
+     * 生成面试问题 (带 15 秒超时 - 增加时间因为增强 prompt 更复杂)
      */
     async generateInterviewQuestion(
         playerInfo: any,
         companyInfo: any,
         jobInfo: any,
         roundInfo: any,
-        history: any[] = []
+        history: any[] = [],
+        action: string = 'full'
     ): Promise<any> {
+        // 设置 60 秒超时
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
         try {
             const response = await fetch(`${this.baseUrl}/api/interview/question`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                signal: controller.signal,
                 body: JSON.stringify({
                     player_info: playerInfo,
                     company_info: companyInfo,
                     job_info: jobInfo,
                     round_info: roundInfo,
-                    conversation_history: history
+                    conversation_history: history,
+                    action: action
                 }),
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`API 请求失败: ${response.status}`);
@@ -190,12 +207,49 @@ class APIService {
 
             return await response.json();
         } catch (error) {
-            console.error('面试问题生成失败:', error);
+            clearTimeout(timeoutId);
+
+            // 区分超时和其他错误
+            if ((error as Error).name === 'AbortError') {
+                console.warn('面试问题生成超时 (15秒)，使用本地题库');
+            } else {
+                console.error('面试问题生成失败:', error);
+            }
+
+            // 返回多样化的备用问题
+            const fallbacks = [
+                {
+                    question: "你为什么从上一家公司离职？",
+                    type: "trap",
+                    display_type: "离职原因",
+                    sample: "我在上一家公司工作了两年，主要负责后端开发。虽然团队很好，但我希望接触更多高并发架构的挑战，而贵公司的业务规模正是我向往的。"
+                },
+                {
+                    question: "你觉得自己最大的缺点是什么？",
+                    type: "trap",
+                    display_type: "自我认知",
+                    sample: "我有时候对自己要求过于完美，导致项目初期进度较慢。现在我会设定明确的时间节点，在保证质量的前提下优先完成核心功能。"
+                },
+                {
+                    question: "如果领导的决定明显是错的，你会怎么做？",
+                    type: "behavioral",
+                    display_type: "价值观",
+                    sample: "我会先私下与领导沟通，用数据和事实说明我的顾虑。如果领导坚持，我会保留意见并全力执行，同时做好风险预案。"
+                },
+                {
+                    question: "描述一次你和同事发生冲突的经历",
+                    type: "behavioral",
+                    display_type: "冲突处理",
+                    sample: "之前在API接口定义上和前端同事有分歧。我通过画时序图梳理了业务流程，发现是我们对需求理解不一致。统一认知后，问题很快就解决了。"
+                },
+            ];
+            const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+
             return {
-                question: "能介绍一下你自己吗？",
-                sample_answer: "您好，我叫求职者，很荣幸参加面试...",
-                type: "personal",
-                display_type: "自我介绍"
+                question: fallback.question,
+                sample_answer: fallback.sample,
+                type: fallback.type,
+                display_type: fallback.display_type
             };
         }
     }

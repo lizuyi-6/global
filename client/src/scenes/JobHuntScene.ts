@@ -469,12 +469,13 @@ export class JobHuntScene extends Phaser.Scene {
         container.setDepth(10);
     }
 
-    private refreshContent(): void {
+    private refreshContent(preserveScroll: boolean = false): void {
+        const savedScrollY = preserveScroll ? this.scrollY : 0;
         this.mainContent.removeAll(true);
 
         switch (this.currentTab) {
             case 'jobs':
-                this.showJobList();
+                this.showJobList(savedScrollY);
                 break;
             case 'applications':
                 this.showApplications();
@@ -488,7 +489,7 @@ export class JobHuntScene extends Phaser.Scene {
         }
     }
 
-    private showJobList(): void {
+    private showJobList(restoreScrollY: number = 0): void {
         const jobs = jobHuntSystem.getJobPositions();
         const companies = jobHuntSystem.getCompanies();
         const { height } = this.getLayoutInfo();
@@ -507,20 +508,26 @@ export class JobHuntScene extends Phaser.Scene {
         this.mainContent.add(this.scrollContainer);
 
         // 创建遮罩
-        if (this.scrollMask) this.scrollMask.destroy();
-        this.scrollMask = this.add.graphics();
+        this.scrollMask = this.make.graphics({ x: 0, y: 0 }, false);
         this.scrollMask.fillStyle(0xffffff);
-        // mainContent 在 (1400, 760)，滚动区域从 -280 开始
+        // mainContent global pos is (1400, 760). Scroll start is -280 relative to that.
+        // So global Y start is 760 - 280 = 480.
+        // Wait, scrollAreaTop was -280.
+        // rect y = 760 + scrollAreaTop = 480.
         this.scrollMask.fillRect(1400 - 900, 760 + scrollAreaTop, 1800, scrollAreaHeight);
-        this.scrollMask.setVisible(false); // 隐藏遮罩图形本身
-        this.scrollContainer.setMask(this.scrollMask.createGeometryMask());
+
+        // Use BitmapMask instead of GeometryMask to avoid input blocking issues
+        const mask = new Phaser.Display.Masks.BitmapMask(this, this.scrollMask);
+        this.scrollContainer.setMask(mask);
 
         // 计算内容总高度
         const cardHeight = 240;
         const cardSpacing = 48;
         const totalContentHeight = jobs.length * (cardHeight + cardSpacing);
         this.maxScrollY = Math.max(0, totalContentHeight - scrollAreaHeight + 100);
-        this.scrollY = 0;
+        // 恢复滚动位置，而不是重置为 0
+        this.scrollY = Phaser.Math.Clamp(restoreScrollY, 0, this.maxScrollY);
+        this.scrollContainer.y = scrollAreaTop - this.scrollY;
 
         // 职位列表 - 显示所有职位
         jobs.forEach((job, index) => {
@@ -538,8 +545,8 @@ export class JobHuntScene extends Phaser.Scene {
             const cardColor = USER_PALETTE[index % USER_PALETTE.length];
             const bg = this.add.rectangle(0, 0, 1680, cardHeight, cardColor, 0.8); // Higher opacity for color pop
 
-            // Side accent or border? Let's just keep simple fill as requested.
-            // bg.setStrokeStyle(3, COLORS.primary, 0.3); // Remove stroke or match color
+            // Explicitly disable input on bg just in case
+            bg.disableInteractive();
 
             const shadow = this.add.rectangle(12, 12, 1680, cardHeight, 0x000000, 0.2); // Softer shadow
             cardContainer.add(shadow);
@@ -631,25 +638,18 @@ export class JobHuntScene extends Phaser.Scene {
 
             const applyBtnBg = this.add.rectangle(700, 50, 240, 88, 0xffffff, hasApplied ? 0.3 : 1);
             // if (!hasApplied) applyBtnBg.setStrokeStyle(0);
+            applyBtnBg.setName(`btn_apply_${job.id}`); // Name for debugging
 
             const applyBtnText = this.add.text(700, 50, btnText, {
                 fontSize: '30px',
                 fontFamily: FONTS.main,
-                color: hasApplied ? '#eeeeee' : '#000000', // Black text on white button
+                color: hasApplied ? '#eeeeee' : '#333333', // Black text on white button
                 fontStyle: 'bold'
             }).setOrigin(0.5);
-
-            // If applied, button is transparent white, text is white? 
-            // "hasApplied ? 0.3 : 1" -> 0.3 white bg. Text should be white.
-            // If active, white bg (1), text black.
 
             if (hasApplied) {
                 applyBtnText.setColor('#ffffff');
                 applyBtnBg.setFillStyle(0xffffff, 0.3);
-            } else {
-                applyBtnText.setColor(Phaser.Display.Color.IntegerToColor(cardColor).rgba); // Use the card's color for text? Or just black?
-                // Actually black or dark gray is cleaner on white.
-                applyBtnText.setColor('#333333');
             }
 
             cardContainer.add([applyBtnBg, applyBtnText]);
@@ -665,6 +665,7 @@ export class JobHuntScene extends Phaser.Scene {
                     this.tweens.add({ targets: cardContainer, scaleX: 1, scaleY: 1, duration: 200, ease: 'Cubic.out' });
                 });
                 applyBtnBg.on('pointerdown', () => {
+                    console.log('Apply button clicked for job:', job.id);
                     this.handleApplyJob(job);
                 });
             }
@@ -999,6 +1000,18 @@ export class JobHuntScene extends Phaser.Scene {
             });
         } else {
             notificationManager.warning('投递失败', result.message, 5000);
+        }
+    }
+
+    private handleApplyJob(job: JobPosition): void {
+        const result = jobHuntSystem.applyJob(job.id);
+
+        if (result.success) {
+            notificationManager.success('投递成功', `已向 ${job.companyId} 投递简历`, 3000);
+            // 保持当前滚动位置刷新内容
+            this.refreshContent(true);
+        } else {
+            notificationManager.warning('投递失败', result.message, 3000);
         }
     }
 

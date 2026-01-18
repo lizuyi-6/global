@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { jobHuntSystem, type PlayerResume } from '../JobHuntSystem';
-import { COLORS, FONTS, createStyledButton, Layout } from '../UIConfig';
+import { COLORS, createStyledButton, FONTS, Layout } from '../UIConfig';
 
 /**
  * 简历编辑场景 - 现代风格 (响应式布局)
@@ -42,7 +42,7 @@ export class ResumeEditScene extends Phaser.Scene {
 
     private createBackground(): void {
         const L = this.layout;
-        
+
         // 深空渐变背景
         const bg = this.add.graphics();
         bg.fillGradientStyle(0x030308, 0x030308, 0x0a0a1a, 0x0a0a1a, 1);
@@ -50,20 +50,20 @@ export class ResumeEditScene extends Phaser.Scene {
 
         // 现代粒子星空系统
         this.createModernStarfield();
-        
+
         // 流动粒子
         this.createFlowingParticles();
-        
+
         // 网格背景 - 更精细
         this.createGridBackground();
-        
+
         // 现代光晕效果
         this.createModernGlow();
     }
 
     private createModernStarfield(): void {
         const L = this.layout;
-        
+
         // 第一层: 远处微小星点 - 静态背景
         const farStars = this.add.graphics();
         farStars.setAlpha(0.6);
@@ -74,13 +74,13 @@ export class ResumeEditScene extends Phaser.Scene {
             farStars.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.2, 0.5));
             farStars.fillCircle(x, y, size);
         }
-        
+
         // 第二层: 中距离星点 - 微微闪烁
         for (let i = 0; i < 50; i++) {
             const x = Phaser.Math.Between(0, L.width);
             const y = Phaser.Math.Between(0, L.height);
             const star = this.add.circle(x, y, Phaser.Math.FloatBetween(1, 1.5), 0xffffff, 0.4);
-            
+
             this.tweens.add({
                 targets: star,
                 alpha: { from: 0.4, to: 0.1 },
@@ -90,7 +90,7 @@ export class ResumeEditScene extends Phaser.Scene {
                 ease: 'Sine.easeInOut'
             });
         }
-        
+
         // 第三层: 近处亮星 - 带光芒
         for (let i = 0; i < 8; i++) {
             const x = Phaser.Math.Between(100, L.width - 100);
@@ -98,7 +98,7 @@ export class ResumeEditScene extends Phaser.Scene {
             this.createGlowingStar(x, y);
         }
     }
-    
+
     private createGlowingStar(x: number, y: number): void {
         // 外层光晕
         const glow = this.add.graphics();
@@ -106,7 +106,7 @@ export class ResumeEditScene extends Phaser.Scene {
         glow.fillCircle(x, y, 20);
         glow.fillStyle(0x6366f1, 0.05);
         glow.fillCircle(x, y, 35);
-        
+
         // 十字光芒
         const rays = this.add.graphics();
         rays.lineStyle(1, 0xffffff, 0.3);
@@ -115,10 +115,10 @@ export class ResumeEditScene extends Phaser.Scene {
         rays.lineStyle(1, 0xffffff, 0.15);
         rays.lineBetween(x - 8, y - 8, x + 8, y + 8);
         rays.lineBetween(x + 8, y - 8, x - 8, y + 8);
-        
+
         // 核心亮点
         const core = this.add.circle(x, y, 2, 0xffffff, 0.9);
-        
+
         // 脉冲动画
         this.tweens.add({
             targets: [glow, rays],
@@ -133,7 +133,7 @@ export class ResumeEditScene extends Phaser.Scene {
 
     private createFlowingParticles(): void {
         const L = this.layout;
-        
+
         // 创建多组上升粒子
         for (let i = 0; i < 30; i++) {
             const particle = this.add.circle(
@@ -143,7 +143,7 @@ export class ResumeEditScene extends Phaser.Scene {
                 0x6366f1,
                 Phaser.Math.FloatBetween(0.1, 0.4)
             );
-            
+
             // 上升+漂移动画
             this.tweens.add({
                 targets: particle,
@@ -160,7 +160,7 @@ export class ResumeEditScene extends Phaser.Scene {
                 }
             });
         }
-        
+
         // 浮动光点粒子 - 更大更柔和
         for (let i = 0; i < 15; i++) {
             const size = Phaser.Math.Between(40, 100);
@@ -171,7 +171,7 @@ export class ResumeEditScene extends Phaser.Scene {
                 [0x6366f1, 0x8b5cf6, 0x06b6d4, 0x10b981][Phaser.Math.Between(0, 3)],
                 Phaser.Math.FloatBetween(0.01, 0.03)
             );
-            
+
             // 随机漂浮
             this.tweens.add({
                 targets: floater,
@@ -189,26 +189,26 @@ export class ResumeEditScene extends Phaser.Scene {
 
     private createModernGlow(): void {
         const L = this.layout;
-        
+
         // 左上角主光源 - indigo
         const topLeftGlow = this.add.graphics();
         topLeftGlow.fillStyle(0x6366f1, 0.12);
         topLeftGlow.fillCircle(L.x(200), L.y(100), L.size(400));
         topLeftGlow.fillStyle(0x6366f1, 0.06);
         topLeftGlow.fillCircle(L.x(200), L.y(100), L.size(600));
-        
+
         // 右下角辅光源 - cyan
         const bottomRightGlow = this.add.graphics();
         bottomRightGlow.fillStyle(0x06b6d4, 0.08);
         bottomRightGlow.fillCircle(L.x(2200), L.y(1300), L.size(500));
         bottomRightGlow.fillStyle(0x06b6d4, 0.04);
         bottomRightGlow.fillCircle(L.x(2200), L.y(1300), L.size(700));
-        
+
         // 中心点缀 - purple
         const centerGlow = this.add.graphics();
         centerGlow.fillStyle(0x8b5cf6, 0.05);
         centerGlow.fillCircle(L.centerX, L.centerY, L.size(600));
-        
+
         // 呼吸动画
         this.tweens.add({
             targets: [topLeftGlow, bottomRightGlow, centerGlow],
@@ -289,10 +289,10 @@ export class ResumeEditScene extends Phaser.Scene {
 
     private createFormContent(): void {
         const L = this.layout;
-        
+
         // 检测是否需要单列布局（屏幕较窄时）
         const isSingleColumn = L.width < 1600;
-        
+
         // 响应式布局参数
         const contentWidth = isSingleColumn ? L.width * 0.85 : L.width * 0.42;
         const leftX = isSingleColumn ? L.centerX : L.x(560);
@@ -300,7 +300,7 @@ export class ResumeEditScene extends Phaser.Scene {
         const fieldWidth = isSingleColumn ? Math.min(600, L.width * 0.7) : L.size(440);
         const wideFieldWidth = isSingleColumn ? Math.min(800, L.width * 0.85) : L.size(880);
         const spacing = L.size(isSingleColumn ? 140 : 170);
-        
+
         let leftY = L.y(isSingleColumn ? 240 : 280);
         let rightY = L.y(280);
 
@@ -461,92 +461,134 @@ export class ResumeEditScene extends Phaser.Scene {
 
     private showInputDialog(title: string, currentValue: string, onSubmit: (value: string) => void): void {
         const L = this.layout;
-        const overlay = this.add.rectangle(L.centerX, L.centerY, L.width, L.height, 0x000000, 0.85);
-        overlay.setDepth(1000);
-        overlay.setInteractive();
 
-        const dialog = this.add.container(L.centerX, L.centerY);
-        dialog.setDepth(1001);
+        // 使用直接 DOM 操作而非 Phaser.DOM，避免缩放导致的错位问题
+        const div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100vw';
+        div.style.height = '100vh';
+        div.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'center';
+        div.style.alignItems = 'center';
+        div.style.zIndex = '10000';
+        div.style.backdropFilter = 'blur(8px)';
 
-        const dialogWidth = Math.min(L.size(840), L.width * 0.9);
-        const dialogHeight = L.size(360);
-        const dialogBg = this.add.graphics();
-        dialogBg.fillStyle(COLORS.bgPanel, 0.98);
-        dialogBg.fillRoundedRect(-dialogWidth / 2, -dialogHeight / 2, dialogWidth, dialogHeight, L.size(24));
-        dialogBg.lineStyle(2, 0xffffff, 0.08);
-        dialogBg.strokeRoundedRect(-dialogWidth / 2, -dialogHeight / 2, dialogWidth, dialogHeight, L.size(24));
+        // 响应式尺寸计算
+        const isMobile = window.innerWidth < 1000;
+        const width = isMobile ? '90%' : '680px';
+        const fontSize = isMobile ? '20px' : '26px';
 
-        const dialogTitle = this.add.text(0, -dialogHeight / 2 + L.size(70), `编辑${title}`, {
-            fontSize: L.width < 1600 ? '28px' : '36px',
-            fontFamily: FONTS.main,
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        dialog.add([dialogBg, dialogTitle]);
-
-        // HTML 输入框 - 响应式尺寸
-        const inputWidth = Math.min(680, L.width * 0.7);
-        const inputHTML = `
-            <div style="width: ${L.width}px; height: ${L.height}px; display: flex; justify-content: center; align-items: center; pointer-events: none;">
-                <div style="pointer-events: auto; display: flex; flex-direction: column; gap: 24px; margin-top: 100px;">
-                    <input type="text" id="dialogInput" value="${currentValue}"
-                           style="width: ${inputWidth}px; padding: 20px 28px; font-size: ${L.width < 1600 ? '24' : '30'}px;
-                                  background: #0d0d12; color: #ffffff;
-                                  border: 2px solid rgba(255,255,255,0.15);
-                                  border-radius: 16px; outline: none;
-                                  font-family: -apple-system, sans-serif;" />
-                    <div style="display: flex; gap: 20px; justify-content: center;">
-                        <button id="dialogSubmit" style="padding: 16px 48px; font-size: ${L.width < 1600 ? '24' : '30'}px;
-                                background: #6366f1; color: #ffffff;
-                                border: none; border-radius: 16px; cursor: pointer;
-                                font-weight: 500;">确定</button>
-                        <button id="dialogCancel" style="padding: 16px 48px; font-size: ${L.width < 1600 ? '24' : '30'}px;
-                                background: #27272a; color: #a1a1aa;
-                                border: 2px solid rgba(255,255,255,0.1);
-                                border-radius: 16px; cursor: pointer;">取消</button>
-                    </div>
+        div.innerHTML = `
+            <div style="
+                background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
+                padding: 40px;
+                border-radius: 24px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+                width: ${width};
+                max-width: 90vw;
+                animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            ">
+                <style>
+                    @keyframes slideIn {
+                        from { transform: translateY(20px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                </style>
+                <div style="font-size: ${isMobile ? '24px' : '32px'}; color: #fff; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                    编辑${title}
+                </div>
+                <input type="text" id="dialogInput" value="${currentValue}" 
+                    style="
+                        width: 100%;
+                        padding: 20px;
+                        font-size: ${fontSize};
+                        background: rgba(0, 0, 0, 0.3);
+                        color: #fff;
+                        border: 2px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 16px;
+                        outline: none;
+                        transition: all 0.2s;
+                        box-sizing: border-box;
+                    "
+                    onfocus="this.style.borderColor = '#6366f1'; this.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';"
+                    onblur="this.style.borderColor = 'rgba(255, 255, 255, 0.1)'; this.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'"
+                />
+                <div style="display: flex; gap: 16px; justify-content: center; margin-top: 10px;">
+                    <button id="dialogSubmit" style="
+                        flex: 1;
+                        padding: 18px;
+                        font-size: ${fontSize};
+                        background: #6366f1;
+                        color: #fff;
+                        border: none;
+                        border-radius: 16px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='#818cf8'" onmouseout="this.style.background='#6366f1'">确定</button>
+                    <button id="dialogCancel" style="
+                        flex: 1;
+                        padding: 18px;
+                        font-size: ${fontSize};
+                        background: transparent;
+                        color: #a1a1aa;
+                        border: 2px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 16px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.borderColor='#fff';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='#a1a1aa'">取消</button>
                 </div>
             </div>
         `;
 
-        const domElement = this.add.dom(0, 0).createFromHTML(inputHTML);
-        domElement.setOrigin(0, 0);
-        domElement.setDepth(1002);
+        document.body.appendChild(div);
+
+        const input = div.querySelector('#dialogInput') as HTMLInputElement;
+        const submitBtn = div.querySelector('#dialogSubmit');
+        const cancelBtn = div.querySelector('#dialogCancel');
 
         const cleanup = () => {
-            overlay.destroy();
-            dialog.destroy();
-            domElement.destroy();
+            div.style.opacity = '0';
+            setTimeout(() => {
+                if (document.body.contains(div)) {
+                    document.body.removeChild(div);
+                }
+            }, 200);
         };
 
-        this.time.delayedCall(50, () => {
-            const input = document.getElementById('dialogInput') as HTMLInputElement;
-            const submitBtn = document.getElementById('dialogSubmit');
-            const cancelBtn = document.getElementById('dialogCancel');
+        if (input) {
+            input.focus();
+            input.select();
+        }
 
-            if (input) {
-                input.focus();
-                input.select();
+        submitBtn?.addEventListener('click', () => {
+            if (input && input.value.trim()) {
+                onSubmit(input.value.trim());
             }
+            cleanup();
+        });
 
-            submitBtn?.addEventListener('click', () => {
-                if (input && input.value.trim()) {
-                    onSubmit(input.value.trim());
-                }
+        cancelBtn?.addEventListener('click', cleanup);
+
+        input?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (input.value.trim()) onSubmit(input.value.trim());
                 cleanup();
-            });
+            } else if (e.key === 'Escape') {
+                cleanup();
+            }
+        });
 
-            cancelBtn?.addEventListener('click', cleanup);
-
-            input?.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    if (input.value.trim()) onSubmit(input.value.trim());
-                    cleanup();
-                } else if (e.key === 'Escape') {
-                    cleanup();
-                }
-            });
+        // 点击背景关闭
+        div.addEventListener('click', (e) => {
+            if (e.target === div) cleanup();
         });
     }
 
@@ -789,7 +831,7 @@ export class ResumeEditScene extends Phaser.Scene {
         const btnY = isSingleColumn ? L.height - L.size(100) : L.y(1340);
         const btnWidth = isSingleColumn ? Math.min(350, L.width * 0.7) : L.size(400);
         const btnHeight = isSingleColumn ? L.size(80) : L.size(96);
-        
+
         const btn = createStyledButton(this, L.centerX, btnY, btnWidth, btnHeight, '开始求职 →', () => {
             this.saveResume();
         }, 'primary');

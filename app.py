@@ -79,6 +79,7 @@ class InterviewQuestionRequest(BaseModel):
     job_info: dict
     round_info: dict
     conversation_history: List[dict] = []
+    action: Optional[str] = "full"  # 'full' or 'analyze'
 
 # ========== FastAPI 端点 ==========
 
@@ -120,7 +121,8 @@ async def generate_interview_question(request: InterviewQuestionRequest):
             company_info=request.company_info,
             job_info=request.job_info,
             round_info=request.round_info,
-            conversation_history=request.conversation_history
+            conversation_history=request.conversation_history,
+            action=request.action
         )
         return result
     except Exception as e:
@@ -131,6 +133,44 @@ async def generate_interview_question(request: InterviewQuestionRequest):
             "type": "behavioral",
             "display_type": "职位理解"
         }
+
+# 流式输出版本 - 防止超时
+from fastapi.responses import StreamingResponse
+import asyncio
+
+@fastapi_app.post("/api/interview/question/stream")
+async def generate_interview_question_stream(request: InterviewQuestionRequest):
+    """AI 生成面试问题 - 流式输出版本"""
+    
+    async def generate():
+        if not qwen_service:
+            fallback = '{"question": "请简单介绍一下你自己。", "sample_answer": "面试官您好...", "type": "personal", "display_type": "自我介绍"}'
+            yield f"data: {fallback}\n\n"
+            return
+        
+        try:
+            result = await qwen_service.generate_interview_question_stream(
+                player_info=request.player_info,
+                company_info=request.company_info,
+                job_info=request.job_info,
+                round_info=request.round_info,
+                conversation_history=request.conversation_history
+            )
+            async for chunk in result:
+                yield f"data: {chunk}\n\n"
+        except Exception as e:
+            print(f"流式生成面试问题失败: {e}")
+            fallback = '{"question": "你为什么想加入我们公司？", "sample_answer": "贵公司的发展前景和企业文化让我非常感兴趣...", "type": "behavioral", "display_type": "求职动机"}'
+            yield f"data: {fallback}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
 
 @fastapi_app.get("/api/status")
 async def root():

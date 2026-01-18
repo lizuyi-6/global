@@ -554,9 +554,9 @@
               <div
                 class="h-10 border-b border-[#5A4A42]/5 flex items-center px-4 justify-between bg-white/50 backdrop-blur-sm">
                 <div class="flex gap-4">
-                  <span
-                    class="text-[10px] text-[#374151] font-semibold cursor-pointer border-b-2 border-transparent hover:border-[#D1D5DB] transition-all">OFFICE</span>
-                  <span
+                  <span id="mock-tab-office"
+                    class="text-[10px] text-[#374151] font-semibold cursor-pointer border-b-2 border-transparent transition-all">OFFICE</span>
+                  <span id="mock-tab-meeting"
                     class="text-[10px] text-[#6366F1] font-bold border-b-2 border-[#6366F1] pb-0.5 cursor-pointer">MEETING</span>
                   <span
                     class="text-[10px] text-[#6B7280] hover:text-[#374151] cursor-pointer transition-colors">EMAIL</span>
@@ -565,7 +565,8 @@
               </div>
 
               <!-- Mock Dialogue -->
-              <div class="flex-1 flex flex-col items-center justify-center p-8 relative z-0">
+              <div id="mock-content-area"
+                class="flex-1 flex flex-col items-center justify-center p-8 relative z-0 transition-opacity duration-500">
                 <div class="w-16 h-16 rounded-full border-2 border-[#E9D5FF] p-1 mb-4 animate-float bg-white">
                   <div
                     class="w-full h-full rounded-full bg-gradient-to-b from-[#F3E8FF] to-[#E9D5FF] flex items-center justify-center overflow-hidden">
@@ -586,8 +587,8 @@
 
                   <!-- Response Options -->
                   <div class="mt-4 flex gap-2">
-                    <button
-                      class="flex-1 py-1.5 rounded bg-[#F3F4F6] border border-[#E5E7EB] text-[10px] text-[#4B5563] font-medium hover:bg-[#EEF2FF] hover:border-[#C7D2FE] hover:text-[#4F46E5] transition-all shadow-sm">Accept
+                    <button id="mock-btn-accept"
+                      class="flex-1 py-1.5 rounded bg-[#F3F4F6] border border-[#E5E7EB] text-[10px] text-[#4B5563] font-medium transition-all shadow-sm">Accept
                       Offer</button>
                     <button
                       class="flex-1 py-1.5 rounded bg-[#F3F4F6] border border-[#E5E7EB] text-[10px] text-[#4B5563] font-medium hover:bg-[#FFF1F2] hover:border-[#FECDD3] hover:text-[#E11D48] transition-all shadow-sm">Decline</button>
@@ -974,8 +975,8 @@
         };
 
         const typeWriterTexts = {
-          "en": "We've noticed your performance in the last sprint was... exceptional. The board is considering you for the Senior Lead position...",
-          "zh-CN": "我们注意到你在上个冲刺中的表现……非常出色。董事会正在考虑提拔你为高级主管……"
+          "en": "David: Hey, I've been watching your commits on the 'SkyEye' project.\n\nCode quality is exceptional, especially that concurrency module.\n\nThe board just mentioned your name. They're considering... interested in a chat about the Senior Lead position? The salary bump would be significant.",
+          "zh-CN": "经理 David: 嘿，我一直在关注你最近在‘天眼’项目上的代码提交。\n\n质量令人印象深刻，尤其是那个并发模块的处理简直神来之笔。\n\n董事会刚才特意提到了你的名字，他们正在认真考虑……有没有兴趣聊聊【高级技术主管】的职位？\n\n这次的薪资涨幅……会非常可观。"
         };
 
         const langSelector = document.getElementById('language-selector');
@@ -1020,13 +1021,18 @@
           // Simple interval based approach to allow easy resetting
           typeWriterInterval = setInterval(() => {
             if (charIndex < textToType.length) {
-              el.innerHTML += textToType.charAt(charIndex);
+              const char = textToType.charAt(charIndex);
+              if (char === '\n') {
+                el.innerHTML += '<br/>';
+              } else {
+                el.innerHTML += char;
+              }
               charIndex++;
             } else {
               clearInterval(typeWriterInterval);
               document.getElementById('cursor')?.classList.add('cursor-blink');
             }
-          }, 30);
+          }, 50); // Slowed down to 50ms for realism
         }
 
         // Initialize
